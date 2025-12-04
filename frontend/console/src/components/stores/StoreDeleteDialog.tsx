@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from '@/i18n/hooks'
 import { storesApi, Store, StoreTransactionInfo } from '@/api/stores'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@sofiapos/ui'
 
 interface StoreDeleteDialogProps {
   store: Store

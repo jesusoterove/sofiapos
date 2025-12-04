@@ -5,7 +5,7 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/AuthContext'
-import { useTheme } from '@/contexts/ThemeContext'
+import { useTheme } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 import { toast } from 'react-toastify'
 

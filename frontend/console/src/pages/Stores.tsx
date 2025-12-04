@@ -1,14 +1,14 @@
 /**
  * Stores management page.
  */
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { storesApi, Store } from '@/api/stores'
 import { StoreForm } from '@/components/stores/StoreForm'
 import { StoreDeleteDialog } from '@/components/stores/StoreDeleteDialog'
-import { Button } from '@/components/ui/Button'
+import { Button, DataGrid, DataGridColumn } from '@sofiapos/ui'
 
 export function Stores() {
   const { t } = useTranslation()
@@ -19,7 +19,7 @@ export function Stores() {
   const [activeOnly, setActiveOnly] = useState(false)
 
   // Fetch stores
-  const { data: stores = [], isLoading } = useQuery({
+  const { data: stores = [], isLoading, error } = useQuery({
     queryKey: ['stores', activeOnly],
     queryFn: () => storesApi.list(activeOnly),
   })
@@ -57,6 +57,116 @@ export function Stores() {
     setEditingStore(null)
   }
 
+  // Define columns for DataGrid
+  const columns = useMemo<DataGridColumn<Store>[]>(() => [
+    {
+      id: 'name',
+      field: 'name',
+      headerName: t('stores.name') || 'Name',
+      sortable: true,
+      filterable: true,
+      cellRenderer: ({ value }) => (
+        <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      id: 'code',
+      field: 'code',
+      headerName: t('stores.code') || 'Code',
+      sortable: true,
+      filterable: true,
+      cellRenderer: ({ value }) => (
+        <span style={{ color: 'var(--color-text-secondary)' }}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      id: 'address',
+      field: 'address',
+      headerName: t('stores.address') || 'Address',
+      sortable: true,
+      filterable: true,
+      cellRenderer: ({ value }) => (
+        <span style={{ color: 'var(--color-text-secondary)' }}>
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'phone',
+      field: 'phone',
+      headerName: t('stores.phone') || 'Phone',
+      sortable: true,
+      filterable: true,
+      cellRenderer: ({ value }) => (
+        <span style={{ color: 'var(--color-text-secondary)' }}>
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'email',
+      field: 'email',
+      headerName: t('stores.email') || 'Email',
+      sortable: true,
+      filterable: true,
+      cellRenderer: ({ value }) => (
+        <span style={{ color: 'var(--color-text-secondary)' }}>
+          {value || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'is_active',
+      field: 'is_active',
+      headerName: t('stores.status') || 'Status',
+      sortable: true,
+      filterable: true,
+      cellRenderer: ({ value }) => (
+        <span
+          className={`px-2 py-1 text-xs rounded-full ${
+            value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+          }`}
+        >
+          {value
+            ? t('stores.active') || 'Active'
+            : t('stores.inactive') || 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      headerName: t('common.actions') || 'Actions',
+      sortable: false,
+      filterable: false,
+      cellRenderer: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleEdit(row)
+            }}
+            className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+          >
+            {t('common.edit') || 'Edit'}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDelete(row)
+            }}
+            className="text-red-600 hover:text-red-900 text-sm font-medium"
+          >
+            {t('common.delete') || 'Delete'}
+          </button>
+        </div>
+      ),
+    },
+  ], [t])
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -89,93 +199,30 @@ export function Stores() {
         </label>
       </div>
 
-      {/* Stores Table */}
-      {isLoading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary-500)' }}></div>
-          <p className="mt-4" style={{ color: 'var(--color-text-secondary)' }}>
-            {t('common.loading') || 'Loading...'}
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800 font-semibold">Error loading stores</p>
+          <p className="text-red-600 text-sm mt-1">
+            {error instanceof Error ? error.message : 'Unknown error occurred'}
           </p>
-        </div>
-      ) : stores.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <p style={{ color: 'var(--color-text-secondary)' }}>
-            {t('stores.noStores') || 'No stores found'}
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y" style={{ borderColor: 'var(--color-border-default)' }}>
-            <thead style={{ backgroundColor: 'var(--color-border-light)' }}>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
-                  {t('stores.name') || 'Name'}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
-                  {t('stores.code') || 'Code'}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
-                  {t('stores.email') || 'Email'}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
-                  {t('stores.status') || 'Status'}
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
-                  {t('common.actions') || 'Actions'}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y" style={{ borderColor: 'var(--color-border-default)' }}>
-              {stores.map((store) => (
-                <tr key={store.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                      {store.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                      {store.code}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                      {store.email || '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        store.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {store.is_active
-                        ? t('stores.active') || 'Active'
-                        : t('stores.inactive') || 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleEdit(store)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        {t('common.edit') || 'Edit'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(store)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        {t('common.delete') || 'Delete'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
+
+      {/* DataGrid */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <DataGrid
+          data={stores}
+          columns={columns}
+          enableSorting
+          enableFiltering
+          enablePagination
+          pageSize={10}
+          loading={isLoading}
+          emptyMessage={t('stores.noStores') || 'No stores found'}
+          getRowClassName={(row) => (row.is_active ? '' : 'opacity-60')}
+        />
+      </div>
 
       {/* Store Form Modal */}
       {isFormOpen && (
@@ -198,4 +245,3 @@ export function Stores() {
     </div>
   )
 }
-

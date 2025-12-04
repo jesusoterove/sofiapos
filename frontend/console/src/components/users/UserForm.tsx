@@ -7,7 +7,7 @@ import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { usersApi, User, UserCreate, UserUpdate, Role } from '@/api/users'
 import { storesApi, Store } from '@/api/stores'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@sofiapos/ui'
 
 interface UserFormProps {
   user?: User | null

@@ -2,7 +2,7 @@
  * Header component for the console application.
  */
 import { LanguageSwitcher } from '../ui/LanguageSwitcher'
-import { ThemeSwitcher } from '../ui/ThemeSwitcher'
+import { ThemeSwitcher } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'

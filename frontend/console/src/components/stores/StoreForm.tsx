@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { storesApi, Store, StoreCreate, StoreUpdate } from '@/api/stores'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@sofiapos/ui'
 
 interface StoreFormProps {
   store?: Store | null

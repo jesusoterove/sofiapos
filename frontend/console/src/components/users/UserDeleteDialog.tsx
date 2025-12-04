@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from '@/i18n/hooks'
 import { usersApi, User, UserTransactionInfo } from '@/api/users'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@sofiapos/ui'
 
 interface UserDeleteDialogProps {
   user: User

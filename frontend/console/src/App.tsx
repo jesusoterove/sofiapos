@@ -5,9 +5,9 @@ import 'react-toastify/dist/ReactToastify.css'
 import { router } from './app/router'
 import { queryClient } from './app/queryClient'
 import { AuthProvider } from './contexts/AuthContext'
-import { ThemeProvider } from './contexts/ThemeContext'
+import { ThemeProvider } from '@sofiapos/ui'
+// Styles are automatically imported from @sofiapos/ui
 import { loadCustomHooks } from './hooks-system/loader'
-import './styles/theme.css'
 
 // Load custom hooks
 loadCustomHooks()

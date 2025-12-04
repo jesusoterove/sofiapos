@@ -2,7 +2,7 @@
  * Theme utility functions.
  */
 
-import { ThemeColors } from '@/contexts/ThemeContext'
+import { ThemeColors } from '@sofiapos/ui'
 
 /**
  * Get a theme color by key.

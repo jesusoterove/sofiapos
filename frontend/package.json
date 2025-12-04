@@ -1,0 +1,19 @@
+{
+  "name": "sofiapos-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "console",
+    "pos",
+    "sofia-ui"
+  ],
+  "scripts": {
+    "build:ui": "cd sofia-ui && npm run build",
+    "dev:ui": "cd sofia-ui && npm run dev",
+    "build:console": "cd console && npm run build",
+    "dev:console": "cd console && npm run dev",
+    "build:pos": "cd pos && npm run build",
+    "dev:pos": "cd pos && npm run dev"
+  }
+}
+

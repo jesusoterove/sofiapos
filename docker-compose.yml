@@ -49,18 +49,21 @@ services:
 
   console:
     build:
-      context: ./frontend/console
-      dockerfile: Dockerfile
+      context: ./frontend
+      dockerfile: console/Dockerfile
+      target: development
     volumes:
-      - ./frontend/console:/app
-      - /app/node_modules
+      - ./frontend/console:/app/console
+      - ./frontend/sofia-ui:/app/sofia-ui
+      - /app/console/node_modules
+      - /app/sofia-ui/node_modules
     environment:
       VITE_API_URL: http://api:8000
     ports:
       - "3001:3000"
     depends_on:
       - api
-    command: npm run dev
+    command: npm run dev -- --host 0.0.0.0
 
 volumes:
   sofiapos_db:
