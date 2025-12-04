@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { Dashboard } from '@/pages/Dashboard'
 import { Login } from '@/pages/Login'
 import { Stores } from '@/pages/Stores'
+import { Users } from '@/pages/Users'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Root route
@@ -47,7 +48,7 @@ const storesRoute = createRoute({
 const usersRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/users',
-  component: () => <div className="p-6"><h1 className="text-2xl font-bold">Users</h1></div>,
+  component: Users,
 })
 
 // Products route - protected
