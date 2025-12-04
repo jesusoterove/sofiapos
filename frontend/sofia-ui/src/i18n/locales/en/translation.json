@@ -1,0 +1,24 @@
+{
+  "common": {
+    "yes": "Yes",
+    "no": "No"
+  },
+  "pagination": {
+    "firstPage": "First page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "lastPage": "Last page",
+    "pageInfo": "Page {{current}} of {{total}}",
+    "rowsPerPage": "Rows per page",
+    "showingRows": "Showing {{start}} to {{end}} of {{total}} rows"
+  },
+  "dataGrid": {
+    "showFilters": "Show Filters",
+    "hideFilters": "Hide Filters",
+    "clearFilters": "Clear Filters",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "filterPlaceholder": "Filter {{column}}..."
+  }
+}
+

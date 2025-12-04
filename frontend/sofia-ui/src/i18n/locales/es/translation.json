@@ -1,0 +1,24 @@
+{
+  "common": {
+    "yes": "Sí",
+    "no": "No"
+  },
+  "pagination": {
+    "firstPage": "Primera página",
+    "previousPage": "Página anterior",
+    "nextPage": "Página siguiente",
+    "lastPage": "Última página",
+    "pageInfo": "Página {{current}} de {{total}}",
+    "rowsPerPage": "Filas por página",
+    "showingRows": "Mostrando {{start}} a {{end}} de {{total}} filas"
+  },
+  "dataGrid": {
+    "showFilters": "Mostrar Filtros",
+    "hideFilters": "Ocultar Filtros",
+    "clearFilters": "Limpiar Filtros",
+    "loading": "Cargando...",
+    "noData": "No hay datos disponibles",
+    "filterPlaceholder": "Filtrar {{column}}..."
+  }
+}
+

@@ -15,6 +15,31 @@ import {
   ColumnFiltersState,
   VisibilityState,
 } from '@tanstack/react-table'
+import {
+  TextCellRenderer,
+  NumberCellRenderer,
+  YesNoCellRenderer,
+  DateCellRenderer,
+  DateTimeCellRenderer,
+  TimeCellRenderer,
+  CheckboxCellRenderer,
+} from './cells'
+import { DataGridPagination } from './DataGridPagination'
+import { useTranslation } from '../i18n/hooks'
+
+export type CellRendererType = 'string' | 'number' | 'money' | 'date' | 'datetime' | 'time' | 'checkbox' | 'yesno'
+
+export interface CellRendererOptions {
+  align?: 'left' | 'center' | 'right'
+  decPlaces?: number // For NumberCellRenderer and money type
+  dateFormat?: 'short' | 'medium' | 'long' | 'full' | string // For DateCellRenderer
+  dateTimeFormat?: 'short' | 'medium' | 'long' | 'full' | string // For DateTimeCellRenderer
+  timeFormat?: 'short' | 'medium' | 'long' | string // For TimeCellRenderer
+  prefix?: string // For NumberCellRenderer (e.g., currency symbol)
+  suffix?: string // For NumberCellRenderer
+  disabled?: boolean // For CheckboxCellRenderer
+  onChange?: (checked: boolean) => void // For CheckboxCellRenderer
+}
 
 export interface DataGridColumn<T> {
   id?: string
@@ -35,6 +60,8 @@ export interface DataGridColumn<T> {
   enableSorting?: boolean
   enableColumnFilter?: boolean
   size?: number
+  type?: CellRendererType
+  cellRendererOptions?: CellRendererOptions
 }
 
 export interface DataGridProps<T> {
@@ -82,7 +109,7 @@ export function DataGrid<T extends Record<string, any>>({
   data,
   columns,
   enableSorting = true,
-  enableFiltering = true,
+  enableFiltering = false,
   showFiltersByDefault = false,
   enablePagination = true,
   pageSize = 10,
@@ -94,7 +121,7 @@ export function DataGrid<T extends Record<string, any>>({
   showRowNumbers = false,
   getRowClassName,
   loading = false,
-  emptyMessage = 'No data available',
+  emptyMessage,
   height,
   compact = false,
   className = '',
@@ -104,6 +131,7 @@ export function DataGrid<T extends Record<string, any>>({
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(defaultColumnVisibility)
   const [rowSelectionState, setRowSelectionState] = React.useState<Record<string, boolean>>({})
   const [showFilters, setShowFilters] = React.useState<boolean>(showFiltersByDefault)
+  const { t } = useTranslation()
 
   // Transform columns to TanStack Table format
   const tableColumns = useMemo(() => {
@@ -123,6 +151,138 @@ export function DataGrid<T extends Record<string, any>>({
 
     // Transform data grid columns
     columns.forEach((col) => {
+      // Determine default cell renderer based on type property or value type if not provided
+      let defaultCellRenderer: ((params: { value: any; row: T; column: DataGridColumn<T> }) => React.ReactNode) | undefined
+      const options = col.cellRendererOptions || {}
+      
+      if (!col.cellRenderer && !col.cell) {
+        // If type is explicitly provided, use it
+        if (col.type) {
+          switch (col.type) {
+            case 'string':
+              defaultCellRenderer = ({ value }) => <TextCellRenderer value={value} align={options.align} />
+              break
+            case 'number':
+              defaultCellRenderer = ({ value }) => (
+                <NumberCellRenderer 
+                  value={value} 
+                  align={options.align}
+                  decPlaces={options.decPlaces}
+                  prefix={options.prefix}
+                  suffix={options.suffix}
+                />
+              )
+              break
+            case 'money':
+              defaultCellRenderer = ({ value }) => (
+                <NumberCellRenderer 
+                  value={value} 
+                  align={options.align || 'right'}
+                  decPlaces={options.decPlaces !== undefined ? options.decPlaces : 2}
+                  prefix={options.prefix}
+                  suffix={options.suffix}
+                />
+              )
+              break
+            case 'date':
+              defaultCellRenderer = ({ value }) => (
+                <DateCellRenderer 
+                  value={value} 
+                  format={options.dateFormat}
+                  align={options.align}
+                />
+              )
+              break
+            case 'datetime':
+              defaultCellRenderer = ({ value }) => (
+                <DateTimeCellRenderer 
+                  value={value} 
+                  format={options.dateTimeFormat}
+                  align={options.align}
+                />
+              )
+              break
+            case 'time':
+              defaultCellRenderer = ({ value }) => (
+                <TimeCellRenderer 
+                  value={value} 
+                  format={options.timeFormat}
+                  align={options.align}
+                />
+              )
+              break
+            case 'checkbox':
+              defaultCellRenderer = ({ value }) => (
+                <CheckboxCellRenderer 
+                  value={value} 
+                  align={options.align}
+                  disabled={options.disabled}
+                  onChange={options.onChange}
+                />
+              )
+              break
+            case 'yesno':
+              defaultCellRenderer = ({ value }) => (
+                <YesNoCellRenderer 
+                  value={value} 
+                  align={options.align}
+                />
+              )
+              break
+          }
+        } else {
+          // Try to infer cell renderer from first data row
+          if (data.length > 0) {
+            const sampleValue = col.accessorFn 
+              ? col.accessorFn(data[0])
+              : col.field 
+              ? (data[0] as any)[col.field]
+              : col.accessorKey
+              ? (data[0] as any)[col.accessorKey]
+              : undefined
+            
+            if (sampleValue !== undefined && sampleValue !== null) {
+              if (typeof sampleValue === 'boolean') {
+                defaultCellRenderer = ({ value }) => <YesNoCellRenderer value={value} align={options.align} />
+              } else if (typeof sampleValue === 'number') {
+                defaultCellRenderer = ({ value }) => (
+                  <NumberCellRenderer 
+                    value={value} 
+                    align={options.align}
+                    decPlaces={options.decPlaces}
+                    prefix={options.prefix}
+                    suffix={options.suffix}
+                  />
+                )
+              } else if (sampleValue instanceof Date || (typeof sampleValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(sampleValue))) {
+                // Check if it's a date string or Date object
+                const dateStr = sampleValue instanceof Date ? sampleValue.toISOString() : sampleValue
+                // Check if it includes time (has T or space with time)
+                if (dateStr.includes('T') || /\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(dateStr)) {
+                  defaultCellRenderer = ({ value }) => (
+                    <DateTimeCellRenderer 
+                      value={value} 
+                      format={options.dateTimeFormat}
+                      align={options.align}
+                    />
+                  )
+                } else {
+                  defaultCellRenderer = ({ value }) => (
+                    <DateCellRenderer 
+                      value={value} 
+                      format={options.dateFormat}
+                      align={options.align}
+                    />
+                  )
+                }
+              } else if (typeof sampleValue === 'string') {
+                defaultCellRenderer = ({ value }) => <TextCellRenderer value={value} align={options.align} />
+              }
+            }
+          }
+        }
+      }
+      
       const baseColumnDef: Partial<ColumnDef<T>> = {
         id: col.id || col.field || col.accessorKey,
         header: col.headerName || col.header || col.id || col.field,
@@ -133,6 +293,8 @@ export function DataGrid<T extends Record<string, any>>({
         maxSize: col.maxWidth,
         cell: col.cellRenderer
           ? ({ getValue, row }) => col.cellRenderer!({ value: getValue(), row: row.original, column: col })
+          : defaultCellRenderer
+          ? ({ getValue, row }) => defaultCellRenderer!({ value: getValue(), row: row.original, column: col })
           : col.cell,
       }
       
@@ -163,7 +325,7 @@ export function DataGrid<T extends Record<string, any>>({
     })
 
     return transformedColumns
-  }, [columns, enableSorting, enableFiltering, showRowNumbers])
+  }, [columns, enableSorting, enableFiltering, showRowNumbers, data])
 
   const table = useReactTable({
     data,
@@ -208,6 +370,7 @@ export function DataGrid<T extends Record<string, any>>({
   const tableStyle: React.CSSProperties = {
     width: '100%',
     borderCollapse: 'collapse',
+    border: '1px solid var(--color-border-default)',
   }
 
   return (
@@ -234,7 +397,7 @@ export function DataGrid<T extends Record<string, any>>({
               }
             }}
           >
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
+            {showFilters ? t('dataGrid.hideFilters') : t('dataGrid.showFilters')}
           </button>
           {showFilters && columnFilters.length > 0 && (
             <button
@@ -254,7 +417,7 @@ export function DataGrid<T extends Record<string, any>>({
                 e.currentTarget.style.backgroundColor = 'transparent'
               }}
             >
-              Clear Filters
+              {t('dataGrid.clearFilters')}
             </button>
           )}
         </div>
@@ -270,7 +433,7 @@ export function DataGrid<T extends Record<string, any>>({
                 <div key={header.id} className="inline-block mr-4 mb-2">
                   <input
                     type="text"
-                    placeholder={`Filter ${header.column.id}...`}
+                    placeholder={t('dataGrid.filterPlaceholder', { column: header.column.id })}
                     value={(header.column.getFilterValue() as string) ?? ''}
                     onChange={(e) => header.column.setFilterValue(e.target.value)}
                     className="px-2 py-1 text-sm border rounded"
@@ -290,20 +453,22 @@ export function DataGrid<T extends Record<string, any>>({
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary-500)' }}></div>
               <p className="mt-4" style={{ color: 'var(--color-text-secondary)' }}>
-                Loading...
+                {t('dataGrid.loading')}
               </p>
             </div>
           </div>
         ) : data.length === 0 ? (
           <div className="flex items-center justify-center h-64">
-            <p style={{ color: 'var(--color-text-secondary)' }}>{emptyMessage}</p>
+            <p style={{ color: 'var(--color-text-secondary)' }}>
+              {emptyMessage || t('dataGrid.noData')}
+            </p>
           </div>
         ) : (
           <table style={tableStyle}>
             <thead style={{ backgroundColor: 'var(--color-border-light)', position: 'sticky', top: 0, zIndex: 10 }}>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
+                  {headerGroup.headers.map((header, headerIndex) => (
                     <th
                       key={header.id}
                       className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${
@@ -315,6 +480,10 @@ export function DataGrid<T extends Record<string, any>>({
                         minWidth: header.column.columnDef.minSize,
                         maxWidth: header.column.columnDef.maxSize,
                         cursor: header.column.getCanSort() ? 'pointer' : 'default',
+                        borderRight: headerIndex < headerGroup.headers.length - 1 
+                          ? '1px solid var(--color-border-default)' 
+                          : 'none',
+                        borderBottom: '1px solid var(--color-border-default)',
                       }}
                       onClick={header.column.getToggleSortingHandler()}
                     >
@@ -334,11 +503,11 @@ export function DataGrid<T extends Record<string, any>>({
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y" style={{ borderColor: 'var(--color-border-default)' }}>
+            <tbody>
               {table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className={`hover:bg-gray-50 ${
+                  className={`${
                     rowSelection !== false && row.getIsSelected() ? 'bg-blue-50' : ''
                   } ${getRowClassName ? getRowClassName(row.original) : ''}`}
                   onClick={() => {
@@ -348,13 +517,36 @@ export function DataGrid<T extends Record<string, any>>({
                       row.toggleSelected()
                     }
                   }}
-                  style={{ cursor: rowSelection !== false ? 'pointer' : 'default' }}
+                  style={{ 
+                    cursor: rowSelection !== false ? 'pointer' : 'default',
+                    backgroundColor: rowSelection !== false && row.getIsSelected() 
+                      ? 'rgba(59, 130, 246, 0.1)' 
+                      : 'transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (rowSelection === false || !row.getIsSelected()) {
+                      e.currentTarget.style.backgroundColor = 'var(--color-border-light)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (rowSelection === false || !row.getIsSelected()) {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                    } else {
+                      e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'
+                    }
+                  }}
                 >
-                  {row.getVisibleCells().map((cell) => (
+                  {row.getVisibleCells().map((cell, cellIndex, cells) => (
                     <td
                       key={cell.id}
-                      className={`px-4 py-3 whitespace-nowrap ${compact ? 'px-2 py-1 text-sm' : ''}`}
-                      style={{ color: 'var(--color-text-primary)' }}
+                      className={`px-2 py-1 whitespace-nowrap ${compact ? 'px-0 py-0 text-sm' : ''}`}
+                      style={{ 
+                        color: 'var(--color-text-primary)',
+                        borderRight: cellIndex < cells.length - 1 
+                          ? '1px solid var(--color-border-default)' 
+                          : 'none',
+                        borderBottom: '1px solid var(--color-border-default)',
+                      }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
@@ -367,65 +559,7 @@ export function DataGrid<T extends Record<string, any>>({
       </div>
 
       {/* Pagination */}
-      {enablePagination && (
-        <div className="data-grid-pagination p-4 border-t flex items-center justify-between" style={{ borderColor: 'var(--color-border-default)' }}>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-              style={{ borderColor: 'var(--color-border-default)' }}
-            >
-              {'<<'}
-            </button>
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-              style={{ borderColor: 'var(--color-border-default)' }}
-            >
-              {'<'}
-            </button>
-            <span className="px-4" style={{ color: 'var(--color-text-secondary)' }}>
-              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-            </span>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-              style={{ borderColor: 'var(--color-border-default)' }}
-            >
-              {'>'}
-            </button>
-            <button
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-              style={{ borderColor: 'var(--color-border-default)' }}
-            >
-              {'>>'}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span style={{ color: 'var(--color-text-secondary)' }}>Rows per page:</span>
-            <select
-              value={table.getState().pagination.pageSize}
-              onChange={(e) => table.setPageSize(Number(e.target.value))}
-              className="px-2 py-1 border rounded"
-              style={{ borderColor: 'var(--color-border-default)' }}
-            >
-              {[10, 20, 30, 50, 100].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div style={{ color: 'var(--color-text-secondary)' }}>
-            Showing {table.getRowModel().rows.length} of {data.length} rows
-          </div>
-        </div>
-      )}
+      <DataGridPagination table={table} enablePagination={enablePagination} />
     </div>
   )
 }

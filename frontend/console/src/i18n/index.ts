@@ -10,6 +10,9 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import enTranslations from './locales/en/translation.json'
 import esTranslations from './locales/es/translation.json'
 
+// Import sofia-ui translations to merge
+import sofiaUiTranslations from '@sofiapos/ui/i18n/translations'
+
 // Development mode: default to Spanish
 // Production: detect from browser or use English
 const defaultLanguage = import.meta.env.DEV ? 'es' : 'en'
@@ -35,12 +38,19 @@ i18n
     debug: import.meta.env.DEV,
     
     // Resources (translations)
+    // Merge sofia-ui translations with console app translations
     resources: {
       en: {
-        translation: enTranslations,
+        translation: {
+          ...sofiaUiTranslations.en,
+          ...enTranslations, // Console app translations override sofia-ui if there are conflicts
+        },
       },
       es: {
-        translation: esTranslations,
+        translation: {
+          ...sofiaUiTranslations.es,
+          ...esTranslations, // Console app translations override sofia-ui if there are conflicts
+        },
       },
     },
     

@@ -211,7 +211,7 @@ export function Users() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800 font-semibold">Error loading users</p>
           <p className="text-red-600 text-sm mt-1">
-            {error instanceof Error ? error.message : 'Unknown error occurred'}
+            {error instanceof Error ? error.message : t('common.unknownError')}
           </p>
         </div>
       )}

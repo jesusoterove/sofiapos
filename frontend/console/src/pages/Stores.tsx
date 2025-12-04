@@ -62,62 +62,42 @@ export function Stores() {
     {
       id: 'name',
       field: 'name',
+      type: 'string',
       headerName: t('stores.name') || 'Name',
       sortable: true,
       filterable: true,
-      cellRenderer: ({ value }) => (
-        <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-          {value}
-        </span>
-      ),
     },
     {
       id: 'code',
       field: 'code',
+      type: 'string',
       headerName: t('stores.code') || 'Code',
       sortable: true,
       filterable: true,
-      cellRenderer: ({ value }) => (
-        <span style={{ color: 'var(--color-text-secondary)' }}>
-          {value}
-        </span>
-      ),
     },
     {
       id: 'address',
       field: 'address',
+      type: 'string',
       headerName: t('stores.address') || 'Address',
       sortable: true,
       filterable: true,
-      cellRenderer: ({ value }) => (
-        <span style={{ color: 'var(--color-text-secondary)' }}>
-          {value || '-'}
-        </span>
-      ),
     },
     {
       id: 'phone',
       field: 'phone',
+      type: 'string',
       headerName: t('stores.phone') || 'Phone',
       sortable: true,
       filterable: true,
-      cellRenderer: ({ value }) => (
-        <span style={{ color: 'var(--color-text-secondary)' }}>
-          {value || '-'}
-        </span>
-      ),
     },
     {
       id: 'email',
       field: 'email',
+      type: 'string',
       headerName: t('stores.email') || 'Email',
       sortable: true,
       filterable: true,
-      cellRenderer: ({ value }) => (
-        <span style={{ color: 'var(--color-text-secondary)' }}>
-          {value || '-'}
-        </span>
-      ),
     },
     {
       id: 'is_active',
@@ -204,7 +184,7 @@ export function Stores() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800 font-semibold">Error loading stores</p>
           <p className="text-red-600 text-sm mt-1">
-            {error instanceof Error ? error.message : 'Unknown error occurred'}
+            {error instanceof Error ? error.message : t('common.unknownError')}
           </p>
         </div>
       )}

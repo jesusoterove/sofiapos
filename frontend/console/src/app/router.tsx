@@ -4,6 +4,8 @@ import { Dashboard } from '@/pages/Dashboard'
 import { Login } from '@/pages/Login'
 import { Stores } from '@/pages/Stores'
 import { Users } from '@/pages/Users'
+import { Ingredients } from '@/pages/Ingredients'
+import { Products } from '@/pages/Products'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Root route
@@ -51,11 +53,18 @@ const usersRoute = createRoute({
   component: Users,
 })
 
+// Ingredients route - protected
+const ingredientsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/inventory/ingredients',
+  component: Ingredients,
+})
+
 // Products route - protected
 const productsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
-  path: '/products',
-  component: () => <div className="p-6"><h1 className="text-2xl font-bold">Products</h1></div>,
+  path: '/inventory/products',
+  component: Products,
 })
 
 // Orders route - protected
@@ -63,13 +72,6 @@ const ordersRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/orders',
   component: () => <div className="p-6"><h1 className="text-2xl font-bold">Orders</h1></div>,
-})
-
-// Inventory route - protected
-const inventoryRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: '/inventory',
-  component: () => <div className="p-6"><h1 className="text-2xl font-bold">Inventory</h1></div>,
 })
 
 // Settings route - protected
@@ -87,9 +89,9 @@ const routeTree = rootRoute.addChildren([
       indexRoute,
       storesRoute,
       usersRoute,
+      ingredientsRoute,
       productsRoute,
       ordersRoute,
-      inventoryRoute,
       settingsRoute,
     ]),
   ]),
