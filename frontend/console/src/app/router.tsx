@@ -2,6 +2,7 @@ import { createRouter, createRootRoute, createRoute } from '@tanstack/react-rout
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Dashboard } from '@/pages/Dashboard'
 import { Login } from '@/pages/Login'
+import { Stores } from '@/pages/Stores'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Root route
@@ -39,7 +40,7 @@ const indexRoute = createRoute({
 const storesRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/stores',
-  component: () => <div className="p-6"><h1 className="text-2xl font-bold">Stores</h1></div>,
+  component: Stores,
 })
 
 // Users route - protected

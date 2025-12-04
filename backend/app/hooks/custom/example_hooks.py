@@ -17,7 +17,7 @@ def example_product_validation(product_data: dict, context: dict) -> dict:
     # Example: Ensure product code has prefix
     if "code" in product_data and product_data["code"]:
         if not product_data["code"].startswith("PROD-"):
-            product_data["code"] = f"PROD-{product_data["code"]}"
+            product_data["code"] = f"PROD-{product_data['code']}"
     
     return product_data
 
