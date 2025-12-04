@@ -1,0 +1,134 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "scan": "Scan",
+    "add": "Add",
+    "remove": "Remove",
+    "quantity": "Quantity",
+    "price": "Price",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "taxes": "Taxes",
+    "discount": "Discount",
+    "change": "Change",
+    "pay": "Pay",
+    "print": "Print",
+    "close": "Close",
+    "open": "Open",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "username": "Username",
+    "password": "Password"
+  },
+  "topBar": {
+    "appName": "SofiaPOS",
+    "version": "v1.0.0",
+    "currentTime": "Current Time",
+    "closeShift": "Close Shift",
+    "inventoryEntry": "Inventory Entry"
+  },
+  "productSelection": {
+    "title": "Products",
+    "searchPlaceholder": "Search products...",
+    "scanBarcode": "Scan Barcode",
+    "noProducts": "No products found",
+    "outOfStock": "Out of Stock",
+    "inStock": "In Stock"
+  },
+  "order": {
+    "title": "Order",
+    "customer": "Customer",
+    "defaultCustomer": "Walk-in Customer",
+    "lookupCustomer": "Lookup Customer",
+    "newCustomer": "New Customer",
+    "items": "Items",
+    "noItems": "No items in order",
+    "saveDraft": "Save Draft",
+    "cancelOrder": "Cancel Order",
+    "processPayment": "Process Payment",
+    "printReceipt": "Print Receipt"
+  },
+  "payment": {
+    "title": "Payment",
+    "orderTotal": "Order Total",
+    "paymentMethod": "Payment Method",
+    "cash": "Cash",
+    "bankTransfer": "Bank Transfer",
+    "amountPaid": "Amount Paid",
+    "change": "Change",
+    "processPayment": "Process Payment",
+    "cancel": "Cancel"
+  },
+  "tables": {
+    "title": "Tables",
+    "tableNumber": "Table",
+    "tableName": "Name",
+    "status": "Status",
+    "capacity": "Capacity",
+    "location": "Location",
+    "orderStatus": "Order Status",
+    "open": "Open",
+    "closed": "Closed"
+  },
+  "shift": {
+    "title": "Shift",
+    "openShift": "Open Shift",
+    "closeShift": "Close Shift",
+    "shiftNumber": "Shift Number",
+    "status": "Status",
+    "openedAt": "Opened At",
+    "closedAt": "Closed At",
+    "addUser": "Add User",
+    "removeUser": "Remove User",
+    "inventoryCount": "Inventory Count",
+    "startInventory": "Start Inventory Count",
+    "endInventory": "End Inventory Count"
+  },
+  "cashRegister": {
+    "title": "Cash Register",
+    "open": "Open Cash Register",
+    "close": "Close Cash Register",
+    "openingBalance": "Opening Balance",
+    "closingBalance": "Closing Balance",
+    "expectedBalance": "Expected Balance",
+    "difference": "Difference"
+  },
+  "inventory": {
+    "title": "Inventory Entry",
+    "createEntry": "Create Entry",
+    "entryType": "Entry Type",
+    "purchase": "Purchase",
+    "adjustment": "Adjustment",
+    "transfer": "Transfer",
+    "waste": "Waste",
+    "return": "Return",
+    "material": "Material",
+    "quantity": "Quantity",
+    "unitCost": "Unit Cost"
+  },
+  "sync": {
+    "online": "Online",
+    "offline": "Offline",
+    "syncing": "Syncing...",
+    "pending": "Pending Sync",
+    "syncNow": "Sync Now"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "changeLanguage": "Change Language"
+  }
+}
+

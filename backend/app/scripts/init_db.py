@@ -229,6 +229,32 @@ def create_default_unit_of_measures(db: Session):
     print("✓ Default unit of measures created")
 
 
+def create_default_settings(db: Session):
+    """Create default application-wide settings."""
+    settings = [
+        {
+            "key": "customer_tax_id_types",
+            "value": "NIT|NIT;CC|Cédula;CE|Cédula Extranjería",
+            "value_type": "string",
+            "description": "Available tax ID types for customers. Format: value|label;value|label",
+            "is_system_setting": True,
+            "store_id": None,  # Global setting
+        },
+    ]
+    
+    for setting_data in settings:
+        existing = db.query(Setting).filter(
+            Setting.key == setting_data["key"],
+            Setting.store_id == setting_data["store_id"]
+        ).first()
+        if not existing:
+            setting = Setting(**setting_data)
+            db.add(setting)
+    
+    db.commit()
+    print("✓ Default settings created")
+
+
 def init_db():
     """Initialize the database with default data."""
     # Create all tables
@@ -241,6 +267,7 @@ def init_db():
         create_default_roles(db)
         create_default_payment_methods(db)
         create_default_unit_of_measures(db)
+        create_default_settings(db)
         print("\n✓ Database initialization completed successfully!")
     except Exception as e:
         db.rollback()

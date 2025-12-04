@@ -1,0 +1,27 @@
+appId: com.sofiapos.pos
+productName: SofiaPOS
+directories:
+  output: release
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+win:
+  target:
+    - nsis
+  icon: build/icon.ico
+mac:
+  target:
+    - dmg
+  icon: build/icon.icns
+  category: public.app-category.business
+linux:
+  target:
+    - AppImage
+    - deb
+  icon: build/icon.png
+  category: Office
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+

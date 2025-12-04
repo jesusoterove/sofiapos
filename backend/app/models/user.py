@@ -43,7 +43,14 @@ class User(Base):
     # Relationships
     store = relationship("Store", back_populates="users")
     roles = relationship("Role", secondary=user_role_table, back_populates="users")
-    shifts = relationship("ShiftUser", back_populates="user")
+    # Relationship to shifts through ShiftUser (user_id foreign key)
+    # Must specify foreign_keys because ShiftUser has multiple FKs to User (user_id and removed_by_user_id)
+    shifts = relationship(
+        "ShiftUser", 
+        back_populates="user",
+        primaryjoin="User.id == ShiftUser.user_id",
+        foreign_keys="[ShiftUser.user_id]"
+    )
     orders = relationship("Order", back_populates="user")
     payments = relationship("Payment", back_populates="user")
 

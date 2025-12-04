@@ -1,0 +1,143 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "close": "Cerrar",
+    "open": "Abrir",
+    "yes": "Sí",
+    "no": "No",
+    "confirm": "Confirmar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "users": "Usuarios"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "email": "Correo Electrónico",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "rememberMe": "Recordarme",
+    "welcome": "¡Bienvenido!",
+    "signInToContinue": "Inicia sesión para continuar",
+    "loginRequired": "Por favor ingresa usuario y contraseña",
+    "loginSuccess": "¡Inicio de sesión exitoso!",
+    "loginError": "Usuario o contraseña inválidos"
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "welcome": "Bienvenido",
+    "totalSales": "Ventas Totales",
+    "totalOrders": "Órdenes Totales",
+    "totalProducts": "Productos Totales",
+    "totalCustomers": "Clientes Totales"
+  },
+  "stores": {
+    "title": "Tiendas",
+    "createStore": "Crear Tienda",
+    "editStore": "Editar Tienda",
+    "storeName": "Nombre de la Tienda",
+    "storeCode": "Código de la Tienda",
+    "address": "Dirección",
+    "phone": "Teléfono",
+    "email": "Correo Electrónico",
+    "isActive": "Activa",
+    "defaultTablesCount": "Número Predeterminado de Mesas"
+  },
+  "products": {
+    "title": "Productos",
+    "createProduct": "Crear Producto",
+    "editProduct": "Editar Producto",
+    "productName": "Nombre del Producto",
+    "productCode": "Código del Producto",
+    "description": "Descripción",
+    "category": "Categoría",
+    "sellingPrice": "Precio de Venta",
+    "requiresInventory": "Requiere Inventario",
+    "isActive": "Activo",
+    "isTopSelling": "Más Vendido",
+    "allowSellWithoutInventory": "Permitir Vender Sin Inventario"
+  },
+  "orders": {
+    "title": "Órdenes",
+    "orderNumber": "Número de Orden",
+    "customer": "Cliente",
+    "status": "Estado",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "taxes": "Impuestos",
+    "discount": "Descuento",
+    "createdAt": "Creada En",
+    "paidAt": "Pagada En"
+  },
+  "customers": {
+    "title": "Clientes",
+    "createCustomer": "Crear Cliente",
+    "editCustomer": "Editar Cliente",
+    "customerName": "Nombre del Cliente",
+    "customerCode": "Código del Cliente",
+    "taxId": "NIT",
+    "taxIdType": "Tipo de Identificación",
+    "creditLimit": "Límite de Crédito"
+  },
+  "inventory": {
+    "title": "Inventario",
+    "createEntry": "Crear Entrada de Inventario",
+    "entryNumber": "Número de Entrada",
+    "entryType": "Tipo de Entrada",
+    "entryDate": "Fecha de Entrada",
+    "material": "Material",
+    "quantity": "Cantidad",
+    "unitCost": "Costo Unitario",
+    "totalCost": "Costo Total"
+  },
+  "shifts": {
+    "title": "Turnos",
+    "shiftNumber": "Número de Turno",
+    "status": "Estado",
+    "openedAt": "Abierto En",
+    "closedAt": "Cerrado En",
+    "openShift": "Abrir Turno",
+    "closeShift": "Cerrar Turno"
+  },
+  "cashRegisters": {
+    "title": "Cajas Registradoras",
+    "cashRegisterName": "Nombre de la Caja",
+    "cashRegisterCode": "Código de la Caja",
+    "openingBalance": "Saldo Inicial",
+    "closingBalance": "Saldo Final",
+    "expectedBalance": "Saldo Esperado",
+    "difference": "Diferencia"
+  },
+  "reports": {
+    "title": "Reportes",
+    "salesReport": "Reporte de Ventas",
+    "inventoryReport": "Reporte de Inventario",
+    "productSalesReport": "Reporte de Ventas por Producto",
+    "shiftReport": "Reporte de Turnos",
+    "dateRange": "Rango de Fechas",
+    "fromDate": "Fecha Desde",
+    "toDate": "Fecha Hasta"
+  },
+  "settings": {
+    "title": "Configuración",
+    "systemSettings": "Configuración del Sistema",
+    "storeSettings": "Configuración de la Tienda",
+    "language": "Idioma",
+    "currency": "Moneda",
+    "dateFormat": "Formato de Fecha"
+  }
+}
+

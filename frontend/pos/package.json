@@ -1,0 +1,87 @@
+{
+  "name": "sofiapos-pos",
+  "version": "1.0.0",
+  "description": "SofiaPOS Point of Sale Application",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "homepage": "./",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "build:electron": "npm run build && npm run build:electron:main && electron-builder",
+    "build:electron:main": "node build.js",
+    "electron:dev": "npm run build:electron:main && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && npm run build:electron:main && electron-builder",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\""
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@tanstack/react-query": "^5.17.0",
+    "@tanstack/react-router": "^1.0.0",
+    "react-hook-form": "^7.49.0",
+    "react-toastify": "^9.1.3",
+    "react-icons": "^4.12.0",
+    "axios": "^1.6.2",
+    "zod": "^3.22.4",
+    "@hookform/resolvers": "^3.3.2",
+    "idb": "^8.0.0",
+    "i18next": "^23.7.6",
+    "react-i18next": "^13.5.0",
+    "i18next-browser-languagedetector": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "postcss": "^8.4.32",
+    "prettier": "^3.1.1",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.2.0",
+    "esbuild": "^0.19.8"
+  },
+  "build": {
+    "appId": "com.sofiapos.pos",
+    "productName": "SofiaPOS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "build/icon.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
+

@@ -1,0 +1,143 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "close": "Close",
+    "open": "Open",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info",
+    "users": "Users"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "username": "Username",
+    "password": "Password",
+    "email": "Email",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember Me",
+    "welcome": "Welcome!",
+    "signInToContinue": "Sign in to continue",
+    "loginRequired": "Please enter username and password",
+    "loginSuccess": "Login successful!",
+    "loginError": "Invalid username or password"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "totalSales": "Total Sales",
+    "totalOrders": "Total Orders",
+    "totalProducts": "Total Products",
+    "totalCustomers": "Total Customers"
+  },
+  "stores": {
+    "title": "Stores",
+    "createStore": "Create Store",
+    "editStore": "Edit Store",
+    "storeName": "Store Name",
+    "storeCode": "Store Code",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email",
+    "isActive": "Active",
+    "defaultTablesCount": "Default Tables Count"
+  },
+  "products": {
+    "title": "Products",
+    "createProduct": "Create Product",
+    "editProduct": "Edit Product",
+    "productName": "Product Name",
+    "productCode": "Product Code",
+    "description": "Description",
+    "category": "Category",
+    "sellingPrice": "Selling Price",
+    "requiresInventory": "Requires Inventory",
+    "isActive": "Active",
+    "isTopSelling": "Top Selling",
+    "allowSellWithoutInventory": "Allow Sell Without Inventory"
+  },
+  "orders": {
+    "title": "Orders",
+    "orderNumber": "Order Number",
+    "customer": "Customer",
+    "status": "Status",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "taxes": "Taxes",
+    "discount": "Discount",
+    "createdAt": "Created At",
+    "paidAt": "Paid At"
+  },
+  "customers": {
+    "title": "Customers",
+    "createCustomer": "Create Customer",
+    "editCustomer": "Edit Customer",
+    "customerName": "Customer Name",
+    "customerCode": "Customer Code",
+    "taxId": "Tax ID",
+    "taxIdType": "Tax ID Type",
+    "creditLimit": "Credit Limit"
+  },
+  "inventory": {
+    "title": "Inventory",
+    "createEntry": "Create Inventory Entry",
+    "entryNumber": "Entry Number",
+    "entryType": "Entry Type",
+    "entryDate": "Entry Date",
+    "material": "Material",
+    "quantity": "Quantity",
+    "unitCost": "Unit Cost",
+    "totalCost": "Total Cost"
+  },
+  "shifts": {
+    "title": "Shifts",
+    "shiftNumber": "Shift Number",
+    "status": "Status",
+    "openedAt": "Opened At",
+    "closedAt": "Closed At",
+    "openShift": "Open Shift",
+    "closeShift": "Close Shift"
+  },
+  "cashRegisters": {
+    "title": "Cash Registers",
+    "cashRegisterName": "Cash Register Name",
+    "cashRegisterCode": "Cash Register Code",
+    "openingBalance": "Opening Balance",
+    "closingBalance": "Closing Balance",
+    "expectedBalance": "Expected Balance",
+    "difference": "Difference"
+  },
+  "reports": {
+    "title": "Reports",
+    "salesReport": "Sales Report",
+    "inventoryReport": "Inventory Report",
+    "productSalesReport": "Product Sales Report",
+    "shiftReport": "Shift Report",
+    "dateRange": "Date Range",
+    "fromDate": "From Date",
+    "toDate": "To Date"
+  },
+  "settings": {
+    "title": "Settings",
+    "systemSettings": "System Settings",
+    "storeSettings": "Store Settings",
+    "language": "Language",
+    "currency": "Currency",
+    "dateFormat": "Date Format"
+  }
+}
+

@@ -1,0 +1,66 @@
+/**
+ * Theme CSS variables and utilities.
+ * These variables are set dynamically by the ThemeContext.
+ */
+
+:root {
+  /* Primary colors - set by ThemeContext */
+  --color-primary-50: #fffbeb;
+  --color-primary-100: #fef3c7;
+  --color-primary-200: #fde68a;
+  --color-primary-300: #fcd34d;
+  --color-primary-400: #fbbf24;
+  --color-primary-500: #f59e0b;
+  --color-primary-600: #d97706;
+  --color-primary-700: #b45309;
+  --color-primary-800: #92400e;
+  --color-primary-900: #78350f;
+
+  /* Background colors */
+  --color-bg-default: #ffffff;
+  --color-bg-paper: #ffffff;
+  --color-bg-gradient-from: #fbbf24;
+  --color-bg-gradient-via: #fde68a;
+  --color-bg-gradient-to: #f59e0b;
+
+  /* Text colors */
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #9ca3af;
+
+  /* Border colors */
+  --color-border-default: #e5e7eb;
+  --color-border-light: #f3f4f6;
+}
+
+/* Theme utility classes */
+.bg-theme-gradient {
+  background: linear-gradient(
+    to bottom right,
+    var(--color-bg-gradient-from),
+    var(--color-bg-gradient-via),
+    var(--color-bg-gradient-to)
+  );
+}
+
+.bg-theme-primary {
+  background-color: var(--color-primary-500);
+}
+
+.text-theme-primary {
+  color: var(--color-text-primary);
+}
+
+.text-theme-secondary {
+  color: var(--color-text-secondary);
+}
+
+.border-theme {
+  border-color: var(--color-border-default);
+}
+
+/* Theme-specific styles */
+.theme-sunshine {
+  /* Sunshine theme specific overrides can go here */
+}
+

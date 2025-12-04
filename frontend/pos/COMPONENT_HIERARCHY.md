@@ -4,7 +4,7 @@ This document defines the component hierarchy and layout structure for the Sofia
 
 ## Overview
 
-The POS is a standalone application that can be installed on a computer or mobile device. It works offline and syncs with the administration system. The interface is optimized for fast, touch-friendly operations in a retail/restaurant environment.
+The POS is an Electron-based standalone desktop application that can be installed on Windows, macOS, or Linux. It works offline and syncs with the administration system. The interface is optimized for fast, touch-friendly operations in a retail/restaurant environment.
 
 ## Technology Stack
 

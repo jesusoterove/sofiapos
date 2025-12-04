@@ -18,6 +18,7 @@ class Customer(Base):
     phone = Column(String(50), nullable=True, index=True)
     address = Column(Text)
     tax_id = Column(String(100))  # Tax identification number
+    tax_id_type = Column(String(10), nullable=True)  # Tax ID type (NIT, CC, CE, etc.)
     credit_limit = Column(Numeric(10, 2), default=0.0, nullable=False)
     notes = Column(Text)
     is_active = Column(Boolean, default=True, nullable=False)

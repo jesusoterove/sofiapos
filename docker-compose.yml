@@ -1,0 +1,67 @@
+name: sofiapos
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-sofiapos}
+    volumes:
+      - sofiapos_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+      - /app/venv
+    environment:
+      DB_TYPE: postgresql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-sofiapos}
+      APP_ENV: development
+      APP_DEBUG: "True"
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-dev-secret-key-change-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-jwt-secret-key}
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      # Default admin user configuration
+      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-admin}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-admin@sofiapos.local}
+      DEFAULT_ADMIN_FULL_NAME: ${DEFAULT_ADMIN_FULL_NAME:-Administrator}
+      DEFAULT_ADMIN_CREATE_IF_NOT_EXISTS: ${DEFAULT_ADMIN_CREATE_IF_NOT_EXISTS:-true}
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  console:
+    build:
+      context: ./frontend/console
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend/console:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://api:8000
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api
+    command: npm run dev
+
+volumes:
+  sofiapos_db:
+

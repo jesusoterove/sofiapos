@@ -1,0 +1,134 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar",
+    "scan": "Escanear",
+    "add": "Agregar",
+    "remove": "Quitar",
+    "quantity": "Cantidad",
+    "price": "Precio",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "taxes": "Impuestos",
+    "discount": "Descuento",
+    "change": "Cambio",
+    "pay": "Pagar",
+    "print": "Imprimir",
+    "close": "Cerrar",
+    "open": "Abrir",
+    "yes": "Sí",
+    "no": "No",
+    "confirm": "Confirmar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "username": "Usuario",
+    "password": "Contraseña"
+  },
+  "topBar": {
+    "appName": "SofiaPOS",
+    "version": "v1.0.0",
+    "currentTime": "Hora Actual",
+    "closeShift": "Cerrar Turno",
+    "inventoryEntry": "Entrada de Inventario"
+  },
+  "productSelection": {
+    "title": "Productos",
+    "searchPlaceholder": "Buscar productos...",
+    "scanBarcode": "Escanear Código de Barras",
+    "noProducts": "No se encontraron productos",
+    "outOfStock": "Sin Stock",
+    "inStock": "En Stock"
+  },
+  "order": {
+    "title": "Orden",
+    "customer": "Cliente",
+    "defaultCustomer": "Cliente de Mostrador",
+    "lookupCustomer": "Buscar Cliente",
+    "newCustomer": "Nuevo Cliente",
+    "items": "Artículos",
+    "noItems": "No hay artículos en la orden",
+    "saveDraft": "Guardar Borrador",
+    "cancelOrder": "Cancelar Orden",
+    "processPayment": "Procesar Pago",
+    "printReceipt": "Imprimir Recibo"
+  },
+  "payment": {
+    "title": "Pago",
+    "orderTotal": "Total de la Orden",
+    "paymentMethod": "Método de Pago",
+    "cash": "Efectivo",
+    "bankTransfer": "Transferencia Bancaria",
+    "amountPaid": "Monto Pagado",
+    "change": "Cambio",
+    "processPayment": "Procesar Pago",
+    "cancel": "Cancelar"
+  },
+  "tables": {
+    "title": "Mesas",
+    "tableNumber": "Mesa",
+    "tableName": "Nombre",
+    "status": "Estado",
+    "capacity": "Capacidad",
+    "location": "Ubicación",
+    "orderStatus": "Estado de la Orden",
+    "open": "Abierta",
+    "closed": "Cerrada"
+  },
+  "shift": {
+    "title": "Turno",
+    "openShift": "Abrir Turno",
+    "closeShift": "Cerrar Turno",
+    "shiftNumber": "Número de Turno",
+    "status": "Estado",
+    "openedAt": "Abierto En",
+    "closedAt": "Cerrado En",
+    "addUser": "Agregar Usuario",
+    "removeUser": "Remover Usuario",
+    "inventoryCount": "Conteo de Inventario",
+    "startInventory": "Conteo de Inventario Inicial",
+    "endInventory": "Conteo de Inventario Final"
+  },
+  "cashRegister": {
+    "title": "Caja Registradora",
+    "open": "Abrir Caja",
+    "close": "Cerrar Caja",
+    "openingBalance": "Saldo Inicial",
+    "closingBalance": "Saldo Final",
+    "expectedBalance": "Saldo Esperado",
+    "difference": "Diferencia"
+  },
+  "inventory": {
+    "title": "Entrada de Inventario",
+    "createEntry": "Crear Entrada",
+    "entryType": "Tipo de Entrada",
+    "purchase": "Compra",
+    "adjustment": "Ajuste",
+    "transfer": "Transferencia",
+    "waste": "Desperdicio",
+    "return": "Devolución",
+    "material": "Material",
+    "quantity": "Cantidad",
+    "unitCost": "Costo Unitario"
+  },
+  "sync": {
+    "online": "En Línea",
+    "offline": "Sin Conexión",
+    "syncing": "Sincronizando...",
+    "pending": "Pendiente de Sincronizar",
+    "syncNow": "Sincronizar Ahora"
+  },
+  "settings": {
+    "title": "Configuración",
+    "language": "Idioma",
+    "changeLanguage": "Cambiar Idioma"
+  }
+}
+

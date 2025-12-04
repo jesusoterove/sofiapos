@@ -1,0 +1,19 @@
+# Example override file for local development
+# Copy this to docker-compose.override.yml and customize as needed
+# docker-compose.override.yml is automatically loaded by docker-compose
+
+version: '3.8'
+
+services:
+  api:
+    # Override environment variables for local development
+    environment:
+      APP_DEBUG: "True"
+      # Add any other local overrides here
+
+  console:
+    # Override environment variables for local development
+    environment:
+      VITE_API_URL: http://localhost:8000
+      # Add any other local overrides here
+

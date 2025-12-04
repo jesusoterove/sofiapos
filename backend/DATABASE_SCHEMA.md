@@ -267,12 +267,15 @@ Customer management.
   - `code`: Unique customer code
   - `email`, `phone`, `address`: Contact information
   - `tax_id`: Tax identification number
+  - `tax_id_type`: Tax ID type (NIT, CC, CE, etc.) - references global setting
   - `credit_limit`: Credit limit
   - `notes`: Additional notes
   - `is_active`: Active status
 
 - **Relationships:**
   - Has many Orders
+
+**Note**: `tax_id_type` values are defined in the global setting `customer_tax_id_types`. Default values: "NIT|NIT;CC|Cédula;CE|Cédula Extranjería". Format is "value|label;value|label".
 
 ## Inventory
 
@@ -500,6 +503,12 @@ Application and store-specific settings.
 - **Relationships:**
   - Belongs to Store (nullable)
 
+**Default Global Settings:**
+- `customer_tax_id_types`: Available tax ID types for customers
+  - Format: "value|label;value|label"
+  - Default: "NIT|NIT;CC|Cédula;CE|Cédula Extranjería"
+  - Used by Customer model's `tax_id_type` field
+
 ## Database Initialization
 
 Run the initialization script to create tables and default data:
@@ -514,6 +523,7 @@ This will create:
 - Default roles (Super Admin, Manager, Cashier, Cook)
 - Default payment methods
 - Default unit of measures
+- Default settings (including customer tax ID types)
 
 ## Database Migrations
 

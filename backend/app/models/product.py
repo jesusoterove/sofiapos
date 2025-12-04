@@ -8,7 +8,7 @@ from app.database import Base
 
 # Association table for many-to-many relationship between products and tags
 product_tag_table = Table(
-    "product_tags",
+    "product_product_tags",  # Association table name
     Base.metadata,
     Column("product_id", Integer, ForeignKey("products.id", ondelete="CASCADE"), primary_key=True),
     Column("tag_id", Integer, ForeignKey("product_tags.id", ondelete="CASCADE"), primary_key=True),
