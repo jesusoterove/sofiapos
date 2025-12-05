@@ -3,58 +3,25 @@
  */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { productsApi, Product } from '@/api/products'
-import { storesApi } from '@/api/stores'
 import { Button, DataGrid, DataGridColumn, messageBox } from '@sofiapos/ui'
-import { ProductForm } from '@/components/products/ProductForm'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 
 export function Products() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [selectedStoreId, setSelectedStoreId] = useState<number | undefined>(undefined)
   const [activeOnly, setActiveOnly] = useState(false)
-
-  // Fetch stores for filter
-  const { data: stores = [] } = useQuery({
-    queryKey: ['stores'],
-    queryFn: () => storesApi.list(false),
-  })
 
   // Fetch products
   const { data: products = [], isLoading, error } = useQuery({
-    queryKey: ['products', selectedStoreId, activeOnly],
-    queryFn: () => productsApi.list(0, 100, selectedStoreId, activeOnly),
+    queryKey: ['products', activeOnly],
+    queryFn: () => productsApi.list(0, 100, activeOnly),
   })
 
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: productsApi.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-      toast.success(t('inventory.productCreateSuccess') || 'Product created successfully')
-      setIsFormOpen(false)
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || t('inventory.productCreateError') || 'Failed to create product')
-    },
-  })
-
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => productsApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-      toast.success(t('inventory.productUpdateSuccess') || 'Product updated successfully')
-      setIsFormOpen(false)
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || t('inventory.productUpdateError') || 'Failed to update product')
-    },
-  })
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -69,13 +36,11 @@ export function Products() {
   })
 
   const handleCreate = () => {
-    setEditingProduct(null)
-    setIsFormOpen(true)
+    navigate({ to: '/inventory/products/new' })
   }
 
   const handleEdit = (product: Product) => {
-    setEditingProduct(product)
-    setIsFormOpen(true)
+    navigate({ to: `/inventory/products/${product.id}` })
   }
 
   const handleDelete = async (product: Product) => {
@@ -84,14 +49,6 @@ export function Products() {
     const result = await messageBox.ask(message, undefined, 'YesNo')
     if (result.value === true) {
       deleteMutation.mutate(product.id)
-    }
-  }
-
-  const handleSubmit = (data: any) => {
-    if (editingProduct) {
-      updateMutation.mutate({ id: editingProduct.id, data })
-    } else {
-      createMutation.mutate(data)
     }
   }
 
@@ -113,6 +70,14 @@ export function Products() {
       // TextCellRenderer will be used automatically
     },
     {
+      id: 'product_type',
+      headerName: t('inventory.productType') || 'Type',
+      field: 'product_type',
+      sortable: true,
+      filterable: true,
+      type: 'string',
+    },
+    {
       id: 'selling_price',
       headerName: t('inventory.sellingPrice') || 'Selling Price',
       field: 'selling_price',
@@ -131,31 +96,26 @@ export function Products() {
       type: 'yesno',
     },
     {
-      id: 'is_top_selling',
-      headerName: t('inventory.isTopSelling') || 'Top Selling',
-      field: 'is_top_selling',
-      sortable: true,
-      type: 'yesno',
-    },
-    {
       id: 'actions',
       headerName: t('common.actions') || 'Actions',
       cellRenderer: ({ row }) => (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex gap-1">
+          <button
             onClick={() => handleEdit(row)}
+            className="p-1 rounded hover:bg-gray-100"
+            title={t('common.edit') || 'Edit'}
+            style={{ color: 'var(--color-primary-500)' }}
           >
-            {t('common.edit')}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+            <FaEdit />
+          </button>
+          <button
             onClick={() => handleDelete(row)}
+            className="p-1 rounded hover:bg-gray-100"
+            title={t('common.delete') || 'Delete'}
+            style={{ color: 'var(--color-danger-500)' }}
           >
-            {t('common.delete')}
-          </Button>
+            <FaTrash />
+          </button>
         </div>
       ),
     },
@@ -188,19 +148,6 @@ export function Products() {
       </div>
 
       <div className="mb-4 flex gap-4">
-        <select
-          value={selectedStoreId || ''}
-          onChange={(e) => setSelectedStoreId(e.target.value ? Number(e.target.value) : undefined)}
-          className="px-3 py-2 border rounded"
-          style={{ borderColor: 'var(--color-border-default)' }}
-        >
-          <option value="">{t('common.allStores')}</option>
-          {stores.map((store) => (
-            <option key={store.id} value={store.id}>
-              {store.name}
-            </option>
-          ))}
-        </select>
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -218,16 +165,8 @@ export function Products() {
         columns={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noProducts') || 'No products found'}
+        compact={true}
       />
-
-      {isFormOpen && (
-        <ProductForm
-          product={editingProduct}
-          stores={stores}
-          onSubmit={handleSubmit}
-          onCancel={() => setIsFormOpen(false)}
-        />
-      )}
     </div>
   )
 }

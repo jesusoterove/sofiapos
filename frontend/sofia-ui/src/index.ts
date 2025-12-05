@@ -9,6 +9,8 @@ import './i18n'
 // Components
 export { Button } from './components/Button'
 export type { ButtonProps } from './components/Button'
+export { Tabs } from './components/Tabs'
+export type { TabsProps, Tab } from './components/Tabs'
 export { ThemeSwitcher } from './components/ThemeSwitcher'
 export { DataGrid } from './components/DataGrid'
 export type { DataGridProps, DataGridColumn, CellRendererType, CellRendererOptions } from './components/DataGrid'

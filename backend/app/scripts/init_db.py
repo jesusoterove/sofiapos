@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, Base
 from app.models import (
     Role, Permission, PaymentMethod, PaymentMethodType,
-    UnitOfMeasure, Setting
+    UnitOfMeasure, Setting, Store, StoreProductGroup
 )
 
 
@@ -263,6 +263,28 @@ def create_default_settings(db: Session):
     print("✓ Default settings created")
 
 
+def create_bookmark_groups_for_stores(db: Session):
+    """Create bookmark groups for all existing stores."""
+    stores = db.query(Store).all()
+    group_name = "Favoritos"
+    for store in stores:
+        # Check if bookmark group already exists
+        existing = db.query(StoreProductGroup).filter(
+            StoreProductGroup.store_id == store.id,
+            StoreProductGroup.group_name == group_name
+        ).first()
+        
+        if not existing:
+            bookmark_group = StoreProductGroup(
+                store_id=store.id,
+                group_name=group_name
+            )
+            db.add(bookmark_group)
+    
+    db.commit()
+    print(f"✓ Bookmark groups created for {len(stores)} stores")
+
+
 def init_db():
     """Initialize the database with default data."""
     # Create all tables
@@ -276,6 +298,7 @@ def init_db():
         create_default_payment_methods(db)
         create_default_unit_of_measures(db)
         create_default_settings(db)
+        create_bookmark_groups_for_stores(db)
         print("\n✓ Database initialization completed successfully!")
     except Exception as e:
         db.rollback()

@@ -1,10 +1,11 @@
 """
 Product, Material, Recipe, and related models for product management.
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Numeric, Text, Table
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Numeric, Text, Table, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
+import enum
 
 # Association table for many-to-many relationship between products and tags
 product_tag_table = Table(
@@ -14,27 +15,40 @@ product_tag_table = Table(
     Column("tag_id", Integer, ForeignKey("product_tags.id", ondelete="CASCADE"), primary_key=True),
 )
 
+# Association table for many-to-many relationship between products and store product groups
+product_group_table = Table(
+    "product_store_product_groups",  # Association table name
+    Base.metadata,
+    Column("product_id", Integer, ForeignKey("products.id", ondelete="CASCADE"), primary_key=True),
+    Column("group_id", Integer, ForeignKey("store_product_groups.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class ProductType(str, enum.Enum):
+    """Product type enumeration."""
+    SALES_INVENTORY = "sales_inventory"
+    PREPARED = "prepared"
+    KIT = "kit"
+    SERVICE = "service"
+    MISC_CHARGES = "misc_charges"
+
 
 class Product(Base):
     """Product model for sellable items."""
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
-    store_id = Column(Integer, ForeignKey("stores.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False, index=True)
     code = Column(String(100), nullable=True, index=True)  # SKU or barcode
     description = Column(Text)
     category_id = Column(Integer, ForeignKey("product_categories.id", ondelete="SET NULL"), nullable=True)
-    requires_inventory = Column(Boolean, default=False, nullable=False)
+    product_type = Column(Enum(ProductType), nullable=False, default=ProductType.SALES_INVENTORY)
     is_active = Column(Boolean, default=True, nullable=False)
-    is_top_selling = Column(Boolean, default=False, nullable=False)  # For POS quick access
-    allow_sell_without_inventory = Column(Boolean, default=False, nullable=False)
     selling_price = Column(Numeric(10, 2), nullable=False, default=0.0)  # Default selling price
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    store = relationship("Store", back_populates="products")
     category = relationship("ProductCategory", back_populates="products")
     tags = relationship("ProductTag", secondary=product_tag_table, back_populates="products")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
@@ -43,6 +57,10 @@ class Product(Base):
     discounts = relationship("ProductDiscount", back_populates="product", cascade="all, delete-orphan")
     recipes = relationship("Recipe", back_populates="product", cascade="all, delete-orphan")
     order_items = relationship("OrderItem", back_populates="product")
+    store_groups = relationship("StoreProductGroup", secondary=product_group_table, back_populates="products")
+    kit_components = relationship("KitComponent", foreign_keys="KitComponent.product_id", back_populates="product", cascade="all, delete-orphan")
+    component_of = relationship("KitComponent", foreign_keys="KitComponent.component_id", back_populates="component", cascade="all, delete-orphan")
+    store_prices = relationship("StoreProductPrice", back_populates="product", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Product(id={self.id}, name='{self.name}', code='{self.code}')>"
@@ -123,6 +141,8 @@ class RecipeMaterial(Base):
     quantity = Column(Numeric(10, 4), nullable=False)
     unit_of_measure_id = Column(Integer, ForeignKey("unit_of_measures.id", ondelete="SET NULL"), nullable=True)
     display_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
     recipe = relationship("Recipe", back_populates="materials")
@@ -222,4 +242,60 @@ class ProductUnitOfMeasure(Base):
 
     def __repr__(self):
         return f"<ProductUnitOfMeasure(product_id={self.product_id}, unit_of_measure_id={self.unit_of_measure_id})>"
+
+
+class StoreProductGroup(Base):
+    """Store product group model for organizing products by store."""
+    __tablename__ = "store_product_groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="CASCADE"), nullable=False, index=True)
+    group_name = Column(String(255), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    store = relationship("Store", back_populates="product_groups")
+    products = relationship("Product", secondary=product_group_table, back_populates="store_groups")
+
+    def __repr__(self):
+        return f"<StoreProductGroup(id={self.id}, store_id={self.store_id}, group_name='{self.group_name}')>"
+
+
+class KitComponent(Base):
+    """Kit component model for product bundles."""
+    __tablename__ = "kit_components"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)  # Kit product
+    component_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)  # Component product
+    quantity = Column(Numeric(10, 4), nullable=False, default=1.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    product = relationship("Product", foreign_keys=[product_id], back_populates="kit_components")
+    component = relationship("Product", foreign_keys=[component_id], back_populates="component_of")
+
+    def __repr__(self):
+        return f"<KitComponent(product_id={self.product_id}, component_id={self.component_id}, quantity={self.quantity})>"
+
+
+class StoreProductPrice(Base):
+    """Store-specific product price model."""
+    __tablename__ = "store_product_prices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    selling_price = Column(Numeric(10, 2), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    store = relationship("Store", back_populates="product_prices")
+    product = relationship("Product", back_populates="store_prices")
+
+    def __repr__(self):
+        return f"<StoreProductPrice(store_id={self.store_id}, product_id={self.product_id}, selling_price={self.selling_price})>"
 

@@ -26,7 +26,8 @@ class Store(Base):
 
     # Relationships
     users = relationship("User", back_populates="store")
-    products = relationship("Product", back_populates="store")
+    product_groups = relationship("StoreProductGroup", back_populates="store")
+    product_prices = relationship("StoreProductPrice", back_populates="store")
     cash_registers = relationship("CashRegister", back_populates="store")
     shifts = relationship("Shift", back_populates="store")
     tables = relationship("Table", back_populates="store")

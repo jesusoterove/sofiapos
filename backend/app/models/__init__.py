@@ -4,9 +4,10 @@ Database models for SofiaPOS.
 from .store import Store
 from .user import User, Role, Permission
 from .product import (
-    Product, Material, MaterialUnitOfMeasure, Recipe, RecipeMaterial,
+    Product, ProductType, Material, MaterialUnitOfMeasure, Recipe, RecipeMaterial,
     ProductCategory, ProductTag, ProductImage,
-    UnitOfMeasure, ProductUnitOfMeasure
+    UnitOfMeasure, ProductUnitOfMeasure,
+    StoreProductGroup, KitComponent, StoreProductPrice
 )
 from .tax import Tax, ProductTax
 from .discount import ProductDiscount
@@ -23,9 +24,10 @@ from .setting import Setting
 __all__ = [
     "Store",
     "User", "Role", "Permission",
-    "Product", "Material", "MaterialUnitOfMeasure", "Recipe", "RecipeMaterial",
+    "Product", "ProductType", "Material", "MaterialUnitOfMeasure", "Recipe", "RecipeMaterial",
     "ProductCategory", "ProductTag", "ProductImage",
     "UnitOfMeasure", "ProductUnitOfMeasure",
+    "StoreProductGroup", "KitComponent", "StoreProductPrice",
     "Tax", "ProductTax",
     "ProductDiscount",
     "Vendor",

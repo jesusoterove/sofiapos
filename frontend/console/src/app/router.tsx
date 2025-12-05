@@ -7,6 +7,7 @@ import { Users } from '@/pages/Users'
 import { Ingredients } from '@/pages/Ingredients'
 import { IngredientFormPage } from '@/pages/IngredientFormPage'
 import { Products } from '@/pages/Products'
+import { ProductFormPage } from '@/pages/ProductFormPage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Root route
@@ -84,6 +85,22 @@ const productsRoute = createRoute({
   component: Products,
 })
 
+// Product form route (create) - protected
+// Must be defined before the parameterized route
+const productNewRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/inventory/products/new',
+  component: ProductFormPage,
+})
+
+// Product form route (edit) - protected
+// Must be defined after the 'new' route
+const productEditRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/inventory/products/$productId',
+  component: ProductFormPage,
+})
+
 // Orders route - protected
 const ordersRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
@@ -110,6 +127,8 @@ const routeTree = rootRoute.addChildren([
       ingredientNewRoute,
       ingredientEditRoute,
       productsRoute,
+      productNewRoute,
+      productEditRoute,
       ordersRoute,
       settingsRoute,
     ]),
