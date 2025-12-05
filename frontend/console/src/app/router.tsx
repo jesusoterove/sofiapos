@@ -8,6 +8,7 @@ import { Ingredients } from '@/pages/Ingredients'
 import { IngredientFormPage } from '@/pages/IngredientFormPage'
 import { Products } from '@/pages/Products'
 import { ProductFormPage } from '@/pages/ProductFormPage'
+import { Settings } from '@/pages/Settings'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Root route
@@ -112,7 +113,7 @@ const ordersRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/settings',
-  component: () => <div className="p-6"><h1 className="text-2xl font-bold">Settings</h1></div>,
+  component: Settings,
 })
 
 // Create the route tree

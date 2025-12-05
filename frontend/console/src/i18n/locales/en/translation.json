@@ -277,9 +277,12 @@
   },
   "settings": {
     "title": "Settings",
+    "description": "Manage application settings",
+    "general": "General",
     "systemSettings": "System Settings",
     "storeSettings": "Store Settings",
     "language": "Language",
+    "theme": "Theme",
     "currency": "Currency",
     "dateFormat": "Date Format"
   }

@@ -2,7 +2,7 @@
  * Theme switcher component.
  * Allows users to switch between available themes.
  */
-import { useTheme } from '@/contexts/ThemeContext'
+import { useTheme } from '@sofiapos/ui'
 
 export function ThemeSwitcher() {
   const { currentTheme, setTheme, availableThemes } = useTheme()
@@ -11,9 +11,11 @@ export function ThemeSwitcher() {
     <select
       value={currentTheme.name}
       onChange={(e) => setTheme(e.target.value)}
-      className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none"
+      className="w-full px-4 py-2 border rounded-lg text-sm outline-none"
       style={{
         borderColor: 'var(--color-border-default)',
+        backgroundColor: 'var(--color-bg-paper)',
+        color: 'var(--color-text-primary)',
       }}
     >
       {availableThemes.map((theme) => (

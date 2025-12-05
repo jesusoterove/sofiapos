@@ -276,9 +276,12 @@
   },
   "settings": {
     "title": "Configuración",
+    "description": "Gestionar configuraciones de la aplicación",
+    "general": "General",
     "systemSettings": "Configuración del Sistema",
     "storeSettings": "Configuración de la Tienda",
     "language": "Idioma",
+    "theme": "Tema",
     "currency": "Moneda",
     "dateFormat": "Formato de Fecha"
   }
