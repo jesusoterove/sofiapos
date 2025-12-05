@@ -13,7 +13,7 @@ import { Button, messageBox } from '@sofiapos/ui'
 import { FaArrowLeft } from 'react-icons/fa'
 import { useSettings } from '@/contexts/SettingsContext'
 
-export function IngredientFormPage() {
+export function IngredientForm() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const params = useParams({ strict: false })
@@ -253,4 +253,5 @@ export function IngredientFormPage() {
     </div>
   )
 }
+
 

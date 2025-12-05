@@ -1,14 +1,14 @@
 import { createRouter, createRootRoute, createRoute } from '@tanstack/react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { Dashboard } from '@/pages/Dashboard'
-import { Login } from '@/pages/Login'
-import { Stores } from '@/pages/Stores'
-import { Users } from '@/pages/Users'
-import { Ingredients } from '@/pages/Ingredients'
-import { IngredientFormPage } from '@/pages/IngredientFormPage'
-import { Products } from '@/pages/Products'
-import { ProductFormPage } from '@/pages/ProductFormPage'
-import { Settings } from '@/pages/Settings'
+import { Dashboard } from '@/pages/dashboard'
+import { Login } from '@/pages/login'
+import { StoreList } from '@/pages/stores'
+import { UserList } from '@/pages/users'
+import { IngredientList } from '@/pages/ingredients'
+import { IngredientForm } from '@/pages/ingredients/IngredientForm'
+import { ProductList } from '@/pages/products'
+import { ProductForm } from '@/pages/products/ProductForm'
+import { Settings } from '@/pages/settings'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Root route
@@ -46,21 +46,21 @@ const indexRoute = createRoute({
 const storesRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/stores',
-  component: Stores,
+  component: StoreList,
 })
 
 // Users route - protected
 const usersRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/users',
-  component: Users,
+  component: UserList,
 })
 
 // Ingredients route - protected
 const ingredientsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/inventory/ingredients',
-  component: Ingredients,
+  component: IngredientList,
 })
 
 // Ingredient form route (create) - protected
@@ -68,7 +68,7 @@ const ingredientsRoute = createRoute({
 const ingredientNewRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/inventory/ingredients/new',
-  component: IngredientFormPage,
+  component: IngredientForm,
 })
 
 // Ingredient form route (edit) - protected
@@ -76,14 +76,14 @@ const ingredientNewRoute = createRoute({
 const ingredientEditRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/inventory/ingredients/$ingredientId',
-  component: IngredientFormPage,
+  component: IngredientForm,
 })
 
 // Products route - protected
 const productsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/inventory/products',
-  component: Products,
+  component: ProductList,
 })
 
 // Product form route (create) - protected
@@ -91,7 +91,7 @@ const productsRoute = createRoute({
 const productNewRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/inventory/products/new',
-  component: ProductFormPage,
+  component: ProductForm,
 })
 
 // Product form route (edit) - protected
@@ -99,7 +99,7 @@ const productNewRoute = createRoute({
 const productEditRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/inventory/products/$productId',
-  component: ProductFormPage,
+  component: ProductForm,
 })
 
 // Orders route - protected

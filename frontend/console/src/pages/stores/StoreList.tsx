@@ -10,7 +10,7 @@ import { StoreForm } from '@/components/stores/StoreForm'
 import { StoreDeleteDialog } from '@/components/stores/StoreDeleteDialog'
 import { Button, DataGrid, DataGridColumn } from '@sofiapos/ui'
 
-export function Stores() {
+export function StoreList() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -225,3 +225,5 @@ export function Stores() {
     </div>
   )
 }
+
+

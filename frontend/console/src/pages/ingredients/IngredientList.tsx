@@ -8,7 +8,7 @@ import { useTranslation } from '@/i18n/hooks'
 import { materialsApi, Material } from '@/api/materials'
 import { Button, DataGrid, DataGridColumn, messageBox } from '@sofiapos/ui'
 
-export function Ingredients() {
+export function IngredientList() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -41,7 +41,7 @@ export function Ingredients() {
   }
 
   const handleDelete = async (ingredient: Material) => {
-    const message = (t('common.deleteConfirmMessage') || 'Are you sure you want to delete "{{name}}"?').
+    const message = (t('common.deleteConfirmMessage') || 'Are you sure you want to delete "{{name}}"??').
       replace('{{name}}', ingredient.name)
     const result = await messageBox.ask(message, undefined, 'YesNo')
     if (result.value === true) {
@@ -154,4 +154,5 @@ export function Ingredients() {
     </div>
   )
 }
+
 

@@ -10,7 +10,7 @@ import { productsApi, Product } from '@/api/products'
 import { Button, DataGrid, DataGridColumn, messageBox } from '@sofiapos/ui'
 import { FaEdit, FaTrash } from 'react-icons/fa'
 
-export function Products() {
+export function ProductList() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -44,8 +44,7 @@ export function Products() {
   }
 
   const handleDelete = async (product: Product) => {
-    const message = (t('common.deleteConfirmMessage') || 'Are you sure you want to delete "{{name}}"?').
-      replace('{{name}}', product.name)
+    const message = (t('common.deleteConfirmMessage') || 'Are you sure you want to delete "{{name}}"?').replace('{{name}}', product.name)
     const result = await messageBox.ask(message, undefined, 'YesNo')
     if (result.value === true) {
       deleteMutation.mutate(product.id)
@@ -170,4 +169,5 @@ export function Products() {
     </div>
   )
 }
+
 

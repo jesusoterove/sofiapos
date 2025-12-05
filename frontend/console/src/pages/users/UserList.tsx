@@ -10,7 +10,7 @@ import { UserForm } from '@/components/users/UserForm'
 import { UserDeleteDialog } from '@/components/users/UserDeleteDialog'
 import { Button, DataGrid, DataGridColumn } from '@sofiapos/ui'
 
-export function Users() {
+export function UserList() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -252,3 +252,5 @@ export function Users() {
     </div>
   )
 }
+
+
