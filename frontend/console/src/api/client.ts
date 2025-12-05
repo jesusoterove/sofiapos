@@ -38,9 +38,17 @@ apiClient.interceptors.response.use(
   (error) => {
     // Handle common errors
     if (error.response?.status === 401) {
-      // Unauthorized - redirect to login
+      // Unauthorized - clear token
       localStorage.removeItem('auth_token');
-      window.location.href = '/login';
+      
+      // Only redirect if we're not already on the login page
+      // This prevents infinite redirect loops
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/login/') {
+        // Use window.location.replace to avoid adding to history and prevent back button issues
+        window.location.replace('/login');
+      }
+      // If already on login page, just clear the token (no redirect needed)
     }
     return Promise.reject(error);
   }

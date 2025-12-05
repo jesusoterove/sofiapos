@@ -1,19 +1,17 @@
 /**
  * Ingredients (Materials) management page.
  */
-import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { materialsApi, Material } from '@/api/materials'
-import { Button, DataGrid, DataGridColumn } from '@sofiapos/ui'
-import { IngredientForm } from '@/components/ingredients/IngredientForm'
+import { Button, DataGrid, DataGridColumn, messageBox } from '@sofiapos/ui'
 
 export function Ingredients() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingIngredient, setEditingIngredient] = useState<Material | null>(null)
 
   // Fetch ingredients
   const { data: ingredients = [], isLoading, error } = useQuery({
@@ -21,31 +19,6 @@ export function Ingredients() {
     queryFn: () => materialsApi.list(),
   })
 
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: materialsApi.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materials'] })
-      toast.success(t('inventory.createSuccess') || 'Ingredient created successfully')
-      setIsFormOpen(false)
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || t('inventory.createError') || 'Failed to create ingredient')
-    },
-  })
-
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => materialsApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['materials'] })
-      toast.success(t('inventory.updateSuccess') || 'Ingredient updated successfully')
-      setIsFormOpen(false)
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || t('inventory.updateError') || 'Failed to update ingredient')
-    },
-  })
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -60,30 +33,22 @@ export function Ingredients() {
   })
 
   const handleCreate = () => {
-    setEditingIngredient(null)
-    setIsFormOpen(true)
+    navigate({ to: '/inventory/ingredients/new' })
   }
 
   const handleEdit = (ingredient: Material) => {
-    setEditingIngredient(ingredient)
-    setIsFormOpen(true)
+    navigate({ to: `/inventory/ingredients/${ingredient.id}` })
   }
 
-  const handleDelete = (ingredient: Material) => {
+  const handleDelete = async (ingredient: Material) => {
     const message = (t('common.deleteConfirmMessage') || 'Are you sure you want to delete "{{name}}"?').
       replace('{{name}}', ingredient.name)
-    if (window.confirm(message)) {
+    const result = await messageBox.ask(message, undefined, 'YesNo')
+    if (result.value === true) {
       deleteMutation.mutate(ingredient.id)
     }
   }
 
-  const handleSubmit = (data: any) => {
-    if (editingIngredient) {
-      updateMutation.mutate({ id: editingIngredient.id, data })
-    } else {
-      createMutation.mutate(data)
-    }
-  }
 
   const columns: DataGridColumn<Material>[] = [
     {
@@ -103,6 +68,26 @@ export function Ingredients() {
       type: 'string',
     },
     {
+      id: 'base_uofm_name',
+      headerName: t('inventory.baseUofm') || 'Base Unit',
+      field: 'base_uofm_name',
+      sortable: true,
+      filterable: true,
+      type: 'string',
+    },
+    {
+      id: 'unit_cost',
+      headerName: t('inventory.unitCost') || 'Unit Cost',
+      field: 'unit_cost',
+      sortable: true,
+      type: 'money',
+      cellRendererOptions: {
+        prefix: t('common.currencySymbol'),
+        decPlaces: 2,
+        align: 'right',
+      },
+    },
+    {
       id: 'requires_inventory',
       headerName: t('inventory.requiresInventory') || 'Requires Inventory',
       field: 'requires_inventory',
@@ -113,17 +98,17 @@ export function Ingredients() {
       id: 'actions',
       headerName: t('common.actions') || 'Actions',
       cellRenderer: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button
             variant="outline"
-            size="sm"
+            size="xs"
             onClick={() => handleEdit(row)}
           >
             {t('common.edit')}
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            size="xs"
             onClick={() => handleDelete(row)}
           >
             {t('common.delete')}
@@ -166,14 +151,6 @@ export function Ingredients() {
         emptyMessage={t('inventory.noIngredients') || 'No ingredients found'}
         compact={true}
       />
-
-      {isFormOpen && (
-        <IngredientForm
-          ingredient={editingIngredient}
-          onSubmit={handleSubmit}
-          onCancel={() => setIsFormOpen(false)}
-        />
-      )}
     </div>
   )
 }

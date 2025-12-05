@@ -5,7 +5,8 @@ import 'react-toastify/dist/ReactToastify.css'
 import { router } from './app/router'
 import { queryClient } from './app/queryClient'
 import { AuthProvider } from './contexts/AuthContext'
-import { ThemeProvider, LanguageProvider } from '@sofiapos/ui'
+import { SettingsProvider } from './contexts/SettingsContext'
+import { ThemeProvider, LanguageProvider, MessageBoxProvider } from '@sofiapos/ui'
 // Styles are automatically imported from @sofiapos/ui
 import { loadCustomHooks } from './hooks-system/loader'
 import { useTranslation } from './i18n/hooks'
@@ -18,20 +19,22 @@ function AppContent() {
   
   return (
     <LanguageProvider language={currentLanguage} changeLanguage={changeLanguage}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-      </AuthProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+          />
+        </AuthProvider>
+      </SettingsProvider>
     </LanguageProvider>
   )
 }
@@ -40,7 +43,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AppContent />
+        <MessageBoxProvider>
+          <AppContent />
+        </MessageBoxProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )

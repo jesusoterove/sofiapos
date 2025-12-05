@@ -9,6 +9,9 @@ export interface Material {
   code: string | null
   description: string | null
   requires_inventory: boolean
+  base_uofm_id: number | null
+  base_uofm_name: string | null
+  unit_cost: number | null // Decimal as number from backend (formatted to configured decimal places)
   created_at: string
   updated_at: string | null
 }
@@ -18,6 +21,8 @@ export interface MaterialCreate {
   code?: string | null
   description?: string | null
   requires_inventory?: boolean
+  base_uofm_id?: number | null
+  unit_cost?: string | null // Decimal as string
 }
 
 export interface MaterialUpdate {
@@ -25,6 +30,8 @@ export interface MaterialUpdate {
   code?: string | null
   description?: string | null
   requires_inventory?: boolean
+  base_uofm_id?: number | null
+  unit_cost?: string | null // Decimal as string
 }
 
 export const materialsApi = {

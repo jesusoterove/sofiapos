@@ -4,6 +4,7 @@ Pydantic schemas for Material (Ingredient) management.
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from decimal import Decimal
 
 
 class MaterialBase(BaseModel):
@@ -12,6 +13,8 @@ class MaterialBase(BaseModel):
     code: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = None
     requires_inventory: bool = Field(default=True)
+    base_uofm_id: Optional[int] = None
+    unit_cost: Optional[Decimal] = Field(None, ge=0)
 
 
 class MaterialCreate(MaterialBase):
@@ -25,13 +28,22 @@ class MaterialUpdate(BaseModel):
     code: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = None
     requires_inventory: Optional[bool] = None
+    base_uofm_id: Optional[int] = None
+    unit_cost: Optional[Decimal] = Field(None, ge=0)
 
 
-class MaterialResponse(MaterialBase):
+class MaterialResponse(BaseModel):
     """Schema for Material response."""
     id: int
+    name: str
+    code: Optional[str] = None
+    description: Optional[str] = None
+    requires_inventory: bool
+    base_uofm_id: Optional[int] = None
+    unit_cost: Optional[float] = Field(None, ge=0)  # Float instead of Decimal for proper JSON serialization
     created_at: datetime
     updated_at: Optional[datetime] = None
+    base_uofm_name: Optional[str] = None  # Will be populated from relationship
 
     class Config:
         from_attributes = True

@@ -57,10 +57,13 @@ class Material(Base):
     code = Column(String(100), nullable=True, index=True)
     description = Column(Text)
     requires_inventory = Column(Boolean, default=True, nullable=False)
+    base_uofm_id = Column(Integer, ForeignKey("unit_of_measures.id", ondelete="SET NULL"), nullable=True)
+    unit_cost = Column(Numeric(10, 4), nullable=True)  # Cost per base unit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
+    base_uofm = relationship("UnitOfMeasure", foreign_keys=[base_uofm_id])
     unit_of_measures = relationship("MaterialUnitOfMeasure", back_populates="material", cascade="all, delete-orphan")
     recipe_materials = relationship("RecipeMaterial", back_populates="material")
 

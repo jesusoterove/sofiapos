@@ -2,7 +2,7 @@
  * DataGrid component using TanStack Table.
  * Inspired by ag-grid community edition.
  */
-import React, { useMemo } from 'react'
+import React, { useMemo, useContext } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -26,6 +26,7 @@ import {
 } from './cells'
 import { DataGridPagination } from './DataGridPagination'
 import { useTranslation } from '../i18n/hooks'
+import { SettingsContext } from '../contexts/SettingsContext'
 
 export type CellRendererType = 'string' | 'number' | 'money' | 'date' | 'datetime' | 'time' | 'checkbox' | 'yesno'
 
@@ -126,12 +127,15 @@ export function DataGrid<T extends Record<string, any>>({
   compact = false,
   className = '',
 }: DataGridProps<T>) {
+  const { t } = useTranslation()
+  const settingsContext = useContext(SettingsContext)
+  const defaultMoneyDecimalPlaces = settingsContext?.moneyDecimalPlaces ?? 2
+  
   const [sorting, setSorting] = React.useState<SortingState>(defaultSorting)
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(defaultColumnFilters)
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(defaultColumnVisibility)
   const [rowSelectionState, setRowSelectionState] = React.useState<Record<string, boolean>>({})
   const [showFilters, setShowFilters] = React.useState<boolean>(showFiltersByDefault)
-  const { t } = useTranslation()
 
   // Transform columns to TanStack Table format
   const tableColumns = useMemo(() => {
@@ -178,7 +182,7 @@ export function DataGrid<T extends Record<string, any>>({
                 <NumberCellRenderer 
                   value={value} 
                   align={options.align || 'right'}
-                  decPlaces={options.decPlaces !== undefined ? options.decPlaces : 2}
+                  decPlaces={options.decPlaces !== undefined ? options.decPlaces : defaultMoneyDecimalPlaces}
                   prefix={options.prefix}
                   suffix={options.suffix}
                 />
@@ -457,12 +461,6 @@ export function DataGrid<T extends Record<string, any>>({
               </p>
             </div>
           </div>
-        ) : data.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <p style={{ color: 'var(--color-text-secondary)' }}>
-              {emptyMessage || t('dataGrid.noData')}
-            </p>
-          </div>
         ) : (
           <table style={tableStyle}>
             <thead style={{ backgroundColor: 'var(--color-border-light)', position: 'sticky', top: 0, zIndex: 10 }}>
@@ -504,55 +502,70 @@ export function DataGrid<T extends Record<string, any>>({
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={`${
-                    rowSelection !== false && row.getIsSelected() ? 'bg-blue-50' : ''
-                  } ${getRowClassName ? getRowClassName(row.original) : ''}`}
-                  onClick={() => {
-                    if (rowSelection === 'single') {
-                      setRowSelectionState({ [row.id]: !row.getIsSelected() })
-                    } else if (rowSelection === 'multiple') {
-                      row.toggleSelected()
-                    }
-                  }}
-                  style={{ 
-                    cursor: rowSelection !== false ? 'pointer' : 'default',
-                    backgroundColor: rowSelection !== false && row.getIsSelected() 
-                      ? 'rgba(59, 130, 246, 0.1)' 
-                      : 'transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (rowSelection === false || !row.getIsSelected()) {
-                      e.currentTarget.style.backgroundColor = 'var(--color-border-light)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (rowSelection === false || !row.getIsSelected()) {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                    } else {
-                      e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'
-                    }
-                  }}
-                >
-                  {row.getVisibleCells().map((cell, cellIndex, cells) => (
-                    <td
-                      key={cell.id}
-                      className={`px-2 py-1 whitespace-nowrap ${compact ? 'px-0 py-0 text-sm' : ''}`}
-                      style={{ 
-                        color: 'var(--color-text-primary)',
-                        borderRight: cellIndex < cells.length - 1 
-                          ? '1px solid var(--color-border-default)' 
-                          : 'none',
-                        borderBottom: '1px solid var(--color-border-default)',
-                      }}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+              {data.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={table.getHeaderGroups()[0]?.headers.length || 1}
+                    className="px-4 py-8 text-center"
+                    style={{
+                      color: 'var(--color-text-secondary)',
+                      borderBottom: '1px solid var(--color-border-default)',
+                    }}
+                  >
+                    {emptyMessage || t('dataGrid.noData')}
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={`${
+                      rowSelection !== false && row.getIsSelected() ? 'bg-blue-50' : ''
+                    } ${getRowClassName ? getRowClassName(row.original) : ''}`}
+                    onClick={() => {
+                      if (rowSelection === 'single') {
+                        setRowSelectionState({ [row.id]: !row.getIsSelected() })
+                      } else if (rowSelection === 'multiple') {
+                        row.toggleSelected()
+                      }
+                    }}
+                    style={{ 
+                      cursor: rowSelection !== false ? 'pointer' : 'default',
+                      backgroundColor: rowSelection !== false && row.getIsSelected() 
+                        ? 'rgba(59, 130, 246, 0.1)' 
+                        : 'transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (rowSelection === false || !row.getIsSelected()) {
+                        e.currentTarget.style.backgroundColor = 'var(--color-border-light)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (rowSelection === false || !row.getIsSelected()) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      } else {
+                        e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'
+                      }
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell, cellIndex, cells) => (
+                      <td
+                        key={cell.id}
+                        className={`px-2 py-1 whitespace-nowrap ${compact ? 'px-0 py-0 text-sm' : ''}`}
+                        style={{ 
+                          color: 'var(--color-text-primary)',
+                          borderRight: cellIndex < cells.length - 1 
+                            ? '1px solid var(--color-border-default)' 
+                            : 'none',
+                          borderBottom: '1px solid var(--color-border-default)',
+                        }}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         )}

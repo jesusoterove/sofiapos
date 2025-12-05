@@ -3,8 +3,10 @@
  */
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from '@/i18n/hooks'
 import { Material } from '@/api/materials'
+import { unitOfMeasuresApi } from '@/api/unitOfMeasures'
 import { Button } from '@sofiapos/ui'
 
 interface IngredientFormProps {
@@ -26,7 +28,15 @@ export function IngredientForm({ ingredient, onSubmit, onCancel }: IngredientFor
       code: '',
       description: '',
       requires_inventory: true,
+      base_uofm_id: null as number | null,
+      unit_cost: '',
     },
+  })
+
+  // Fetch unit of measures
+  const { data: unitOfMeasures = [] } = useQuery({
+    queryKey: ['unit-of-measures'],
+    queryFn: () => unitOfMeasuresApi.list(true),
   })
 
   useEffect(() => {
@@ -36,6 +46,8 @@ export function IngredientForm({ ingredient, onSubmit, onCancel }: IngredientFor
         code: ingredient.code || '',
         description: ingredient.description || '',
         requires_inventory: ingredient.requires_inventory,
+        base_uofm_id: ingredient.base_uofm_id || null,
+        unit_cost: ingredient.unit_cost || '',
       })
     }
   }, [ingredient, reset])
@@ -86,6 +98,43 @@ export function IngredientForm({ ingredient, onSubmit, onCancel }: IngredientFor
               rows={3}
               className="w-full px-3 py-2 border rounded"
               style={{ borderColor: 'var(--color-border-default)' }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
+              {t('inventory.baseUofm') || 'Base Unit of Measure'}
+            </label>
+            <select
+              {...register('base_uofm_id', { 
+                setValueAs: (v) => v === '' ? null : Number(v)
+              })}
+              className="w-full px-3 py-2 border rounded"
+              style={{ borderColor: 'var(--color-border-default)' }}
+            >
+              <option value="">{t('common.none') || 'None'}</option>
+              {unitOfMeasures.map((uom) => (
+                <option key={uom.id} value={uom.id}>
+                  {uom.abbreviation} - {uom.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
+              {t('inventory.unitCost') || 'Unit Cost'}
+            </label>
+            <input
+              type="number"
+              step="0.0001"
+              min="0"
+              {...register('unit_cost', {
+                setValueAs: (v) => v === '' ? null : v
+              })}
+              className="w-full px-3 py-2 border rounded"
+              style={{ borderColor: 'var(--color-border-default)' }}
+              placeholder="0.0000"
             />
           </div>
 

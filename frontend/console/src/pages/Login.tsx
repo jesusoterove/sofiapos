@@ -2,7 +2,7 @@
  * Login page component.
  * Attractive, dynamic but professional design inspired by modern food apps.
  */
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@sofiapos/ui'
@@ -11,7 +11,7 @@ import { toast } from 'react-toastify'
 
 export function Login() {
   const { t } = useTranslation()
-  const { login } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const { currentTheme } = useTheme()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
@@ -21,6 +21,13 @@ export function Login() {
   
   // Get theme colors
   const theme = currentTheme.colors
+  
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate({ to: '/', replace: true })
+    }
+  }, [isAuthenticated, navigate])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -34,7 +41,7 @@ export function Login() {
     try {
       await login(username, password)
       toast.success(t('auth.loginSuccess') || 'Login successful!')
-      navigate({ to: '/' })
+      // Navigation will happen via useEffect when isAuthenticated becomes true
     } catch (error: any) {
       toast.error(error.message || t('auth.loginError') || 'Login failed')
     } finally {

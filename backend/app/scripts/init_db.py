@@ -201,22 +201,22 @@ def create_default_unit_of_measures(db: Session):
     """Create default unit of measures."""
     units = [
         # Weight units
-        {"name": "Kilogram", "abbreviation": "kg", "type": "weight", "is_active": True},
-        {"name": "Gram", "abbreviation": "g", "type": "weight", "is_active": True},
-        {"name": "Pound", "abbreviation": "lb", "type": "weight", "is_active": True},
-        {"name": "Ounce", "abbreviation": "oz", "type": "weight", "is_active": True},
+        {"name": "KILOS", "abbreviation": "KG", "type": "weight", "is_active": True},
+        {"name": "GRAMOS", "abbreviation": "GR", "type": "weight", "is_active": True},
+        {"name": "LIBRAS", "abbreviation": "LB", "type": "weight", "is_active": True},
         
         # Volume units
-        {"name": "Liter", "abbreviation": "L", "type": "volume", "is_active": True},
-        {"name": "Milliliter", "abbreviation": "mL", "type": "volume", "is_active": True},
-        {"name": "Gallon", "abbreviation": "gal", "type": "volume", "is_active": True},
-        {"name": "Cup", "abbreviation": "cup", "type": "volume", "is_active": True},
+        {"name": "LITROS", "abbreviation": "LT", "type": "volume", "is_active": True},
+        {"name": "MILILITROS", "abbreviation": "ML", "type": "volume", "is_active": True},
+        {"name": "GALONES", "abbreviation": "GAL", "type": "volume", "is_active": True},
+        {"name": "TAZAS", "abbreviation": "TAZ", "type": "volume", "is_active": True},
         
         # Piece units
-        {"name": "Piece", "abbreviation": "pcs", "type": "piece", "is_active": True},
-        {"name": "Unit", "abbreviation": "unit", "type": "piece", "is_active": True},
-        {"name": "Box", "abbreviation": "box", "type": "piece", "is_active": True},
-        {"name": "Package", "abbreviation": "pkg", "type": "piece", "is_active": True},
+        {"name": "PIEZAS", "abbreviation": "PZA", "type": "piece", "is_active": True},
+        {"name": "UNIDADES", "abbreviation": "UND", "type": "piece", "is_active": True},
+        {"name": "CAJAS", "abbreviation": "CAJ", "type": "piece", "is_active": True},
+        {"name": "PAQUETES", "abbreviation": "PAQ", "type": "piece", "is_active": True},
+        {"name": "BOLSAS", "abbreviation": "BOL", "type": "piece", "is_active": True},
     ]
     
     for unit_data in units:
@@ -237,6 +237,14 @@ def create_default_settings(db: Session):
             "value": "NIT|NIT;CC|Cédula;CE|Cédula Extranjería",
             "value_type": "string",
             "description": "Available tax ID types for customers. Format: value|label;value|label",
+            "is_system_setting": True,
+            "store_id": None,  # Global setting
+        },
+        {
+            "key": "money_decimal_places",
+            "value": "2",
+            "value_type": "integer",
+            "description": "Number of decimal places for money values",
             "is_system_setting": True,
             "store_id": None,  # Global setting
         },

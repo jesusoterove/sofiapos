@@ -7,7 +7,7 @@ import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { productsApi, Product } from '@/api/products'
 import { storesApi } from '@/api/stores'
-import { Button, DataGrid, DataGridColumn } from '@sofiapos/ui'
+import { Button, DataGrid, DataGridColumn, messageBox } from '@sofiapos/ui'
 import { ProductForm } from '@/components/products/ProductForm'
 
 export function Products() {
@@ -78,10 +78,11 @@ export function Products() {
     setIsFormOpen(true)
   }
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = async (product: Product) => {
     const message = (t('common.deleteConfirmMessage') || 'Are you sure you want to delete "{{name}}"?').
       replace('{{name}}', product.name)
-    if (window.confirm(message)) {
+    const result = await messageBox.ask(message, undefined, 'YesNo')
+    if (result.value === true) {
       deleteMutation.mutate(product.id)
     }
   }

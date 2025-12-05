@@ -3,15 +3,42 @@ Material (Ingredient) management API endpoints.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from decimal import Decimal
 
 from app.database import get_db
-from app.models import Material
+from app.models import Material, Setting
 from app.schemas.material import MaterialCreate, MaterialUpdate, MaterialResponse
 from app.api.v1.auth import get_current_user
 from app.models import User
 
 router = APIRouter(prefix="/materials", tags=["materials"])
+
+
+def get_money_decimal_places(db: Session) -> int:
+    """Get the configured number of decimal places for money values."""
+    setting = db.query(Setting).filter(
+        Setting.key == "money_decimal_places",
+        Setting.store_id == None
+    ).first()
+    
+    if setting and setting.value:
+        try:
+            return int(setting.value)
+        except (ValueError, TypeError):
+            pass
+    
+    return 2  # Default to 2 decimal places
+
+
+def format_unit_cost(unit_cost: Optional[Decimal], decimal_places: int) -> Optional[float]:
+    """Format unit_cost to the specified number of decimal places and return as float."""
+    if unit_cost is None:
+        return None
+    
+    # Round to the specified decimal places
+    rounded = round(float(unit_cost), decimal_places)
+    return rounded
 
 
 @router.get("", response_model=List[MaterialResponse])
@@ -22,8 +49,29 @@ async def list_materials(
     current_user: User = Depends(get_current_user)
 ):
     """List all materials."""
-    materials = db.query(Material).offset(skip).limit(limit).all()
-    return materials
+    from sqlalchemy.orm import joinedload
+    materials = db.query(Material).options(joinedload(Material.base_uofm)).offset(skip).limit(limit).all()
+    
+    # Get money decimal places configuration
+    decimal_places = get_money_decimal_places(db)
+    
+    # Convert to response format with base_uofm_name
+    result = []
+    for material in materials:
+        material_dict = {
+            "id": material.id,
+            "name": material.name,
+            "code": material.code,
+            "description": material.description,
+            "requires_inventory": material.requires_inventory,
+            "base_uofm_id": material.base_uofm_id,
+            "unit_cost": format_unit_cost(material.unit_cost, decimal_places),
+            "created_at": material.created_at,
+            "updated_at": material.updated_at,
+            "base_uofm_name": material.base_uofm.abbreviation if material.base_uofm else None,
+        }
+        result.append(material_dict)
+    return result
 
 
 @router.get("/{material_id}", response_model=MaterialResponse)
@@ -33,13 +81,30 @@ async def get_material(
     current_user: User = Depends(get_current_user)
 ):
     """Get a material by ID."""
-    material = db.query(Material).filter(Material.id == material_id).first()
+    from sqlalchemy.orm import joinedload
+    material = db.query(Material).options(joinedload(Material.base_uofm)).filter(Material.id == material_id).first()
     if not material:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Material not found"
         )
-    return material
+    
+    # Get money decimal places configuration
+    decimal_places = get_money_decimal_places(db)
+    
+    # Convert to response format with base_uofm_name
+    return {
+        "id": material.id,
+        "name": material.name,
+        "code": material.code,
+        "description": material.description,
+        "requires_inventory": material.requires_inventory,
+        "base_uofm_id": material.base_uofm_id,
+        "unit_cost": format_unit_cost(material.unit_cost, decimal_places),
+        "created_at": material.created_at,
+        "updated_at": material.updated_at,
+        "base_uofm_name": material.base_uofm.abbreviation if material.base_uofm else None,
+    }
 
 
 @router.post("", response_model=MaterialResponse, status_code=status.HTTP_201_CREATED)
@@ -49,6 +114,7 @@ async def create_material(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new material."""
+    from sqlalchemy.orm import joinedload
     # Check if code already exists
     if material_data.code:
         existing = db.query(Material).filter(Material.code == material_data.code).first()
@@ -62,7 +128,24 @@ async def create_material(
     db.add(material)
     db.commit()
     db.refresh(material)
-    return material
+    # Reload with relationship
+    material = db.query(Material).options(joinedload(Material.base_uofm)).filter(Material.id == material.id).first()
+    
+    # Get money decimal places configuration
+    decimal_places = get_money_decimal_places(db)
+    
+    return {
+        "id": material.id,
+        "name": material.name,
+        "code": material.code,
+        "description": material.description,
+        "requires_inventory": material.requires_inventory,
+        "base_uofm_id": material.base_uofm_id,
+        "unit_cost": format_unit_cost(material.unit_cost, decimal_places),
+        "created_at": material.created_at,
+        "updated_at": material.updated_at,
+        "base_uofm_name": material.base_uofm.abbreviation if material.base_uofm else None,
+    }
 
 
 @router.put("/{material_id}", response_model=MaterialResponse)
@@ -73,6 +156,7 @@ async def update_material(
     current_user: User = Depends(get_current_user)
 ):
     """Update a material."""
+    from sqlalchemy.orm import joinedload
     material = db.query(Material).filter(Material.id == material_id).first()
     if not material:
         raise HTTPException(
@@ -95,8 +179,24 @@ async def update_material(
         setattr(material, field, value)
     
     db.commit()
-    db.refresh(material)
-    return material
+    # Reload with relationship
+    material = db.query(Material).options(joinedload(Material.base_uofm)).filter(Material.id == material_id).first()
+    
+    # Get money decimal places configuration
+    decimal_places = get_money_decimal_places(db)
+    
+    return {
+        "id": material.id,
+        "name": material.name,
+        "code": material.code,
+        "description": material.description,
+        "requires_inventory": material.requires_inventory,
+        "base_uofm_id": material.base_uofm_id,
+        "unit_cost": format_unit_cost(material.unit_cost, decimal_places),
+        "created_at": material.created_at,
+        "updated_at": material.updated_at,
+        "base_uofm_name": material.base_uofm.abbreviation if material.base_uofm else None,
+    }
 
 
 @router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -29,6 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check for existing auth token on mount
   useEffect(() => {
+    // Don't try to fetch user if we're on the login page
+    // This prevents infinite redirect loops when session is lost
+    const currentPath = window.location.pathname
+    if (currentPath === '/login' || currentPath === '/login/') {
+      setIsLoading(false)
+      return
+    }
+
     const token = localStorage.getItem('auth_token')
     if (token) {
       // Verify token and get user info
@@ -43,10 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.get('/api/v1/auth/me')
       setUser(response.data)
       setIsLoading(false)
-    } catch (error) {
+    } catch (error: any) {
       // Token invalid or expired
-      localStorage.removeItem('auth_token')
-      setUser(null)
+      // Only clear token if it's a 401 (unauthorized), not other errors
+      if (error.response?.status === 401) {
+        localStorage.removeItem('auth_token')
+        setUser(null)
+      }
       setIsLoading(false)
     }
   }
