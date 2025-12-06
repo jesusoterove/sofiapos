@@ -9,6 +9,7 @@ import { storesApi, Store } from '@/api/stores'
 import { StoreForm } from '@/components/stores/StoreForm'
 import { StoreDeleteDialog } from '@/components/stores/StoreDeleteDialog'
 import { Button, AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 
 export function StoreList() {
   const { t } = useTranslation()
@@ -64,24 +65,28 @@ export function StoreList() {
       headerName: t('stores.name') || 'Name',
       sortable: true,
       filter: true,
+      flex: 2,
     },
     {
       field: 'code',
       headerName: t('stores.code') || 'Code',
       sortable: true,
       filter: true,
+      flex: 1,
     },
     {
       field: 'address',
       headerName: t('stores.address') || 'Address',
       sortable: true,
       filter: true,
+      flex: 2,
     },
     {
       field: 'phone',
       headerName: t('stores.phone') || 'Phone',
       sortable: true,
       filter: true,
+      flex: 2,
     },
     {
       field: 'email',
@@ -94,6 +99,7 @@ export function StoreList() {
       headerName: t('stores.status') || 'Status',
       sortable: true,
       filter: true,
+      flex: 1,
       cellRenderer: (params: any) => (
         <span
           className={`px-2 py-1 text-xs rounded-full ${
@@ -111,25 +117,24 @@ export function StoreList() {
       headerName: t('common.actions') || 'Actions',
       sortable: false,
       filter: false,
+      flex: 1,
       cellRenderer: (params: any) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleEdit(params.data)
-            }}
-            className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+            onClick={() => handleEdit(params.data)}
+            className="p-1 rounded hover:bg-gray-100"
+            title={t('common.edit') || 'Edit'}
+            style={{ color: 'var(--color-primary-500)' }}
           >
-            {t('common.edit') || 'Edit'}
+            <FaEdit />
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleDelete(params.data)
-            }}
-            className="text-red-600 hover:text-red-900 text-sm font-medium"
+            onClick={() => handleDelete(params.data)}
+            className="p-1 rounded hover:bg-gray-100"
+            title={t('common.delete') || 'Delete'}
+            style={{ color: 'var(--color-danger-500)' }}
           >
-            {t('common.delete') || 'Delete'}
+            <FaTrash />
           </button>
         </div>
       ),
@@ -137,7 +142,7 @@ export function StoreList() {
   ], [t])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-0">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -154,7 +159,7 @@ export function StoreList() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
+      {/* <div className="flex items-center gap-4">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -166,7 +171,7 @@ export function StoreList() {
             {t('stores.activeOnly') || 'Active only'}
           </span>
         </label>
-      </div>
+      </div> */}
 
       {/* Error Display */}
       {error && (
@@ -190,7 +195,7 @@ export function StoreList() {
           loading={isLoading}
           emptyMessage={t('stores.noStores') || 'No stores found'}
           getRowClassName={(params: any) => (params.data.is_active ? '' : 'opacity-60')}
-          height="600px"
+          height="550px"
         />
       </div>
 

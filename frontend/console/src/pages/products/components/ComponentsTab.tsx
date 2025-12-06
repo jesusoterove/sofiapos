@@ -142,7 +142,7 @@ export function ComponentsTab({ productId, isEditMode, productType }: Components
       sortable: false,
       filter: false,
       cellRenderer: (params: any) => (
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => handleEdit(params.data)}
             className="p-1 rounded hover:bg-gray-100"

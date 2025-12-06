@@ -105,7 +105,7 @@ export function ProductList() {
       filter: false,
       flex: 1,
       cellRenderer: (params: any) => (
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => handleEdit(params.data)}
             className="p-1 rounded hover:bg-gray-100"
@@ -138,7 +138,7 @@ export function ProductList() {
   }
 
   return (
-    <div className="p-3">
+    <div className="p-3 pb-0">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
@@ -153,7 +153,7 @@ export function ProductList() {
         </Button>
       </div>
 
-      <div className="mb-4 flex gap-4">
+      {/* <div className="mb-4 flex gap-4">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -164,14 +164,14 @@ export function ProductList() {
             {t('stores.activeOnly') || 'Active only'}
           </span>
         </label>
-      </div>
+      </div> */}
 
       <AdvancedDataGrid
         rowData={products}
         columnDefs={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noProducts') || 'No products found'}
-        height="600px"
+        height="550px"
       />
     </div>
   )

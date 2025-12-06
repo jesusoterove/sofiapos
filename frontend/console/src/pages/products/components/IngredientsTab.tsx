@@ -160,7 +160,7 @@ export function IngredientsTab({ productId, isEditMode, productType }: Ingredien
       filter: false,
       width: 100,
       cellRenderer: (params: any) => (
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => handleEdit(params.data)}
             className="p-1 rounded hover:bg-gray-100"

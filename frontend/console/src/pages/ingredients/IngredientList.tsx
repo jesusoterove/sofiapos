@@ -94,7 +94,7 @@ export function IngredientList() {
       filter: false,
       flex: 1,
       cellRenderer: (params: any) => (
-        <div className="flex gap-1">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => handleEdit(params.data)}
             className="p-1 rounded hover:bg-gray-100"
@@ -127,7 +127,7 @@ export function IngredientList() {
   }
 
   return (
-    <div className="p-3">
+    <div className="p-3 pb-0">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
@@ -147,7 +147,7 @@ export function IngredientList() {
         columnDefs={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noIngredients') || 'No ingredients found'}
-        height="600px"
+        height="550px"
       />
     </div>
   )
