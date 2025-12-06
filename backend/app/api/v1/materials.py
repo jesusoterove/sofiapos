@@ -31,14 +31,13 @@ def get_money_decimal_places(db: Session) -> int:
     return 2  # Default to 2 decimal places
 
 
-def format_unit_cost(unit_cost: Optional[Decimal], decimal_places: int) -> Optional[float]:
-    """Format unit_cost to the specified number of decimal places and return as float."""
+def format_unit_cost(unit_cost: Optional[Decimal]) -> Optional[float]:
+    """Convert unit_cost from Decimal to float without formatting."""
     if unit_cost is None:
         return None
     
-    # Round to the specified decimal places
-    rounded = round(float(unit_cost), decimal_places)
-    return rounded
+    # Return raw float value without rounding
+    return float(unit_cost)
 
 
 @router.get("", response_model=List[MaterialResponse])
@@ -52,9 +51,6 @@ async def list_materials(
     from sqlalchemy.orm import joinedload
     materials = db.query(Material).options(joinedload(Material.base_uofm)).offset(skip).limit(limit).all()
     
-    # Get money decimal places configuration
-    decimal_places = get_money_decimal_places(db)
-    
     # Convert to response format with base_uofm_name
     result = []
     for material in materials:
@@ -65,7 +61,7 @@ async def list_materials(
             "description": material.description,
             "requires_inventory": material.requires_inventory,
             "base_uofm_id": material.base_uofm_id,
-            "unit_cost": format_unit_cost(material.unit_cost, decimal_places),
+            "unit_cost": format_unit_cost(material.unit_cost),
             "created_at": material.created_at,
             "updated_at": material.updated_at,
             "base_uofm_name": material.base_uofm.abbreviation if material.base_uofm else None,
@@ -89,9 +85,6 @@ async def get_material(
             detail="Material not found"
         )
     
-    # Get money decimal places configuration
-    decimal_places = get_money_decimal_places(db)
-    
     # Convert to response format with base_uofm_name
     return {
         "id": material.id,
@@ -100,7 +93,7 @@ async def get_material(
         "description": material.description,
         "requires_inventory": material.requires_inventory,
         "base_uofm_id": material.base_uofm_id,
-        "unit_cost": format_unit_cost(material.unit_cost, decimal_places),
+        "unit_cost": format_unit_cost(material.unit_cost),
         "created_at": material.created_at,
         "updated_at": material.updated_at,
         "base_uofm_name": material.base_uofm.abbreviation if material.base_uofm else None,
@@ -131,9 +124,6 @@ async def create_material(
     # Reload with relationship
     material = db.query(Material).options(joinedload(Material.base_uofm)).filter(Material.id == material.id).first()
     
-    # Get money decimal places configuration
-    decimal_places = get_money_decimal_places(db)
-    
     return {
         "id": material.id,
         "name": material.name,
@@ -141,7 +131,7 @@ async def create_material(
         "description": material.description,
         "requires_inventory": material.requires_inventory,
         "base_uofm_id": material.base_uofm_id,
-        "unit_cost": format_unit_cost(material.unit_cost, decimal_places),
+        "unit_cost": format_unit_cost(material.unit_cost),
         "created_at": material.created_at,
         "updated_at": material.updated_at,
         "base_uofm_name": material.base_uofm.abbreviation if material.base_uofm else None,
@@ -182,9 +172,6 @@ async def update_material(
     # Reload with relationship
     material = db.query(Material).options(joinedload(Material.base_uofm)).filter(Material.id == material_id).first()
     
-    # Get money decimal places configuration
-    decimal_places = get_money_decimal_places(db)
-    
     return {
         "id": material.id,
         "name": material.name,
@@ -192,7 +179,7 @@ async def update_material(
         "description": material.description,
         "requires_inventory": material.requires_inventory,
         "base_uofm_id": material.base_uofm_id,
-        "unit_cost": format_unit_cost(material.unit_cost, decimal_places),
+        "unit_cost": format_unit_cost(material.unit_cost),
         "created_at": material.created_at,
         "updated_at": material.updated_at,
         "base_uofm_name": material.base_uofm.abbreviation if material.base_uofm else None,

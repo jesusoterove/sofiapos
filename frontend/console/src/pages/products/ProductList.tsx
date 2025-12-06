@@ -7,13 +7,15 @@ import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { productsApi, Product } from '@/api/products'
-import { Button, DataGrid, DataGridColumn, messageBox } from '@sofiapos/ui'
+import { useSettings } from '@/contexts/SettingsContext'
+import { Button, AdvancedDataGrid, AdvancedDataGridColumn, messageBox, NumberCellRenderer, YesNoCellRenderer } from '@sofiapos/ui'
 import { FaEdit, FaTrash } from 'react-icons/fa'
 
 export function ProductList() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { moneyDecimalPlaces } = useSettings()
   const [activeOnly, setActiveOnly] = useState(false)
 
   // Fetch products
@@ -51,56 +53,61 @@ export function ProductList() {
     }
   }
 
-  const columns: DataGridColumn<Product>[] = [
+  const columns: AdvancedDataGridColumn<Product>[] = [
     {
-      id: 'name',
-      headerName: t('inventory.productName') || 'Name',
-      field: 'name',
-      sortable: true,
-      filterable: true,
-      // TextCellRenderer will be used automatically
-    },
-    {
-      id: 'code',
-      headerName: t('inventory.productCode') || 'Code',
       field: 'code',
+      headerName: t('inventory.productCode') || 'Code',
       sortable: true,
-      filterable: true,
-      // TextCellRenderer will be used automatically
+      filter: true,
+      flex: 2,
     },
     {
-      id: 'product_type',
-      headerName: t('inventory.productType') || 'Type',
+      field: 'name',
+      headerName: t('inventory.productName') || 'Name',
+      sortable: true,
+      filter: true,
+      flex: 4,
+    },
+    {
       field: 'product_type',
+      headerName: t('inventory.productType') || 'Type',
       sortable: true,
-      filterable: true,
-      type: 'string',
+      filter: true,
+      valueGetter: (params: any) => t(`inventory.productTypeEnum.${params.data.product_type}`),
+      flex: 2,
     },
     {
-      id: 'selling_price',
-      headerName: t('inventory.sellingPrice') || 'Selling Price',
       field: 'selling_price',
+      headerName: t('inventory.sellingPrice') || 'Selling Price',
       sortable: true,
-      type: 'money',
-      cellRendererOptions: {
-        prefix: t('common.currencySymbol'),
-        decPlaces: 2,
-      },
+      flex: 2,
+      cellRenderer: (params: any) => (
+        <NumberCellRenderer
+          value={params.value}
+          prefix={t('common.currencySymbol')}
+          decPlaces={moneyDecimalPlaces}
+        />
+      ),
     },
     {
-      id: 'is_active',
-      headerName: t('inventory.isActive') || 'Active',
       field: 'is_active',
+      headerName: t('inventory.isActive') || 'Active',
       sortable: true,
-      type: 'yesno',
+      flex: 1,
+      cellRenderer: (params: any) => (
+        <YesNoCellRenderer value={params.value} />
+      ),
     },
     {
-      id: 'actions',
+      field: 'actions',
       headerName: t('common.actions') || 'Actions',
-      cellRenderer: ({ row }) => (
+      sortable: false,
+      filter: false,
+      flex: 1,
+      cellRenderer: (params: any) => (
         <div className="flex gap-1">
           <button
-            onClick={() => handleEdit(row)}
+            onClick={() => handleEdit(params.data)}
             className="p-1 rounded hover:bg-gray-100"
             title={t('common.edit') || 'Edit'}
             style={{ color: 'var(--color-primary-500)' }}
@@ -108,7 +115,7 @@ export function ProductList() {
             <FaEdit />
           </button>
           <button
-            onClick={() => handleDelete(row)}
+            onClick={() => handleDelete(params.data)}
             className="p-1 rounded hover:bg-gray-100"
             title={t('common.delete') || 'Delete'}
             style={{ color: 'var(--color-danger-500)' }}
@@ -122,7 +129,7 @@ export function ProductList() {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div className="p-3">
         <div className="text-red-600">
           {t('common.error')}: {error instanceof Error ? error.message : t('common.unknownError')}
         </div>
@@ -131,7 +138,7 @@ export function ProductList() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
@@ -159,12 +166,12 @@ export function ProductList() {
         </label>
       </div>
 
-      <DataGrid
-        data={products}
-        columns={columns}
+      <AdvancedDataGrid
+        rowData={products}
+        columnDefs={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noProducts') || 'No products found'}
-        compact={true}
+        height="600px"
       />
     </div>
   )

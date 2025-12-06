@@ -8,7 +8,7 @@ import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { storesApi } from '@/api/stores'
 import { storeProductGroupsApi, StoreProductGroup } from '@/api/storeProductGroups'
-import { DataGrid, DataGridColumn } from '@sofiapos/ui'
+import { AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
 
 interface GroupsTabProps {
   productId: string | undefined
@@ -54,18 +54,21 @@ export function GroupsTab({ productId, isEditMode }: GroupsTabProps) {
     assignMutation.mutate({ groupId, assigned: checked })
   }
 
-  const columns: DataGridColumn<StoreProductGroup>[] = [
-    { id: 'group_name', headerName: t('inventory.storeGroup') || 'Group Name', field: 'group_name', sortable: true },
+  const columns: AdvancedDataGridColumn<StoreProductGroup>[] = [
+    { field: 'group_name', headerName: t('inventory.storeGroup') || 'Group Name', sortable: true, flex: 4 },
     {
-      id: 'belongs',
+      field: 'belongs',
       headerName: t('inventory.belongsToGroup') || 'Belongs to Group',
-      cellRenderer: ({ row }) => {
-        const isAssigned = productGroups.some((pg: any) => pg.id === row.id)
+      sortable: false,
+      filter: false,
+      flex: 1,
+      cellRenderer: (params: any) => {
+        const isAssigned = productGroups.some((pg: any) => pg.id === params.data.id)
         return (
           <input
             type="checkbox"
             checked={isAssigned}
-            onChange={(e) => handleCheckboxChange(row.id, e.target.checked)}
+            onChange={(e) => handleCheckboxChange(params.data.id, e.target.checked)}
             className="rounded"
           />
         )
@@ -93,12 +96,12 @@ export function GroupsTab({ productId, isEditMode }: GroupsTabProps) {
           ))}
         </select>
       </div>
-      <DataGrid
-        data={groups}
-        columns={columns}
+      <AdvancedDataGrid
+        rowData={groups}
+        columnDefs={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noProducts') || 'No groups found'}
-        compact={true}
+        height="400px"
       />
     </div>
   )

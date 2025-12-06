@@ -33,13 +33,13 @@ def get_money_decimal_places(db: Session) -> int:
     return 2  # Default to 2 decimal places
 
 
-def format_price(price: Optional[Decimal], decimal_places: int) -> Optional[float]:
-    """Format price to the specified number of decimal places and return as float."""
+def format_price(price: Optional[Decimal]) -> Optional[float]:
+    """Convert price from Decimal to float without formatting."""
     if price is None:
         return None
     
-    rounded = round(float(price), decimal_places)
-    return rounded
+    # Return raw float value without rounding
+    return float(price)
 
 
 @router.get("", response_model=List[StoreProductPriceResponse])
@@ -60,9 +60,6 @@ async def list_store_product_prices(
     
     prices = query.all()
     
-    # Get money decimal places configuration
-    decimal_places = get_money_decimal_places(db)
-    
     # Convert to response format
     result = []
     for price in prices:
@@ -70,7 +67,7 @@ async def list_store_product_prices(
             "id": price.id,
             "store_id": price.store_id,
             "product_id": price.product_id,
-            "selling_price": format_price(price.selling_price, decimal_places),
+            "selling_price": format_price(price.selling_price),
             "created_at": price.created_at,
             "updated_at": price.updated_at,
             "store_name": price.store.name if price.store else None,
@@ -94,14 +91,11 @@ async def get_store_product_price(
             detail="Store product price not found"
         )
     
-    # Get money decimal places configuration
-    decimal_places = get_money_decimal_places(db)
-    
     return {
         "id": price.id,
         "store_id": price.store_id,
         "product_id": price.product_id,
-        "selling_price": format_price(price.selling_price, decimal_places),
+        "selling_price": format_price(price.selling_price),
         "created_at": price.created_at,
         "updated_at": price.updated_at,
         "store_name": price.store.name if price.store else None,
@@ -152,14 +146,11 @@ async def create_store_product_price(
         StoreProductPrice.id == price.id
     ).first()
     
-    # Get money decimal places configuration
-    decimal_places = get_money_decimal_places(db)
-    
     return {
         "id": price.id,
         "store_id": price.store_id,
         "product_id": price.product_id,
-        "selling_price": format_price(price.selling_price, decimal_places),
+        "selling_price": format_price(price.selling_price),
         "created_at": price.created_at,
         "updated_at": price.updated_at,
         "store_name": price.store.name if price.store else None,
@@ -194,14 +185,11 @@ async def update_store_product_price(
         StoreProductPrice.id == price_id
     ).first()
     
-    # Get money decimal places configuration
-    decimal_places = get_money_decimal_places(db)
-    
     return {
         "id": price.id,
         "store_id": price.store_id,
         "product_id": price.product_id,
-        "selling_price": format_price(price.selling_price, decimal_places),
+        "selling_price": format_price(price.selling_price),
         "created_at": price.created_at,
         "updated_at": price.updated_at,
         "store_name": price.store.name if price.store else None,

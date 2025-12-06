@@ -8,7 +8,7 @@ import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { productsApi } from '@/api/products'
 import { kitComponentsApi, KitComponent } from '@/api/kitComponents'
-import { Button, messageBox, DataGrid, DataGridColumn } from '@sofiapos/ui'
+import { Button, messageBox, AdvancedDataGrid, AdvancedDataGridColumn, NumberCellRenderer } from '@sofiapos/ui'
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 
 interface ComponentsTabProps {
@@ -125,17 +125,26 @@ export function ComponentsTab({ productId, isEditMode, productType }: Components
     }
   }
 
-  const columns: DataGridColumn<KitComponent>[] = [
-    { id: 'component_code', headerName: t('inventory.productCode') || 'Code', field: 'component_code', sortable: true },
-    { id: 'component_name', headerName: t('inventory.productName') || 'Name', field: 'component_name', sortable: true },
-    { id: 'quantity', headerName: t('inventory.quantity') || 'Quantity', field: 'quantity', sortable: true, type: 'number' },
+  const columns: AdvancedDataGridColumn<KitComponent>[] = [
+    { field: 'component_code', headerName: t('inventory.productCode') || 'Code', sortable: true },
+    { field: 'component_name', headerName: t('inventory.productName') || 'Name', sortable: true },
     {
-      id: 'actions',
+      field: 'quantity',
+      headerName: t('inventory.quantity') || 'Quantity',
+      sortable: true,
+      cellRenderer: (params: any) => (
+        <NumberCellRenderer value={params.value} decPlaces={4} />
+      ),
+    },
+    {
+      field: 'actions',
       headerName: t('common.actions') || 'Actions',
-      cellRenderer: ({ row }) => (
+      sortable: false,
+      filter: false,
+      cellRenderer: (params: any) => (
         <div className="flex gap-1">
           <button
-            onClick={() => handleEdit(row)}
+            onClick={() => handleEdit(params.data)}
             className="p-1 rounded hover:bg-gray-100"
             title={t('common.edit') || 'Edit'}
             style={{ color: 'var(--color-primary-500)' }}
@@ -143,7 +152,7 @@ export function ComponentsTab({ productId, isEditMode, productType }: Components
             <FaEdit />
           </button>
           <button
-            onClick={() => handleDelete(row)}
+            onClick={() => handleDelete(params.data)}
             className="p-1 rounded hover:bg-gray-100"
             title={t('common.delete') || 'Delete'}
             style={{ color: 'var(--color-danger-500)' }}
@@ -163,12 +172,12 @@ export function ComponentsTab({ productId, isEditMode, productType }: Components
           {t('inventory.addComponent') || 'Add Component'}
         </Button>
       </div>
-      <DataGrid
-        data={components}
-        columns={columns}
+      <AdvancedDataGrid
+        rowData={components}
+        columnDefs={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noProducts') || 'No components found'}
-        compact={true}
+        height="400px"
       />
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

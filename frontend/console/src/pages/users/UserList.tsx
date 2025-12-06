@@ -8,7 +8,7 @@ import { useTranslation } from '@/i18n/hooks'
 import { usersApi, User } from '@/api/users'
 import { UserForm } from '@/components/users/UserForm'
 import { UserDeleteDialog } from '@/components/users/UserDeleteDialog'
-import { Button, DataGrid, DataGridColumn } from '@sofiapos/ui'
+import { Button, AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
 
 export function UserList() {
   const { t } = useTranslation()
@@ -57,20 +57,19 @@ export function UserList() {
     setEditingUser(null)
   }
 
-  // Define columns for DataGrid
-  const columns = useMemo<DataGridColumn<User>[]>(() => [
+  // Define columns for AdvancedDataGrid
+  const columns = useMemo<AdvancedDataGridColumn<User>[]>(() => [
     {
-      id: 'username',
       field: 'username',
       headerName: t('users.username') || 'Username',
       sortable: true,
-      filterable: true,
-      cellRenderer: ({ value, row }) => (
+      filter: true,
+      cellRenderer: (params: any) => (
         <div className="flex items-center gap-2">
           <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-            {value}
+            {params.value}
           </span>
-          {row.is_superuser && (
+          {params.data.is_superuser && (
             <span className="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-800">
               {t('users.superuser') || 'Admin'}
             </span>
@@ -79,38 +78,37 @@ export function UserList() {
       ),
     },
     {
-      id: 'full_name',
       field: 'full_name',
       headerName: t('users.fullName') || 'Full Name',
       sortable: true,
-      filterable: true,
-      cellRenderer: ({ value }) => (
+      filter: true,
+      cellRenderer: (params: any) => (
         <span style={{ color: 'var(--color-text-secondary)' }}>
-          {value || '-'}
+          {params.value || '-'}
         </span>
       ),
     },
     {
-      id: 'email',
       field: 'email',
       headerName: t('users.email') || 'Email',
       sortable: true,
-      filterable: true,
-      cellRenderer: ({ value }) => (
+      filter: true,
+      cellRenderer: (params: any) => (
         <span style={{ color: 'var(--color-text-secondary)' }}>
-          {value}
+          {params.value}
         </span>
       ),
     },
     {
-      id: 'roles',
+      field: 'roles',
       headerName: t('users.roles') || 'Roles',
       sortable: false,
-      filterable: false,
-      cellRenderer: ({ row }) => (
+      filter: false,
+      valueGetter: (params: any) => params.data.roles?.map((r: any) => r.name).join(', ') || '',
+      cellRenderer: (params: any) => (
         <div className="flex flex-wrap gap-1">
-          {row.roles.length > 0 ? (
-            row.roles.map((role) => (
+          {params.data.roles?.length > 0 ? (
+            params.data.roles.map((role: any) => (
               <span
                 key={role.id}
                 className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800"
@@ -127,34 +125,33 @@ export function UserList() {
       ),
     },
     {
-      id: 'is_active',
       field: 'is_active',
       headerName: t('users.status') || 'Status',
       sortable: true,
-      filterable: true,
-      cellRenderer: ({ value }) => (
+      filter: true,
+      cellRenderer: (params: any) => (
         <span
           className={`px-2 py-1 text-xs rounded-full ${
-            value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+            params.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
           }`}
         >
-          {value
+          {params.value
             ? t('users.active') || 'Active'
             : t('users.inactive') || 'Inactive'}
         </span>
       ),
     },
     {
-      id: 'actions',
+      field: 'actions',
       headerName: t('common.actions') || 'Actions',
       sortable: false,
-      filterable: false,
-      cellRenderer: ({ row }) => (
+      filter: false,
+      cellRenderer: (params: any) => (
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation()
-              handleEdit(row)
+              handleEdit(params.data)
             }}
             className="text-blue-600 hover:text-blue-900 text-sm font-medium"
           >
@@ -163,7 +160,7 @@ export function UserList() {
           <button
             onClick={(e) => {
               e.stopPropagation()
-              handleDelete(row)
+              handleDelete(params.data)
             }}
             className="text-red-600 hover:text-red-900 text-sm font-medium"
           >
@@ -216,18 +213,19 @@ export function UserList() {
         </div>
       )}
 
-      {/* DataGrid */}
+      {/* AdvancedDataGrid */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <DataGrid
-          data={users}
-          columns={columns}
+        <AdvancedDataGrid
+          rowData={users}
+          columnDefs={columns}
           enableSorting
           enableFiltering
           enablePagination
-          pageSize={10}
+          paginationPageSize={10}
           loading={isLoading}
           emptyMessage={t('users.noUsers') || 'No users found'}
-          getRowClassName={(row) => (row.is_active ? '' : 'opacity-60')}
+          getRowClassName={(params: any) => (params.data.is_active ? '' : 'opacity-60')}
+          height="600px"
         />
       </div>
 

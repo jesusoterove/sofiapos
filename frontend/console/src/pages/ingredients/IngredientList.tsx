@@ -6,7 +6,8 @@ import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { materialsApi, Material } from '@/api/materials'
-import { Button, DataGrid, DataGridColumn, messageBox } from '@sofiapos/ui'
+import { Button, AdvancedDataGrid, AdvancedDataGridColumn, messageBox, NumberCellRenderer, YesNoCellRenderer } from '@sofiapos/ui'
+import { FaEdit, FaTrash } from 'react-icons/fa'
 
 export function IngredientList() {
   const { t } = useTranslation()
@@ -50,69 +51,66 @@ export function IngredientList() {
   }
 
 
-  const columns: DataGridColumn<Material>[] = [
+  const columns: AdvancedDataGridColumn<Material>[] = [
     {
-      id: 'name',
-      headerName: t('inventory.ingredientName') || 'Name',
-      field: 'name',
-      sortable: true,
-      filterable: true,
-      type: 'string',
-    },
-    {
-      id: 'code',
-      headerName: t('inventory.ingredientCode') || 'Code',
       field: 'code',
+      headerName: t('inventory.ingredientCode') || 'Code',
       sortable: true,
-      filterable: true,
-      type: 'string',
+      filter: true,
+      flex: 2,
     },
     {
-      id: 'base_uofm_name',
-      headerName: t('inventory.baseUofm') || 'Base Unit',
+      field: 'name',
+      headerName: t('inventory.ingredientName') || 'Name',
+      sortable: true,
+      filter: true,
+      flex: 4,
+    },
+    {
       field: 'base_uofm_name',
+      headerName: t('inventory.baseUofm') || 'Base Unit',
       sortable: true,
-      filterable: true,
-      type: 'string',
+      filter: true,
+      flex: 2,
     },
     {
-      id: 'unit_cost',
-      headerName: t('inventory.unitCost') || 'Unit Cost',
       field: 'unit_cost',
+      headerName: t('inventory.unitCost') || 'Unit Cost',
       sortable: true,
-      type: 'money',
-      cellRendererOptions: {
-        prefix: t('common.currencySymbol'),
-        decPlaces: 2,
-        align: 'right',
-      },
+      flex: 2,
+      cellRenderer: (params: any) => (
+        <NumberCellRenderer
+          value={params.value}
+          prefix={t('common.currencySymbol')}
+          decPlaces={2}
+          align="right"
+        />
+      ),
     },
     {
-      id: 'requires_inventory',
-      headerName: t('inventory.requiresInventory') || 'Requires Inventory',
-      field: 'requires_inventory',
-      sortable: true,
-      type: 'yesno',
-    },
-    {
-      id: 'actions',
+      field: 'actions',
       headerName: t('common.actions') || 'Actions',
-      cellRenderer: ({ row }) => (
+      sortable: false,
+      filter: false,
+      flex: 1,
+      cellRenderer: (params: any) => (
         <div className="flex gap-1">
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => handleEdit(row)}
+          <button
+            onClick={() => handleEdit(params.data)}
+            className="p-1 rounded hover:bg-gray-100"
+            title={t('common.edit') || 'Edit'}
+            style={{ color: 'var(--color-primary-500)' }}
           >
-            {t('common.edit')}
-          </Button>
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => handleDelete(row)}
+            <FaEdit />
+          </button>
+          <button
+            onClick={() => handleDelete(params.data)}
+            className="p-1 rounded hover:bg-gray-100"
+            title={t('common.delete') || 'Delete'}
+            style={{ color: 'var(--color-danger-500)' }}
           >
-            {t('common.delete')}
-          </Button>
+            <FaTrash />
+          </button>
         </div>
       ),
     },
@@ -120,7 +118,7 @@ export function IngredientList() {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div className="p-3">
         <div className="text-red-600">
           {t('common.error')}: {error instanceof Error ? error.message : t('common.unknownError')}
         </div>
@@ -129,7 +127,7 @@ export function IngredientList() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
@@ -144,12 +142,12 @@ export function IngredientList() {
         </Button>
       </div>
 
-      <DataGrid
-        data={ingredients}
-        columns={columns}
+      <AdvancedDataGrid
+        rowData={ingredients}
+        columnDefs={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noIngredients') || 'No ingredients found'}
-        compact={true}
+        height="600px"
       />
     </div>
   )

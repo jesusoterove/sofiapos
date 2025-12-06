@@ -9,7 +9,7 @@ import { useTranslation } from '@/i18n/hooks'
 import { materialsApi } from '@/api/materials'
 import { recipeMaterialsApi, RecipeMaterial } from '@/api/recipeMaterials'
 import { unitOfMeasuresApi } from '@/api/unitOfMeasures'
-import { Button, messageBox, DataGrid, DataGridColumn } from '@sofiapos/ui'
+import { Button, messageBox, AdvancedDataGrid, AdvancedDataGridColumn, NumberCellRenderer } from '@sofiapos/ui'
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 
 interface IngredientsTabProps {
@@ -141,18 +141,28 @@ export function IngredientsTab({ productId, isEditMode, productType }: Ingredien
     }
   }
 
-  const columns: DataGridColumn<RecipeMaterial>[] = [
-    { id: 'material_code', headerName: t('inventory.ingredientCode') || 'Code', field: 'material_code', sortable: true },
-    { id: 'material_name', headerName: t('inventory.ingredientName') || 'Name', field: 'material_name', sortable: true },
-    { id: 'quantity', headerName: t('inventory.quantity') || 'Quantity', field: 'quantity', sortable: true, type: 'number' },
-    { id: 'unit_of_measure_name', headerName: t('inventory.baseUofm') || 'U of M', field: 'unit_of_measure_name', sortable: true },
+  const columns: AdvancedDataGridColumn<RecipeMaterial>[] = [
+    { field: 'material_code', headerName: t('inventory.ingredientCode') || 'Code', sortable: true, flex: 1 },
+    { field: 'material_name', headerName: t('inventory.ingredientName') || 'Name', sortable: true, flex: 2 },
     {
-      id: 'actions',
+      field: 'quantity',
+      headerName: t('inventory.quantity') || 'Quantity',
+      sortable: true,
+      valueGetter: (params: any) => params.data.quantity,
+      valueFormatter: (params: any) => params.data.quantity.toFixed(0),
+      width: 150
+    },
+    { field: 'unit_of_measure_name', headerName: t('inventory.baseUofm') || 'U of M', sortable: true, width: 100 },
+    {
+      field: 'actions',
       headerName: t('common.actions') || 'Actions',
-      cellRenderer: ({ row }) => (
+      sortable: false,
+      filter: false,
+      width: 100,
+      cellRenderer: (params: any) => (
         <div className="flex gap-1">
           <button
-            onClick={() => handleEdit(row)}
+            onClick={() => handleEdit(params.data)}
             className="p-1 rounded hover:bg-gray-100"
             title={t('common.edit') || 'Edit'}
             style={{ color: 'var(--color-primary-500)' }}
@@ -160,7 +170,7 @@ export function IngredientsTab({ productId, isEditMode, productType }: Ingredien
             <FaEdit />
           </button>
           <button
-            onClick={() => handleDelete(row)}
+            onClick={() => handleDelete(params.data)}
             className="p-1 rounded hover:bg-gray-100"
             title={t('common.delete') || 'Delete'}
             style={{ color: 'var(--color-danger-500)' }}
@@ -180,12 +190,12 @@ export function IngredientsTab({ productId, isEditMode, productType }: Ingredien
           {t('inventory.addIngredient') || 'Add Ingredient'}
         </Button>
       </div>
-      <DataGrid
-        data={recipeMaterials}
-        columns={columns}
+      <AdvancedDataGrid
+        rowData={recipeMaterials}
+        columnDefs={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noIngredients') || 'No ingredients found'}
-        compact={true}
+        height="400px"
       />
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

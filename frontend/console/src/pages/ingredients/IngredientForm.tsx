@@ -54,10 +54,10 @@ export function IngredientForm() {
   // Create mutation
   const createMutation = useMutation({
     mutationFn: materialsApi.create,
-    onSuccess: () => {
+    onSuccess: (createdMaterial: Material) => {
       queryClient.invalidateQueries({ queryKey: ['materials'] })
       toast.success(t('inventory.createSuccess') || 'Ingredient created successfully')
-      navigate({ to: '/inventory/ingredients' })
+      navigate({ to: `/inventory/ingredients/${createdMaterial.id}` })
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || t('inventory.createError') || 'Failed to create ingredient')
@@ -70,7 +70,6 @@ export function IngredientForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] })
       toast.success(t('inventory.updateSuccess') || 'Ingredient updated successfully')
-      navigate({ to: '/inventory/ingredients' })
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || t('inventory.updateError') || 'Failed to update ingredient')
@@ -121,7 +120,7 @@ export function IngredientForm() {
 
   if (isEditMode && isLoadingIngredient) {
     return (
-      <div className="p-6">
+      <div className="p-3">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary-500)' }}></div>
@@ -135,7 +134,7 @@ export function IngredientForm() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>

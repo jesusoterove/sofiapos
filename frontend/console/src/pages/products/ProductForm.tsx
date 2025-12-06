@@ -51,10 +51,10 @@ export function ProductForm() {
   // Create mutation
   const createMutation = useMutation({
     mutationFn: productsApi.create,
-    onSuccess: () => {
+    onSuccess: (createdProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       toast.success(t('inventory.createSuccess') || 'Product created successfully')
-      navigate({ to: '/inventory/products' })
+      navigate({ to: `/inventory/products/${createdProduct.id}` })
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || t('inventory.createError') || 'Failed to create product')
@@ -67,7 +67,6 @@ export function ProductForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       toast.success(t('inventory.updateSuccess') || 'Product updated successfully')
-      navigate({ to: '/inventory/products' })
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || t('inventory.updateError') || 'Failed to update product')
@@ -111,7 +110,7 @@ export function ProductForm() {
 
   if (isEditMode && isLoadingProduct) {
     return (
-      <div className="p-6">
+      <div className="p-3">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-primary-500)' }}></div>
@@ -166,11 +165,11 @@ export function ProductForm() {
                 className="w-full px-4 py-2 border rounded-lg"
                 style={{ borderColor: 'var(--color-border-default)' }}
               >
-                <option value="sales_inventory">{t('inventory.productTypeSalesInventory') || 'Sales Inventory'}</option>
-                <option value="prepared">{t('inventory.productTypePrepared') || 'Prepared'}</option>
-                <option value="kit">{t('inventory.productTypeKit') || 'Kit'}</option>
-                <option value="service">{t('inventory.productTypeService') || 'Service'}</option>
-                <option value="misc_charges">{t('inventory.productTypeMiscCharges') || 'Misc Charges'}</option>
+                <option value="sales_inventory">{t('inventory.productTypeEnum.sales_inventory') || 'Sales Inventory'}</option>
+                <option value="prepared">{t('inventory.productTypeEnum.prepared') || 'Prepared'}</option>
+                <option value="kit">{t('inventory.productTypeEnum.kit') || 'Kit'}</option>
+                <option value="service">{t('inventory.productTypeEnum.service') || 'Service'}</option>
+                <option value="misc_charges">{t('inventory.productTypeEnum.misc_charges') || 'Misc Charges'}</option>
               </select>
             </div>
 
@@ -250,7 +249,7 @@ export function ProductForm() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3">
       <div className="flex justify-between items-center mb-6">
         <div className="flex-1">
           <input

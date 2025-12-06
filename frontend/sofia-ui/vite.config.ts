@@ -21,13 +21,26 @@ export default defineConfig({
     },
     cssCodeSplit: true,
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime', '@tanstack/react-table'],
+      external: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        '@tanstack/react-table',
+        'ag-grid-community',
+        'ag-grid-react',
+        'i18next',
+        'react-i18next',
+      ],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
           'react/jsx-runtime': 'react/jsx-runtime',
           '@tanstack/react-table': '@tanstack/react-table',
+          'ag-grid-community': 'ag-grid-community',
+          'ag-grid-react': 'ag-grid-react',
+          'i18next': 'i18next',
+          'react-i18next': 'react-i18next',
         },
       },
     },

@@ -183,7 +183,7 @@ async def list_product_recipe_materials(
             "id": rm.id,
             "recipe_id": rm.recipe_id,
             "material_id": rm.material_id,
-            "quantity": rm.quantity,
+            "quantity": float(rm.quantity) if rm.quantity is not None else None,
             "unit_of_measure_id": rm.unit_of_measure_id,
             "display_order": rm.display_order,
             "created_at": rm.created_at,
@@ -270,7 +270,7 @@ async def create_product_recipe_material(
         "id": recipe_material.id,
         "recipe_id": recipe_material.recipe_id,
         "material_id": recipe_material.material_id,
-        "quantity": recipe_material.quantity,
+        "quantity": float(recipe_material.quantity) if recipe_material.quantity is not None else None,
         "unit_of_measure_id": recipe_material.unit_of_measure_id,
         "display_order": recipe_material.display_order,
         "created_at": recipe_material.created_at,
@@ -335,7 +335,7 @@ async def update_product_recipe_material(
         "id": recipe_material.id,
         "recipe_id": recipe_material.recipe_id,
         "material_id": recipe_material.material_id,
-        "quantity": recipe_material.quantity,
+        "quantity": float(recipe_material.quantity) if recipe_material.quantity is not None else None,
         "unit_of_measure_id": recipe_material.unit_of_measure_id,
         "display_order": recipe_material.display_order,
         "created_at": recipe_material.created_at,
@@ -446,13 +446,6 @@ async def list_product_store_prices(
             detail="Product not found"
         )
     
-    # Get money decimal places
-    setting = db.query(Setting).filter(
-        Setting.key == "money_decimal_places",
-        Setting.store_id == None
-    ).first()
-    decimal_places = int(setting.value) if setting and setting.value else 2
-    
     # Get store prices
     prices = db.query(StoreProductPrice).options(
         joinedload(StoreProductPrice.store)
@@ -464,7 +457,7 @@ async def list_product_store_prices(
             "id": price.id,
             "store_id": price.store_id,
             "product_id": price.product_id,
-            "selling_price": round(float(price.selling_price), decimal_places),
+            "selling_price": float(price.selling_price) if price.selling_price is not None else None,
             "created_at": price.created_at.isoformat() if price.created_at else None,
             "updated_at": price.updated_at.isoformat() if price.updated_at else None,
             "store_name": price.store.name if price.store else None,

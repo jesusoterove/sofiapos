@@ -3,6 +3,11 @@
  * Supports multiple color palettes and easy theme switching.
  */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import type { Theme as AgGridThemeType } from 'ag-grid-community'
+import { agGridSunshineTheme } from './agGridThemes'
+
+// Type for ag-grid theme (returned by themeQuartz.withParams())
+export type AgGridTheme = AgGridThemeType
 
 export interface ThemeColors {
   primary: {
@@ -41,12 +46,14 @@ export interface Theme {
   name: string
   displayName: string
   colors: ThemeColors
+  agGridTheme: AgGridTheme
 }
 
 // Sunshine theme (yellow palette from login page)
 export const sunshineTheme: Theme = {
   name: 'sunshine',
   displayName: 'Sunshine',
+  agGridTheme: agGridSunshineTheme,
   colors: {
     primary: {
       50: '#fffbeb',

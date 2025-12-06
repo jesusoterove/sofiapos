@@ -1,7 +1,7 @@
 """
 Pydantic schemas for Product management.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from decimal import Decimal
@@ -35,11 +35,26 @@ class ProductUpdate(BaseModel):
     selling_price: Optional[Decimal] = Field(None, ge=0)
 
 
-class ProductResponse(ProductBase):
+class ProductResponse(BaseModel):
     """Schema for Product response."""
     id: int
+    name: str
+    code: Optional[str] = None
+    description: Optional[str] = None
+    category_id: Optional[int] = None
+    product_type: ProductType
+    is_active: bool
+    selling_price: float = Field(..., ge=0)  # Float instead of Decimal for proper JSON serialization
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    @field_validator('selling_price', mode='before')
+    @classmethod
+    def convert_decimal_to_float(cls, v):
+        """Convert Decimal to float for proper JSON serialization."""
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
 
     class Config:
         from_attributes = True

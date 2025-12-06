@@ -8,7 +8,7 @@ import { useTranslation } from '@/i18n/hooks'
 import { storesApi, Store } from '@/api/stores'
 import { StoreForm } from '@/components/stores/StoreForm'
 import { StoreDeleteDialog } from '@/components/stores/StoreDeleteDialog'
-import { Button, DataGrid, DataGridColumn } from '@sofiapos/ui'
+import { Button, AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
 
 export function StoreList() {
   const { t } = useTranslation()
@@ -57,77 +57,66 @@ export function StoreList() {
     setEditingStore(null)
   }
 
-  // Define columns for DataGrid
-  const columns = useMemo<DataGridColumn<Store>[]>(() => [
+  // Define columns for AdvancedDataGrid
+  const columns = useMemo<AdvancedDataGridColumn<Store>[]>(() => [
     {
-      id: 'name',
       field: 'name',
-      type: 'string',
       headerName: t('stores.name') || 'Name',
       sortable: true,
-      filterable: true,
+      filter: true,
     },
     {
-      id: 'code',
       field: 'code',
-      type: 'string',
       headerName: t('stores.code') || 'Code',
       sortable: true,
-      filterable: true,
+      filter: true,
     },
     {
-      id: 'address',
       field: 'address',
-      type: 'string',
       headerName: t('stores.address') || 'Address',
       sortable: true,
-      filterable: true,
+      filter: true,
     },
     {
-      id: 'phone',
       field: 'phone',
-      type: 'string',
       headerName: t('stores.phone') || 'Phone',
       sortable: true,
-      filterable: true,
+      filter: true,
     },
     {
-      id: 'email',
       field: 'email',
-      type: 'string',
       headerName: t('stores.email') || 'Email',
       sortable: true,
-      filterable: true,
+      filter: true,
     },
     {
-      id: 'is_active',
       field: 'is_active',
       headerName: t('stores.status') || 'Status',
       sortable: true,
-      filterable: true,
-      cellRenderer: ({ value }) => (
+      filter: true,
+      cellRenderer: (params: any) => (
         <span
           className={`px-2 py-1 text-xs rounded-full ${
-            value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+            params.value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
           }`}
         >
-          {value
+          {params.value
             ? t('stores.active') || 'Active'
             : t('stores.inactive') || 'Inactive'}
         </span>
       ),
     },
     {
-      id: 'actions',
+      field: 'actions',
       headerName: t('common.actions') || 'Actions',
       sortable: false,
-      filterable: false,
-      cellRenderer: ({ row }) => (
+      filter: false,
+      cellRenderer: (params: any) => (
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation()
-              handleEdit(row)
+              handleEdit(params.data)
             }}
             className="text-blue-600 hover:text-blue-900 text-sm font-medium"
           >
@@ -136,7 +125,7 @@ export function StoreList() {
           <button
             onClick={(e) => {
               e.stopPropagation()
-              handleDelete(row)
+              handleDelete(params.data)
             }}
             className="text-red-600 hover:text-red-900 text-sm font-medium"
           >
@@ -189,18 +178,19 @@ export function StoreList() {
         </div>
       )}
 
-      {/* DataGrid */}
+      {/* AdvancedDataGrid */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <DataGrid
-          data={stores}
-          columns={columns}
+        <AdvancedDataGrid
+          rowData={stores}
+          columnDefs={columns}
           enableSorting
           enableFiltering
           enablePagination
-          pageSize={10}
+          paginationPageSize={10}
           loading={isLoading}
           emptyMessage={t('stores.noStores') || 'No stores found'}
-          getRowClassName={(row) => (row.is_active ? '' : 'opacity-60')}
+          getRowClassName={(params: any) => (params.data.is_active ? '' : 'opacity-60')}
+          height="600px"
         />
       </div>
 

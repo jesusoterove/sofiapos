@@ -8,7 +8,7 @@ import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { storesApi } from '@/api/stores'
 import { storeProductPricesApi, StoreProductPrice } from '@/api/storeProductPrices'
-import { Button, messageBox, DataGrid, DataGridColumn } from '@sofiapos/ui'
+import { Button, messageBox, AdvancedDataGrid, AdvancedDataGridColumn, NumberCellRenderer } from '@sofiapos/ui'
 import { useSettings } from '@/contexts/SettingsContext'
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 
@@ -127,26 +127,31 @@ export function PricesTab({ productId, isEditMode, defaultPrice }: PricesTabProp
     }
   }
 
-  const columns: DataGridColumn<StoreProductPrice>[] = [
-    { id: 'store_name', headerName: t('stores.store') || 'Store', field: 'store_name', sortable: true },
+  const columns: AdvancedDataGridColumn<StoreProductPrice>[] = [
+    { field: 'store_name', headerName: t('stores.store') || 'Store', sortable: true, flex: 1 },
     {
-      id: 'selling_price',
-      headerName: t('inventory.sellingPrice') || 'Selling Price',
       field: 'selling_price',
+      headerName: t('inventory.sellingPrice') || 'Selling Price',
       sortable: true,
-      type: 'money',
-      cellRendererOptions: {
-        prefix: t('common.currencySymbol'),
-        decPlaces: moneyDecimalPlaces,
-      },
+      width: 200,
+      cellRenderer: (params: any) => (
+        <NumberCellRenderer
+          value={params.value}
+          prefix={t('common.currencySymbol')}
+          decPlaces={moneyDecimalPlaces}
+        />
+      ),
     },
     {
-      id: 'actions',
+      field: 'actions',
       headerName: t('common.actions') || 'Actions',
-      cellRenderer: ({ row }) => (
+      sortable: false,
+      filter: false,
+      width: 100,
+      cellRenderer: (params: any) => (
         <div className="flex gap-1">
           <button
-            onClick={() => handleEdit(row)}
+            onClick={() => handleEdit(params.data)}
             className="p-1 rounded hover:bg-gray-100"
             title={t('common.edit') || 'Edit'}
             style={{ color: 'var(--color-primary-500)' }}
@@ -154,7 +159,7 @@ export function PricesTab({ productId, isEditMode, defaultPrice }: PricesTabProp
             <FaEdit />
           </button>
           <button
-            onClick={() => handleDelete(row)}
+            onClick={() => handleDelete(params.data)}
             className="p-1 rounded hover:bg-gray-100"
             title={t('common.delete') || 'Delete'}
             style={{ color: 'var(--color-danger-500)' }}
@@ -182,12 +187,12 @@ export function PricesTab({ productId, isEditMode, defaultPrice }: PricesTabProp
           {t('inventory.addPrice') || 'Add Price'}
         </Button>
       </div>
-      <DataGrid
-        data={storePrices}
-        columns={columns}
+      <AdvancedDataGrid
+        rowData={storePrices}
+        columnDefs={columns}
         loading={isLoading}
         emptyMessage={t('inventory.noProducts') || 'No store prices found'}
-        compact={true}
+        height="400px"
       />
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
