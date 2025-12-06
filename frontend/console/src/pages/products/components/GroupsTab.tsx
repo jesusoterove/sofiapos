@@ -93,15 +93,13 @@ export function GroupsTab({ productId, isEditMode }: GroupsTabProps) {
           ))}
         </select>
       </div>
-      {true && (
-        <DataGrid
-          data={groups}
-          columns={columns}
-          loading={isLoading}
-          emptyMessage={t('inventory.noProducts') || 'No groups found'}
-          compact={true}
-        />
-      )}
+      <DataGrid
+        data={groups}
+        columns={columns}
+        loading={isLoading}
+        emptyMessage={t('inventory.noProducts') || 'No groups found'}
+        compact={true}
+      />
     </div>
   )
 }
