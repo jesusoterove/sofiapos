@@ -1,18 +1,19 @@
 /**
  * Top bar component for POS application.
  */
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from '@/i18n/hooks'
 import { useAuth } from '@/contexts/AuthContext'
-import { Button } from '@sofiapos/ui'
-import { FaSignOutAlt, FaBox, FaTimes } from 'react-icons/fa'
+import { IconButton } from '@sofiapos/ui'
+import { FaSignOutAlt, FaBox, FaClock } from 'react-icons/fa'
 
 export function TopBar() {
   const { t } = useTranslation()
   const { logout, user } = useAuth()
   const navigate = useNavigate()
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -21,6 +22,17 @@ export function TopBar() {
 
     return () => clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const isWideScreen = windowWidth >= 1200
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { hour12: false })
@@ -45,8 +57,8 @@ export function TopBar() {
     <div
       className="h-15 flex items-center justify-between px-4 py-3"
       style={{
-        backgroundColor: '#1F2937',
-        color: '#F9FAFB',
+        backgroundColor: 'var(--color-primary-800)',
+        color: 'var(--color-primary-50)',
         height: '60px',
       }}
     >
@@ -69,44 +81,51 @@ export function TopBar() {
 
       {/* Right: Action Buttons */}
       <div className="flex items-center gap-2">
-        <Button
-          variant="secondary"
-          onClick={handleLogout}
-          className="h-9 px-4 text-sm"
-          style={{
-            backgroundColor: 'transparent',
-            borderColor: '#6B7280',
-            color: '#F9FAFB',
-          }}
-        >
-          <FaSignOutAlt className="mr-2" />
-          {t('auth.logout') || 'Logout'}
-        </Button>
-        <Button
+        <IconButton
           variant="secondary"
           onClick={handleCloseShift}
-          className="h-9 px-4 text-sm"
+          title={t('topBar.closeShift') || 'Close Shift'}
+          className={`h-9 flex items-center justify-center ${isWideScreen ? 'px-3 gap-2' : 'w-9'}`}
           style={{
             backgroundColor: 'transparent',
-            borderColor: '#6B7280',
-            color: '#F9FAFB',
+            borderColor: 'var(--color-primary-600)',
+            color: 'var(--color-primary-50)',
           }}
+          aria-label={t('topBar.closeShift') || 'Close Shift'}
         >
-          {t('topBar.closeShift') || 'Close Shift'}
-        </Button>
-        <Button
+          <FaClock />
+          {isWideScreen && <span className="text-sm">{t('topBar.closeShift') || 'Close Shift'}</span>}
+        </IconButton>
+        <IconButton
           variant="secondary"
           onClick={handleInventoryEntry}
-          className="h-9 px-4 text-sm"
+          title={t('topBar.inventoryEntry') || 'Inventory Entry'}
+          className={`h-9 flex items-center justify-center ${isWideScreen ? 'px-3 gap-2' : 'w-9'}`}
           style={{
             backgroundColor: 'transparent',
-            borderColor: '#6B7280',
-            color: '#F9FAFB',
+            borderColor: 'var(--color-primary-600)',
+            color: 'var(--color-primary-50)',
           }}
+          aria-label={t('topBar.inventoryEntry') || 'Inventory Entry'}
         >
-          <FaBox className="mr-2" />
-          {t('topBar.inventoryEntry') || 'Inventory'}
-        </Button>
+          <FaBox />
+          {isWideScreen && <span className="text-sm">{t('topBar.inventoryEntry') || 'Inventory Entry'}</span>}
+        </IconButton>
+        <IconButton
+          variant="secondary"
+          onClick={handleLogout}
+          title={t('auth.logout') || 'Logout'}
+          className={`h-9 flex items-center justify-center ${isWideScreen ? 'px-3 gap-2' : 'w-9'}`}
+          style={{
+            backgroundColor: 'transparent',
+            borderColor: 'var(--color-primary-600)',
+            color: 'var(--color-primary-50)',
+          }}
+          aria-label={t('auth.logout') || 'Logout'}
+        >
+          <FaSignOutAlt />
+          {isWideScreen && <span className="text-sm">{t('auth.logout') || 'Logout'}</span>}
+        </IconButton>
       </div>
     </div>
   )

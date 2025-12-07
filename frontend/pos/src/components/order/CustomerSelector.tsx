@@ -2,7 +2,7 @@
  * Customer selector component.
  */
 import React from 'react'
-import { Button } from '@sofiapos/ui'
+import { IconButton } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 import { FaSearch, FaPlus } from 'react-icons/fa'
 
@@ -29,22 +29,22 @@ export function CustomerSelector({ customerId, onSelectCustomer }: CustomerSelec
       <div className="flex-1 text-sm" style={{ color: 'var(--color-text-primary, #111827)' }}>
         {customerId ? `Customer #${customerId}` : t('order.defaultCustomer') || 'Walk-in Customer'}
       </div>
-      <Button
+      <IconButton
         variant="secondary"
         onClick={handleLookup}
-        className="h-9 px-3 text-sm"
+        className="h-9 w-9 flex items-center justify-center "
+        title={t('order.lookupCustomer') || 'Lookup'}
       >
         <FaSearch className="mr-1" />
-        {t('order.lookupCustomer') || 'Lookup'}
-      </Button>
-      <Button
+      </IconButton>
+      <IconButton
         variant="secondary"
         onClick={handleNew}
-        className="h-9 px-3 text-sm"
+        className="h-9 w-9 flex items-center justify-center "
+        title={t('order.newCustomer') || 'New'}
       >
         <FaPlus className="mr-1" />
-        {t('order.newCustomer') || 'New'}
-      </Button>
+      </IconButton>
     </div>
   )
 }

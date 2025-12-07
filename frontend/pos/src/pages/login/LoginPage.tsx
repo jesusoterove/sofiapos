@@ -31,7 +31,7 @@ export function LoginPage() {
         navigate({ to: '/register', replace: true })
       } else {
         // Check shift status
-        navigate({ to: '/check-shift', replace: true })
+        navigate({ to: '/', replace: true })
       }
     }
   }, [isAuthenticated, navigate, location.pathname])

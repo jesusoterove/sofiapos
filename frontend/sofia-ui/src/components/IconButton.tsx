@@ -3,14 +3,14 @@
  */
 import React from 'react'
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger'
   children: React.ReactNode
   title?: string
 }
 
-export function Button({ variant = 'primary', children, className = '', title, ...props }: ButtonProps) {
-  const baseStyles = 'px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+export function IconButton({ variant = 'primary', children, className = '', title, ...props }: IconButtonProps) {
+  const baseStyles = 'p-0 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
   
   const variantStyles = {
     primary: 'text-white',
@@ -39,4 +39,3 @@ export function Button({ variant = 'primary', children, className = '', title, .
     </button>
   )
 }
-

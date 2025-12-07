@@ -3,6 +3,7 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    "../sofia-ui/src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {

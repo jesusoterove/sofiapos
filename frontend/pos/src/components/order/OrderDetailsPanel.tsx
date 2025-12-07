@@ -41,9 +41,9 @@ export function OrderDetailsPanel({ storeId, onPayment }: OrderDetailsPanelProps
       </div>
 
       {/* Order Items */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-1">
         <OrderItemsList
-          items={order?.items || []}
+          items={order?.items || [{ id: '1', productId: 1, productName: 'Product 1', quantity: 1, unitPrice: 10, total: 10 }, { id: '2', productId: 2, productName: 'Product 2', quantity: 10, unitPrice: 10, total: 10 }]}
           onUpdateQuantity={updateQuantity}
           onRemoveItem={removeItem}
         />

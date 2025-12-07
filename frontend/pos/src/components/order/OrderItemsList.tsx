@@ -32,7 +32,7 @@ export function OrderItemsList({ items, onUpdateQuantity, onRemoveItem }: OrderI
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-0">
       {items.map((item) => (
         <OrderItem
           key={item.id}

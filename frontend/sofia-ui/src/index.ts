@@ -9,6 +9,8 @@ import './i18n'
 // Components
 export { Button } from './components/Button'
 export type { ButtonProps } from './components/Button'
+export { IconButton } from './components/IconButton'
+export type { IconButtonProps } from './components/IconButton'
 export { Tabs } from './components/Tabs'
 export type { TabsProps, Tab } from './components/Tabs'
 export { ThemeSwitcher } from './components/ThemeSwitcher'
@@ -35,6 +37,8 @@ export { Spinner } from './components/Spinner'
 export type { SpinnerProps } from './components/Spinner'
 export { NumericKeypad } from './components/NumericKeypad'
 export type { NumericKeypadProps } from './components/NumericKeypad'
+export { Tooltip } from './components/Tooltip'
+export type { TooltipProps } from './components/Tooltip'
 
 // Cell Renderers
 export {
