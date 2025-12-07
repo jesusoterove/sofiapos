@@ -63,8 +63,12 @@
     "items": "Productos",
     "item": "Producto",
     "noItems": "No hay artículos en la orden",
+    "itemAdded": "Artículo agregado a la orden",
+    "itemQuantityIncreased": "Cantidad aumentada",
     "saveDraft": "Guardar",
     "cancelOrder": "Cancelar",
+    "cancelOrderConfirmTitle": "Cancelar Orden",
+    "cancelOrderConfirmMessage": "¿Está seguro de que desea cancelar esta orden? Todos los artículos serán eliminados.",
     "processPayment": "Procesar Pago",
     "printReceipt": "Imprimir Recibo"
   },
@@ -129,9 +133,13 @@
   "sync": {
     "online": "En Línea",
     "offline": "Sin Conexión",
-    "syncing": "Sincronizando...",
+    "syncing": "Sincronizando datos...",
     "pending": "Pendiente de Sincronizar",
-    "syncNow": "Sincronizar Ahora"
+    "syncNow": "Sincronizar Ahora",
+    "retry": "Reintentar",
+    "syncError": "Error de Sincronización",
+    "reauthRequired": "Re-autenticación Requerida",
+    "reauthMessage": "Su sesión ha expirado. Por favor ingrese sus credenciales para continuar la sincronización."
   },
   "settings": {
     "title": "Configuración",

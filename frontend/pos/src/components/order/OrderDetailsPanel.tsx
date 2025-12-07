@@ -1,28 +1,38 @@
 /**
  * Order details panel component.
  */
-import React from 'react'
 import { CustomerSelector } from './CustomerSelector'
 import { OrderItemsList } from './OrderItemsList'
 import { OrderTotals } from './OrderTotals'
 import { OrderActions } from './OrderActions'
-import { useOrderManagement } from '@/hooks/useOrderManagement'
+import type { Order } from '@/hooks/useOrderManagement'
 
 interface OrderDetailsPanelProps {
-  storeId: number
+  order: Order | null
+  totals: {
+    subtotal: number
+    taxes: number
+    discount: number
+    total: number
+  }
+  onUpdateQuantity: (itemId: string, quantity: number) => void
+  onRemoveItem: (itemId: string) => void
+  onSetCustomer: (customerId?: number) => void
+  onClearOrder: () => void
+  onSaveDraft: () => Promise<void>
   onPayment: () => void
 }
 
-export function OrderDetailsPanel({ storeId, onPayment }: OrderDetailsPanelProps) {
-  const {
-    order,
-    totals,
-    updateQuantity,
-    removeItem,
-    setCustomer,
-    clearOrder,
-    saveDraft,
-  } = useOrderManagement(storeId)
+export function OrderDetailsPanel({
+  order,
+  totals,
+  onUpdateQuantity,
+  onRemoveItem,
+  onSetCustomer,
+  onClearOrder,
+  onSaveDraft,
+  onPayment,
+}: OrderDetailsPanelProps) {
 
   return (
     <div
@@ -33,34 +43,34 @@ export function OrderDetailsPanel({ storeId, onPayment }: OrderDetailsPanelProps
       }}
     >
       {/* Customer Selector */}
-      <div className="p-4 border-b bg-white" style={{ borderColor: 'var(--color-border-default, #E5E7EB)' }}>
+      <div className="p-4 border-b bg-white" style={{ borderColor: 'var(--color-border-default)' }}>
         <CustomerSelector
           customerId={order?.customerId}
-          onSelectCustomer={setCustomer}
+          onSelectCustomer={onSetCustomer}
         />
       </div>
 
       {/* Order Items */}
       <div className="flex-1 overflow-y-auto p-1">
         <OrderItemsList
-          items={order?.items || [{ id: '1', productId: 1, productName: 'Product 1', quantity: 1, unitPrice: 10, total: 10000 }, { id: '2', productId: 2, productName: 'Product 2', quantity: 10, unitPrice: 10, total: 25000 }]}
-          onUpdateQuantity={updateQuantity}
-          onRemoveItem={removeItem}
+          items={order?.items || []}
+          onUpdateQuantity={onUpdateQuantity}
+          onRemoveItem={onRemoveItem}
         />
       </div>
 
       {/* Order Totals */}
-      <div className="p-2 border-t bg-white" style={{ borderColor: 'var(--color-border-default, #E5E7EB)' }}>
+      <div className="p-2 border-t bg-white" style={{ borderColor: 'var(--color-border-default)' }}>
         <OrderTotals totals={totals} />
       </div>
 
       {/* Order Actions */}
-      <div className="p-4 border-t bg-white" style={{ borderColor: 'var(--color-border-default, #E5E7EB)' }}>
+      <div className="p-4 border-t bg-white" style={{ borderColor: 'var(--color-border-default)' }}>
         <OrderActions
           hasItems={(order?.items.length || 0) > 0}
-          onSaveDraft={saveDraft}
+          onSaveDraft={onSaveDraft}
           onPay={onPayment}
-          onCancel={clearOrder}
+          onCancel={onClearOrder}
         />
       </div>
     </div>

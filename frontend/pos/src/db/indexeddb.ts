@@ -15,6 +15,7 @@ export interface POSDatabase extends DBSchema {
       product_type: string
       category_id?: number
       is_active: boolean
+      tax_rate: number
       sync_status: 'synced' | 'pending' | 'error'
       updated_at: string
     }
@@ -47,7 +48,9 @@ export interface POSDatabase extends DBSchema {
       product_name: string
       quantity: number
       unit_price: number
+      tax_rate: number
       total: number
+      tax_amount: number
       sync_status: 'synced' | 'pending' | 'error'
     }
     indexes: { 'by-order': string; 'by-sync-status': string }
@@ -74,6 +77,30 @@ export interface POSDatabase extends DBSchema {
       updated_at: string
     }
     indexes: { 'by-sync-status': string }
+  }
+  materials: {
+    key: number
+    value: {
+      id: number
+      name: string
+      description?: string
+      unit_of_measure_id?: number
+      unit_cost?: number
+      vendor_id?: number
+      is_active: boolean
+      sync_status: 'synced' | 'pending' | 'error'
+      updated_at: string
+    }
+    indexes: { 'by-sync-status': string }
+  }
+  settings: {
+    key: string
+    value: {
+      key: string
+      value: string
+      store_id?: number
+      updated_at: string
+    }
   }
   sync_queue: {
     key: number
@@ -131,6 +158,17 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
         customerStore.createIndex('by-sync-status', 'sync_status')
       }
 
+      // Materials (Vendors) store
+      if (!db.objectStoreNames.contains('materials')) {
+        const materialStore = db.createObjectStore('materials', { keyPath: 'id' })
+        materialStore.createIndex('by-sync-status', 'sync_status')
+      }
+
+      // Settings store
+      if (!db.objectStoreNames.contains('settings')) {
+        db.createObjectStore('settings', { keyPath: 'key' })
+      }
+
       // Sync queue store
       if (!db.objectStoreNames.contains('sync_queue')) {
         const syncQueueStore = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
@@ -143,7 +181,7 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
 
 export async function clearDatabase(): Promise<void> {
   const db = await openDatabase()
-  const stores = ['products', 'orders', 'order_items', 'categories', 'customers', 'sync_queue']
+  const stores = ['products', 'orders', 'order_items', 'categories', 'customers', 'materials', 'settings', 'sync_queue']
   for (const storeName of stores) {
     await db.clear(storeName)
   }

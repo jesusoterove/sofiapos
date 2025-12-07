@@ -32,6 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const LOCAL_PASSWORD_KEY = 'pos_local_password_hash'
 const USER_DATA_KEY = 'pos_user_data'
 const AUTH_TOKEN_KEY = 'pos_auth_token'
+const REFRESH_TOKEN_KEY = 'pos_refresh_token'
 
 // Simple password hashing using Web Crypto API
 async function hashPassword(password: string): Promise<string> {
@@ -84,10 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       })
       
-      const { access_token, user: userData } = response.data
+      const { access_token, refresh_token, user: userData } = response.data
       
-      // Store auth token
+      // Store auth token and refresh token
       localStorage.setItem(AUTH_TOKEN_KEY, access_token)
+      if (refresh_token) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token)
+      }
       
       // Convert user data to User type
       const user: User = {
@@ -148,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem(AUTH_TOKEN_KEY)
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem(USER_DATA_KEY)
     // Note: We keep LOCAL_PASSWORD_KEY so user can login offline again
     setUser(null)

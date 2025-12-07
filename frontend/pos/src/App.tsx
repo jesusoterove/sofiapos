@@ -5,10 +5,11 @@ import 'react-toastify/dist/ReactToastify.css'
 import { router } from './app/router'
 import { queryClient } from './app/queryClient'
 import { AuthProvider } from './contexts/AuthContext'
+import { SyncProvider } from './contexts/SyncContext'
 import { loadCustomHooks } from './hooks-system/loader'
 import { isElectron, getAppVersion } from './utils/electron'
 import { useEffect } from 'react'
-import { ThemeProvider } from '@sofiapos/ui'
+import { ThemeProvider, MessageBoxProvider } from '@sofiapos/ui'
 import '@sofiapos/ui/styles/theme.css'
 
 // Load custom hooks
@@ -29,20 +30,24 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <RouterProvider router={router} />
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-          />
-        </AuthProvider>
+        <MessageBoxProvider>
+          <AuthProvider>
+            <SyncProvider>
+              <RouterProvider router={router} />
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+              />
+            </SyncProvider>
+          </AuthProvider>
+        </MessageBoxProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )

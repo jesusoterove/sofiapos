@@ -1,8 +1,6 @@
 /**
  * Product tile component for displaying individual products.
  */
-import React from 'react'
-import { useTranslation } from '@/i18n/hooks'
 
 interface Product {
   id: number
@@ -13,6 +11,7 @@ interface Product {
   product_type: string
   category_id?: number
   is_active: boolean
+  tax_rate: number
 }
 
 interface ProductTileProps {
@@ -21,41 +20,52 @@ interface ProductTileProps {
 }
 
 export function ProductTile({ product, onClick }: ProductTileProps) {
-  const { t } = useTranslation()
-
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    // Map language code to locale
+    const locale = 'en-US'
+    
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'USD',
+      minimumFractionDigits: 0,
     }).format(price)
   }
 
   return (
     <button
       onClick={onClick}
-      className="bg-white border rounded-lg p-3 text-left hover:shadow-md transition-shadow touch-manipulation"
+      className="border rounded-lg p-1 text-left hover:shadow-md transition-shadow touch-manipulation"
       style={{
-        minHeight: '120px',
-        minWidth: '120px',
-        borderColor: 'var(--color-border-default, #E5E7EB)',
+        minHeight: '100px',
+        minWidth: '100px',
+        maxWidth: '120px',
+        backgroundColor: 'var(--color-bg-paper)',
+        borderColor: 'var(--color-border-default)',
       }}
     >
       <div className="flex flex-col h-full">
         {/* Product Image Placeholder */}
         <div
-          className="w-full h-16 bg-gray-200 rounded mb-2 flex items-center justify-center"
-          style={{ backgroundColor: '#F3F4F6' }}
+          className="w-full rounded mb-2 flex items-center justify-center"
+          style={{ 
+            aspectRatio: '1 / 1',
+            backgroundColor: 'var(--color-border-light)',
+            maxWidth: '120px',
+            maxHeight: '120px',
+          }}
         >
-          <span className="text-xs text-gray-500">{product.code}</span>
+          <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+            {product.code}
+          </span>
         </div>
 
         {/* Product Name */}
-        <div className="text-sm font-medium mb-1 line-clamp-2" style={{ color: 'var(--color-text-primary, #111827)' }}>
+        <div className="text-sm font-medium mb-1 line-clamp-2" style={{ color: 'var(--color-text-primary)' }}>
           {product.name}
         </div>
 
         {/* Price */}
-        <div className="text-base font-bold mt-auto" style={{ color: 'var(--color-primary-500, #3B82F6)' }}>
+        <div className="text-base font-bold mt-auto" style={{ color: 'var(--color-primary-500)' }}>
           {formatPrice(product.selling_price)}
         </div>
       </div>

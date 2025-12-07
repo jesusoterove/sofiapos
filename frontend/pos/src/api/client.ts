@@ -31,8 +31,8 @@ window.addEventListener('offline', () => {
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('auth_token');
+    // Add auth token if available (check both possible keys)
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('pos_auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -63,9 +63,18 @@ apiClient.interceptors.response.use(
     
     // Handle common errors
     if (error.response?.status === 401) {
-      // Unauthorized - redirect to login
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login';
+      // Check if this is a sync request (by checking config metadata)
+      const isSyncRequest = error.config?.metadata?.isSyncRequest === true;
+      
+      if (!isSyncRequest) {
+        // Only redirect to login for non-sync requests
+        // Sync requests should handle 401 errors gracefully (they'll try refresh token)
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('pos_auth_token');
+        localStorage.removeItem('pos_refresh_token');
+        window.location.href = '/login';
+      }
+      // For sync requests, just reject the promise so sync can handle it (try refresh token)
     }
     
     return Promise.reject(error);

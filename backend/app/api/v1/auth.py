@@ -11,7 +11,7 @@ from typing import Optional
 from app.database import get_db
 from app.models import User
 from app.services.auth_service import authenticate_user, get_password_hash
-from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
+from app.schemas.auth import LoginRequest, LoginResponse, UserResponse, RefreshTokenRequest, RefreshTokenResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -20,8 +20,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 # JWT settings (should be in environment variables)
 SECRET_KEY = "your-secret-key-change-in-production"  # TODO: Get from settings
+REFRESH_SECRET_KEY = "your-refresh-secret-key-change-in-production"  # TODO: Get from settings
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -33,6 +35,18 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create JWT refresh token."""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, REFRESH_SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -89,10 +103,17 @@ async def login(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
+    # Create refresh token
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    refresh_token = create_refresh_token(
+        data={"sub": user.username}, expires_delta=refresh_token_expires
+    )
+    
     from app.schemas.auth import UserInfo
     
     return LoginResponse(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
         user=UserInfo(
             id=user.id,
@@ -102,6 +123,47 @@ async def login(
             is_active=user.is_active,
             store_id=user.store_id,
         )
+    )
+
+
+@router.post("/refresh", response_model=RefreshTokenResponse)
+async def refresh_token(
+    refresh_data: RefreshTokenRequest,
+    db: Session = Depends(get_db)
+):
+    """Refresh access token using refresh token."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate refresh token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = jwt.decode(refresh_data.refresh_token, REFRESH_SECRET_KEY, algorithms=[ALGORITHM])
+        token_type = payload.get("type")
+        if token_type != "refresh":
+            raise credentials_exception
+        
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    # Verify user still exists and is active
+    user = db.query(User).filter(User.username == username).first()
+    if user is None or not user.is_active:
+        raise credentials_exception
+    
+    # Create new access token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    
+    return RefreshTokenResponse(
+        access_token=access_token,
+        token_type="bearer"
     )
 
 

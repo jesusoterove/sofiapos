@@ -1,8 +1,7 @@
 /**
  * Order actions component.
  */
-import React from 'react'
-import { Button } from '@sofiapos/ui'
+import { Button, messageBox } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 
 interface OrderActionsProps {
@@ -14,6 +13,18 @@ interface OrderActionsProps {
 
 export function OrderActions({ hasItems, onSaveDraft, onPay, onCancel }: OrderActionsProps) {
   const { t } = useTranslation()
+
+  const handleCancel = async () => {
+    const result = await messageBox.ask(
+      t('order.cancelOrderConfirmMessage') || 'Are you sure you want to cancel this order? All items will be removed.',
+      t('order.cancelOrderConfirmTitle') || 'Cancel Order',
+      'YesNo'
+    )
+
+    if (result.button === 'Yes') {
+      onCancel()
+    }
+  }
 
   return (
     <div className="flex gap-2">
@@ -35,7 +46,7 @@ export function OrderActions({ hasItems, onSaveDraft, onPay, onCancel }: OrderAc
       </Button>
       <Button
         variant="danger"
-        onClick={onCancel}
+        onClick={handleCancel}
         className="flex-1"
       >
         {t('order.cancelOrder') || 'Cancel'}

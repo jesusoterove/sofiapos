@@ -45,6 +45,7 @@ class ProductResponse(BaseModel):
     product_type: ProductType
     is_active: bool
     selling_price: float = Field(..., ge=0)  # Float instead of Decimal for proper JSON serialization
+    tax_rate: float = Field(default=0.0, ge=0, le=1)  # Combined tax rate (0.0 to 1.0)
     created_at: datetime
     updated_at: Optional[datetime] = None
 

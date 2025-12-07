@@ -63,8 +63,12 @@
     "items": "Items",
     "item": "Item",
     "noItems": "No items in order",
+    "itemAdded": "Item added to order",
+    "itemQuantityIncreased": "Quantity increased",
     "saveDraft": "Save Draft",
     "cancelOrder": "Cancel Order",
+    "cancelOrderConfirmTitle": "Cancel Order",
+    "cancelOrderConfirmMessage": "Are you sure you want to cancel this order? All items will be removed.",
     "processPayment": "Process Payment",
     "printReceipt": "Print Receipt"
   },
@@ -129,9 +133,13 @@
   "sync": {
     "online": "Online",
     "offline": "Offline",
-    "syncing": "Syncing...",
+    "syncing": "Synchronizing Data...",
     "pending": "Pending Sync",
-    "syncNow": "Sync Now"
+    "syncNow": "Sync Now",
+    "retry": "Retry",
+    "syncError": "Sync Error",
+    "reauthRequired": "Re-authentication Required",
+    "reauthMessage": "Your session has expired. Please enter your credentials to continue synchronization."
   },
   "settings": {
     "title": "Settings",

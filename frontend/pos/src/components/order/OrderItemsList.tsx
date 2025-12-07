@@ -2,18 +2,10 @@
  * Order items list component using DataGrid.
  */
 import { useMemo } from 'react'
-import { DataGrid, DataGridColumn, IconButton } from '@sofiapos/ui'
-import { FaMinus, FaPlus, FaTimes } from 'react-icons/fa'
+import { DataGrid, DataGridColumn } from '@sofiapos/ui'
+import { FaTimes } from 'react-icons/fa'
 import { useTranslation } from '@/i18n/hooks'
-
-export interface OrderItemData {
-  id: string
-  productId: number
-  productName: string
-  quantity: number
-  unitPrice: number
-  total: number
-}
+import { QuantityCell, type OrderItemData } from './QuantityCell'
 
 interface OrderItemsListProps {
   items: OrderItemData[]
@@ -55,30 +47,7 @@ export function OrderItemsList({ items, onUpdateQuantity, onRemoveItem }: OrderI
       headerName: t('common.quantity') || 'Quantity',
       accessorKey: 'quantity',
       cellRenderer: ({ row }: { value: any; row: OrderItemData; column: DataGridColumn<OrderItemData> }) => {
-        const item = row
-        return (
-          <div className="flex items-center gap-1 justify-center">
-            <IconButton
-              variant="secondary"
-              onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-              className="h-8 w-8 p-0 flex items-center justify-center"
-              title={t('common.remove') || 'Decrease'}
-            >
-              <FaMinus />
-            </IconButton>
-            <span className="w-10 text-center font-medium" style={{ color: 'var(--color-text-primary, #111827)' }}>
-              {item.quantity}
-            </span>
-            <IconButton
-              variant="secondary"
-              onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-              className="h-8 w-8 p-0 flex items-center justify-center"
-              title={t('common.add') || 'Increase'}
-            >
-              <FaPlus />
-            </IconButton>
-          </div>
-        )
+        return <QuantityCell item={row} onUpdateQuantity={onUpdateQuantity} />
       },
       width: 150,
       sortable: false,

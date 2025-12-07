@@ -19,13 +19,15 @@ export function POSScreen() {
     order,
     totals,
     addItem,
+    updateQuantity,
+    removeItem,
+    setCustomer,
     clearOrder,
     saveDraft,
   } = useOrderManagement(STORE_ID)
 
   const handleProductSelect = (product: any) => {
     addItem(product)
-    toast.success(t('common.add') || 'Added to order')
   }
 
   const handlePayment = () => {
@@ -57,7 +59,13 @@ export function POSScreen() {
     <POSLayout>
       <ProductSelectionPanel onProductSelect={handleProductSelect} />
       <OrderDetailsPanel
-        storeId={STORE_ID}
+        order={order}
+        totals={totals}
+        onUpdateQuantity={updateQuantity}
+        onRemoveItem={removeItem}
+        onSetCustomer={setCustomer}
+        onClearOrder={clearOrder}
+        onSaveDraft={saveDraft}
         onPayment={handlePayment}
       />
       <PaymentScreen

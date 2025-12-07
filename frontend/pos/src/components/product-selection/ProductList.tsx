@@ -1,7 +1,7 @@
 /**
- * Product list component displaying products in a grid.
+ * Product list component displaying products in a flex wrap layout.
+ * Tiles flow left to right and wrap to next row when space runs out.
  */
-import React from 'react'
 import { ProductTile } from './ProductTile'
 import { Spinner } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
@@ -36,14 +36,14 @@ export function ProductList({ products, isLoading, onProductSelect }: ProductLis
 
   if (products.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
+      <div className="flex items-center justify-center h-full" style={{ color: 'var(--color-text-secondary)' }}>
         {t('productSelection.noProducts') || 'No products found'}
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+    <div className="flex flex-wrap gap-1">
       {products.map((product) => (
         <ProductTile
           key={product.id}

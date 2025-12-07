@@ -26,13 +26,39 @@ async def list_products(
     current_user: User = Depends(get_current_user)
 ):
     """List all products."""
-    query = db.query(Product)
+    from app.models import ProductTax, Tax
+    
+    query = db.query(Product).options(joinedload(Product.taxes).joinedload(ProductTax.tax))
     
     if active_only:
         query = query.filter(Product.is_active == True)
     
     products = query.offset(skip).limit(limit).all()
-    return products
+    
+    # Convert to response format with calculated tax_rate
+    result = []
+    for product in products:
+        # Calculate total tax rate from all active taxes
+        tax_rate = 0.0
+        for product_tax in product.taxes:
+            if product_tax.is_active and product_tax.tax and product_tax.tax.is_active:
+                tax_rate += float(product_tax.tax.rate)
+        
+        result.append({
+            "id": product.id,
+            "name": product.name,
+            "code": product.code,
+            "description": product.description,
+            "category_id": product.category_id,
+            "product_type": product.product_type,
+            "is_active": product.is_active,
+            "selling_price": float(product.selling_price),
+            "tax_rate": tax_rate,
+            "created_at": product.created_at,
+            "updated_at": product.updated_at,
+        })
+    
+    return result
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
@@ -42,13 +68,37 @@ async def get_product(
     current_user: User = Depends(get_current_user)
 ):
     """Get a product by ID."""
-    product = db.query(Product).filter(Product.id == product_id).first()
+    from app.models import ProductTax, Tax
+    
+    product = db.query(Product).options(
+        joinedload(Product.taxes).joinedload(ProductTax.tax)
+    ).filter(Product.id == product_id).first()
+    
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    return product
+    
+    # Calculate total tax rate from all active taxes
+    tax_rate = 0.0
+    for product_tax in product.taxes:
+        if product_tax.is_active and product_tax.tax and product_tax.tax.is_active:
+            tax_rate += float(product_tax.tax.rate)
+    
+    return {
+        "id": product.id,
+        "name": product.name,
+        "code": product.code,
+        "description": product.description,
+        "category_id": product.category_id,
+        "product_type": product.product_type,
+        "is_active": product.is_active,
+        "selling_price": float(product.selling_price),
+        "tax_rate": tax_rate,
+        "created_at": product.created_at,
+        "updated_at": product.updated_at,
+    }
 
 
 @router.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)

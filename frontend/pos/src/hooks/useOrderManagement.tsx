@@ -10,7 +10,9 @@ export interface OrderItem {
   productName: string
   quantity: number
   unitPrice: number
+  taxRate: number
   total: number
+  taxAmount: number
 }
 
 export interface Order {
@@ -26,46 +28,68 @@ export interface Order {
   total: number
 }
 
-const TAX_RATE = 0.16 // 16% tax rate - should come from settings
-
 export function useOrderManagement(storeId: number) {
   const [order, setOrder] = useState<Order | null>(null)
 
   const calculateTotals = useCallback((items: OrderItem[]) => {
     const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-    const taxes = subtotal * TAX_RATE
+    const taxes = items.reduce((sum, item) => sum + item.taxAmount, 0)
     const discount = 0 // TODO: Implement discount logic
     const total = subtotal + taxes - discount
 
     return { subtotal, taxes, discount, total }
   }, [])
 
+  const removeItem = useCallback((itemId: string) => {
+    setOrder((currentOrder) => {
+      if (!currentOrder) return currentOrder
+
+      const newItems = currentOrder.items.filter((item) => item.id !== itemId)
+      const totals = calculateTotals(newItems)
+
+      return {
+        ...currentOrder,
+        items: newItems,
+        ...totals,
+      }
+    })
+  }, [calculateTotals])
+
   const addItem = useCallback(
-    (product: { id: number; name: string; selling_price: number }) => {
+    (product: { id: number; name: string; selling_price: number; tax_rate: number }) => {
       setOrder((currentOrder) => {
         const orderId = currentOrder?.id || `order-${Date.now()}`
         const orderNumber = currentOrder?.orderNumber || `ORD-${Date.now()}`
         const existingItem = currentOrder?.items.find((item) => item.productId === product.id)
 
         let newItems: OrderItem[]
-        if (existingItem) {
-          newItems = currentOrder.items.map((item) =>
-            item.productId === product.id
-              ? {
-                  ...item,
-                  quantity: item.quantity + 1,
-                  total: (item.quantity + 1) * item.unitPrice,
-                }
-              : item
-          )
+        if (existingItem && currentOrder) {
+          newItems = currentOrder.items.map((item) => {
+            if (item.productId === product.id) {
+              const newQuantity = item.quantity + 1
+              const newTotal = newQuantity * item.unitPrice
+              const newTaxAmount = newTotal * item.taxRate
+              return {
+                ...item,
+                quantity: newQuantity,
+                total: newTotal,
+                taxAmount: newTaxAmount,
+              }
+            }
+            return item
+          })
         } else {
+          const itemTotal = product.selling_price
+          const taxAmount = itemTotal * (product.tax_rate || 0)
           const newItem: OrderItem = {
             id: `item-${Date.now()}-${product.id}`,
             productId: product.id,
             productName: product.name,
             quantity: 1,
             unitPrice: product.selling_price,
-            total: product.selling_price,
+            taxRate: product.tax_rate || 0,
+            total: itemTotal,
+            taxAmount: taxAmount,
           }
           newItems = [...(currentOrder?.items || []), newItem]
         }
@@ -96,15 +120,19 @@ export function useOrderManagement(storeId: number) {
       setOrder((currentOrder) => {
         if (!currentOrder) return currentOrder
 
-        const newItems = currentOrder.items.map((item) =>
-          item.id === itemId
-            ? {
-                ...item,
-                quantity,
-                total: quantity * item.unitPrice,
-              }
-            : item
-        )
+        const newItems = currentOrder.items.map((item) => {
+          if (item.id === itemId) {
+            const newTotal = quantity * item.unitPrice
+            const newTaxAmount = newTotal * item.taxRate
+            return {
+              ...item,
+              quantity,
+              total: newTotal,
+              taxAmount: newTaxAmount,
+            }
+          }
+          return item
+        })
 
         const totals = calculateTotals(newItems)
 
@@ -115,23 +143,8 @@ export function useOrderManagement(storeId: number) {
         }
       })
     },
-    [calculateTotals]
+    [calculateTotals, removeItem]
   )
-
-  const removeItem = useCallback((itemId: string) => {
-    setOrder((currentOrder) => {
-      if (!currentOrder) return currentOrder
-
-      const newItems = currentOrder.items.filter((item) => item.id !== itemId)
-      const totals = calculateTotals(newItems)
-
-      return {
-        ...currentOrder,
-        items: newItems,
-        ...totals,
-      }
-    })
-  }, [calculateTotals])
 
   const setCustomer = useCallback((customerId?: number) => {
     setOrder((currentOrder) => {
@@ -177,7 +190,9 @@ export function useOrderManagement(storeId: number) {
         product_name: item.productName,
         quantity: item.quantity,
         unit_price: item.unitPrice,
+        tax_rate: item.taxRate,
         total: item.total,
+        tax_amount: item.taxAmount,
         sync_status: 'pending' as const,
       })
     }
