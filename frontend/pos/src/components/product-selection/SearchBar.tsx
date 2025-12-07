@@ -13,7 +13,7 @@ interface SearchBarProps {
 
 export function SearchBar({ value, onChange, placeholder = 'Search...' }: SearchBarProps) {
   return (
-    <div className="flex-1">
+    <div className="flex-1 pb-1">
       <Input
         type="text"
         value={value}

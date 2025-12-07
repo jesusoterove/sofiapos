@@ -17,7 +17,7 @@ interface CategoryTabsProps {
 
 export function CategoryTabs({ categories, selectedCategoryId, onSelectCategory }: CategoryTabsProps) {
   return (
-    <div className="flex gap-1 overflow-x-auto pb-2" style={{ height: '48px' }}>
+    <div className="flex gap-1 overflow-x-auto pb-2 border-b">
       <Button
         variant={selectedCategoryId === undefined ? 'primary' : 'secondary'}
         onClick={() => onSelectCategory(undefined)}

@@ -24,10 +24,10 @@ export function ProductSelectionPanel({ onProductSelect }: ProductSelectionPanel
   } = useProductSelection()
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white p-4">
+    <div className="flex-1 flex flex-col overflow-hidden bg-white px-2 py-4">
       {/* Scan and Search */}
-      <div className="flex gap-2 mb-4">
-        <ScanButton onScan={(code) => console.log('Scanned:', code)} />
+      <div className="flex gap-2 mb-2 border-b">
+        {/* <ScanButton onScan={(code) => console.log('Scanned:', code)} /> */}
         <SearchBar
           value={searchQuery}
           onChange={setSearch}

@@ -2,7 +2,7 @@
  * Barcode scanner button component.
  */
 import React from 'react'
-import { Button } from '@sofiapos/ui'
+import { IconButton } from '@sofiapos/ui'
 import { FaBarcode } from 'react-icons/fa'
 import { useTranslation } from '@/i18n/hooks'
 
@@ -23,7 +23,7 @@ export function ScanButton({ onScan }: ScanButtonProps) {
   }
 
   return (
-    <Button
+    <IconButton
       onClick={handleClick}
       className="h-12 w-12 p-0 flex items-center justify-center"
       style={{
@@ -32,7 +32,7 @@ export function ScanButton({ onScan }: ScanButtonProps) {
       }}
     >
       <FaBarcode />
-    </Button>
+    </IconButton>
   )
 }
 
