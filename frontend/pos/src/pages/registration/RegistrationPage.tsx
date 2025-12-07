@@ -177,7 +177,7 @@ export function RegistrationPage() {
         name: cashierName.trim(),
       }
 
-      const cashRegisterResponse = await apiClient.post('/api/v1/cashiers/register', cashierData, {
+      const cashRegisterResponse = await apiClient.post('/api/v1/cash_registers/register', cashierData, {
         headers: { Authorization: `Bearer ${adminToken}` },
       })
 
@@ -247,7 +247,7 @@ export function RegistrationPage() {
         full_name: userFullName.trim(),
       }
 
-      const userResponse = await apiClient.post(`/api/v1/cashiers/${cashRegisterId}/user`, userData, {
+      const userResponse = await apiClient.post(`/api/v1/cash_registers/${cashRegisterId}/user`, userData, {
         headers: { Authorization: `Bearer ${adminToken}` },
       })
 

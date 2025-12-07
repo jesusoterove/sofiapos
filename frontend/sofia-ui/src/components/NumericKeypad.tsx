@@ -1,7 +1,6 @@
 /**
  * Numeric keypad component for touch-friendly number input.
  */
-import React, { useState } from 'react'
 import { FaBackspace } from 'react-icons/fa'
 
 export interface NumericKeypadProps {
@@ -19,6 +18,12 @@ export function NumericKeypad({
   maxDecimals = 2,
   className = '',
 }: NumericKeypadProps) {
+  // Handle Enter key press if onEnter is provided
+  const handleEnter = () => {
+    if (onEnter) {
+      onEnter()
+    }
+  }
   const handleNumberClick = (num: string) => {
     const newValue = value + num
     
@@ -80,7 +85,7 @@ export function NumericKeypad({
       ))}
       <button
         onClick={handleClear}
-        className="col-span-3 h-12 text-base font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+        className={`${onEnter ? "col-span-2" : "col-span-3"} h-12 text-base font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
         style={{
           borderColor: 'var(--color-border-default, #E5E7EB)',
           backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -89,6 +94,19 @@ export function NumericKeypad({
       >
         Clear
       </button>
+      {onEnter && (
+        <button
+          onClick={handleEnter}
+          className="col-span-1 h-12 text-base font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          style={{
+            borderColor: 'var(--color-border-default, #E5E7EB)',
+            backgroundColor: 'var(--color-primary-500, #3B82F6)',
+            color: 'var(--color-text-on-primary, #FFFFFF)',
+          }}
+        >
+          Enter
+        </button>
+      )}
     </div>
   )
 }

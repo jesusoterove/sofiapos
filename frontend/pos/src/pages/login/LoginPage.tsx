@@ -3,7 +3,7 @@
  * Supports online login (first time) and offline login (using local password).
  */
 import { useState, FormEvent, useEffect } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useLocation } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTranslation } from '@/i18n/hooks'
 import { Button, Input } from '@sofiapos/ui'
@@ -15,6 +15,7 @@ export function LoginPage() {
   const { t } = useTranslation()
   const { login, loginOffline, isAuthenticated, hasLocalPassword } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -23,7 +24,8 @@ export function LoginPage() {
   const [showOfflineLogin, setShowOfflineLogin] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Only navigate if we're still on the login page after authentication
+    if (isAuthenticated && location.pathname === '/login') {
       // Check if registered, if not go to registration
       if (!isRegistered()) {
         navigate({ to: '/register', replace: true })
@@ -32,7 +34,7 @@ export function LoginPage() {
         navigate({ to: '/check-shift', replace: true })
       }
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, navigate, location.pathname])
 
   useEffect(() => {
     const updateOnlineStatus = () => {
@@ -70,7 +72,8 @@ export function LoginPage() {
     try {
       await login(username, password)
       toast.success(t('auth.loginSuccess') || 'Login successful!')
-      navigate({ to: '/', replace: true })
+      // Navigation will be handled by the useEffect that watches isAuthenticated
+      // No need to navigate here to avoid conflicts
     } catch (error: any) {
       toast.error(error.message || t('auth.loginError') || 'Login failed')
     } finally {
@@ -91,7 +94,8 @@ export function LoginPage() {
       const success = await loginOffline(password)
       if (success) {
         toast.success('Offline login successful!')
-        navigate({ to: '/', replace: true })
+        // Navigation will be handled by the useEffect that watches isAuthenticated
+        // No need to navigate here to avoid conflicts
       } else {
         toast.error('Invalid local password. Please login online to reset.')
       }

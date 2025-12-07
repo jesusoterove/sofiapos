@@ -27,6 +27,7 @@ const navigation: NavItem[] = [
     ],
   },
   { name: 'orders', path: '/orders', icon: '🛒', translationKey: 'orders.title' },
+  { name: 'sales', path: '/sales', icon: '💰', translationKey: 'sales.title' },
   { name: 'settings', path: '/settings', icon: '⚙️', translationKey: 'settings.title' },
 ]
 

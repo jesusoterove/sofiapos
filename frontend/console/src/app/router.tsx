@@ -9,6 +9,7 @@ import { IngredientForm } from '@/pages/ingredients/IngredientForm'
 import { ProductList } from '@/pages/products'
 import { ProductForm } from '@/pages/products/ProductForm'
 import { Settings } from '@/pages/settings'
+import { Sales } from '@/pages/sales'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Root route
@@ -109,6 +110,13 @@ const ordersRoute = createRoute({
   component: () => <div className="p-6"><h1 className="text-2xl font-bold">Orders</h1></div>,
 })
 
+// Sales route - protected
+const salesRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/sales',
+  component: Sales,
+})
+
 // Settings route - protected
 const settingsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
@@ -131,6 +139,7 @@ const routeTree = rootRoute.addChildren([
       productNewRoute,
       productEditRoute,
       ordersRoute,
+      salesRoute,
       settingsRoute,
     ]),
   ]),

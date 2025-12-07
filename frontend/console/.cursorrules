@@ -34,6 +34,10 @@
 
 ### File Structure
 - Pages: `src/pages/`
+    Create folder per module/feature (e.g. products, ingredients, users, stores, etc.)
+    have separated files for List and form pages inside the same folder 
+    have a components folder inside the page folder where to add components specifically created for the pages inside this folder.
+    keep files smaller, when a files is growing bigger, it is time to identify if a better component hierarchy can reduce the file size and make it easier to maintain
 - Components: `src/components/`
 - Hooks: `src/hooks/`
 - API: `src/api/`

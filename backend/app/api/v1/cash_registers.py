@@ -1,5 +1,5 @@
 """
-Cashier registration API endpoints.
+Cash register API endpoints.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from app.schemas.user import RoleInfo, StoreInfo
 from app.api.v1.auth import get_current_user
 from app.services.auth_service import get_password_hash
 
-router = APIRouter(prefix="/cashiers", tags=["cashiers"])
+router = APIRouter(prefix="/cash_registers", tags=["cash_registers"])
 
 
 def get_or_create_cashier_role(db: Session) -> Role:
@@ -38,13 +38,13 @@ def get_or_create_cashier_role(db: Session) -> Role:
 
 
 @router.post("/register", response_model=CashRegisterResponse, status_code=status.HTTP_201_CREATED)
-async def register_cashier(
+async def register_cash_register(
     cashier_data: CashierRegisterRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Register a new cashier terminal (cash register only).
+    Register a new cash register terminal.
     Creates a cash register for the terminal. User creation is optional and done separately.
     """
     # Verify store exists
@@ -59,11 +59,13 @@ async def register_cashier(
     if not current_user.is_superuser and current_user.store_id != cashier_data.store_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to register cashiers for this store"
+            detail="You do not have permission to register cash registers for this store"
         )
     
     # Check if cash register with this registration code already exists
-    cash_register_code = f"CR-{cashier_data.registration_code[:8].upper()}"
+    # Use full registration code (database column allows up to 50 chars, "CR-" prefix is 3 chars)
+    # So we can use up to 47 chars from registration_code, but we'll use the full code
+    cash_register_code = f"CR-{cashier_data.registration_code.upper()}"
     existing_cr = db.query(CashRegister).filter(CashRegister.code == cash_register_code).first()
     if existing_cr:
         raise HTTPException(
@@ -94,7 +96,7 @@ async def register_cashier(
 
 
 @router.post("/{cash_register_id}/user", response_model=CashierResponse, status_code=status.HTTP_201_CREATED)
-async def create_cashier_user(
+async def create_cash_register_user(
     cash_register_id: int,
     user_data: CashierUserCreateRequest,
     db: Session = Depends(get_db),
@@ -202,6 +204,53 @@ async def create_cashier_user(
     )
 
 
+@router.get("/list", response_model=List[CashRegisterResponse])
+async def list_cash_registers(
+    store_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    List all cash registers.
+    """
+    query = db.query(CashRegister).filter(CashRegister.is_active == True)
+    
+    # Filter by store if provided
+    if store_id is not None:
+        # Check access
+        if not current_user.is_superuser and current_user.store_id != store_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this store"
+            )
+        query = query.filter(CashRegister.store_id == store_id)
+    elif not current_user.is_superuser:
+        # Non-superusers can only see their store's cash registers
+        if current_user.store_id:
+            query = query.filter(CashRegister.store_id == current_user.store_id)
+        else:
+            return []
+    
+    cash_registers = query.order_by(CashRegister.name).all()
+    
+    result = []
+    for cr in cash_registers:
+        # Extract registration code from code (CR-XXXXXXXX -> XXXXXXXX)
+        registration_code = cr.code.replace("CR-", "") if cr.code.startswith("CR-") else cr.code
+        
+        result.append(CashRegisterResponse(
+            id=cr.id,
+            store_id=cr.store_id,
+            name=cr.name,
+            code=cr.code,
+            is_active=cr.is_active,
+            registration_code=registration_code,
+            created_at=cr.created_at
+        ))
+    
+    return result
+
+
 @router.get("", response_model=List[CashierResponse])
 async def list_cashiers(
     store_id: Optional[int] = None,
@@ -209,7 +258,7 @@ async def list_cashiers(
     current_user: User = Depends(get_current_user)
 ):
     """
-    List all cashiers (users with Cashier role).
+    List all cashiers (users with Cashier role) with their associated cash registers.
     """
     # Get Cashier role
     cashier_role = db.query(Role).filter(Role.name == "Cashier").first()
@@ -261,7 +310,8 @@ async def list_cashiers(
         # Find associated cash register by code pattern
         cash_register = None
         if registration_code:
-            cash_register_code = f"CR-{registration_code[:8].upper()}"
+            # Use full registration code to find the cash register
+            cash_register_code = f"CR-{registration_code.upper()}"
             cash_register = db.query(CashRegister).filter(CashRegister.code == cash_register_code).first()
         
         result.append(CashierResponse(

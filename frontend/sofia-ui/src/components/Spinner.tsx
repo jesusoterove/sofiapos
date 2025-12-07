@@ -1,7 +1,6 @@
 /**
  * Spinner component for loading states.
  */
-import React from 'react'
 
 export interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg'

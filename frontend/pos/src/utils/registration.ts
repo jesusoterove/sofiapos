@@ -44,10 +44,36 @@ export function saveRegistration(data: RegistrationData): void {
 
 /**
  * Clear registration data.
+ * Also clears hardware ID to force regeneration on next registration.
  */
 export function clearRegistration(): void {
   localStorage.removeItem(REGISTRATION_KEY)
   localStorage.removeItem(REGISTRATION_CODE_KEY)
+  // Also clear hardware ID so it regenerates
+  localStorage.removeItem('pos_hardware_id')
+}
+
+/**
+ * Check if registration data exists in localStorage.
+ * Useful for debugging.
+ */
+export function hasRegistrationData(): boolean {
+  return !!localStorage.getItem(REGISTRATION_KEY)
+}
+
+/**
+ * Get all registration-related localStorage keys.
+ * Useful for debugging.
+ */
+export function getRegistrationStorageKeys(): string[] {
+  const keys: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && (key.includes('registration') || key.includes('pos_') || key.includes('hardware'))) {
+      keys.push(key)
+    }
+  }
+  return keys
 }
 
 /**

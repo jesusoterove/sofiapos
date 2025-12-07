@@ -5,9 +5,12 @@ import { RegistrationPage } from '@/pages/registration/RegistrationPage'
 import { CheckShiftPage } from '@/pages/shift/CheckShiftPage'
 import { OpenShiftPage } from '@/pages/shift/OpenShiftPage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { RootRoute } from '@/components/RootRoute'
 
-// Root route
-const rootRoute = createRootRoute()
+// Root route with initial routing logic
+const rootRoute = createRootRoute({
+  component: RootRoute,
+})
 
 // Login route (public)
 const loginRoute = createRoute({
