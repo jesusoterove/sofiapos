@@ -61,6 +61,7 @@
     "lookupCustomer": "Lookup Customer",
     "newCustomer": "New Customer",
     "items": "Items",
+    "item": "Item",
     "noItems": "No items in order",
     "saveDraft": "Save Draft",
     "cancelOrder": "Cancel Order",

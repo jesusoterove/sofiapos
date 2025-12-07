@@ -24,7 +24,7 @@ export function OrderTotals({ totals }: OrderTotalsProps) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 pr-10">
       <div className="flex justify-between text-sm">
         <span style={{ color: 'var(--color-text-secondary, #6B7280)' }}>
           {t('common.subtotal') || 'Subtotal'}:

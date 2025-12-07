@@ -26,7 +26,7 @@ export function OrderDetailsPanel({ storeId, onPayment }: OrderDetailsPanelProps
 
   return (
     <div
-      className="w-96 flex flex-col bg-gray-50 border-l"
+      className="w-md flex flex-col bg-gray-50 border-l"
       style={{
         borderColor: 'var(--color-border-default, #E5E7EB)',
         height: '100%',
@@ -43,14 +43,14 @@ export function OrderDetailsPanel({ storeId, onPayment }: OrderDetailsPanelProps
       {/* Order Items */}
       <div className="flex-1 overflow-y-auto p-1">
         <OrderItemsList
-          items={order?.items || [{ id: '1', productId: 1, productName: 'Product 1', quantity: 1, unitPrice: 10, total: 10 }, { id: '2', productId: 2, productName: 'Product 2', quantity: 10, unitPrice: 10, total: 10 }]}
+          items={order?.items || [{ id: '1', productId: 1, productName: 'Product 1', quantity: 1, unitPrice: 10, total: 10000 }, { id: '2', productId: 2, productName: 'Product 2', quantity: 10, unitPrice: 10, total: 25000 }]}
           onUpdateQuantity={updateQuantity}
           onRemoveItem={removeItem}
         />
       </div>
 
       {/* Order Totals */}
-      <div className="p-4 border-t bg-white" style={{ borderColor: 'var(--color-border-default, #E5E7EB)' }}>
+      <div className="p-2 border-t bg-white" style={{ borderColor: 'var(--color-border-default, #E5E7EB)' }}>
         <OrderTotals totals={totals} />
       </div>
 

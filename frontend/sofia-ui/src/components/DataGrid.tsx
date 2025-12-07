@@ -38,6 +38,9 @@ export interface CellRendererOptions {
   timeFormat?: 'short' | 'medium' | 'long' | string // For TimeCellRenderer
   prefix?: string // For NumberCellRenderer (e.g., currency symbol)
   suffix?: string // For NumberCellRenderer
+  formatAsMoney?: boolean // For NumberCellRenderer - format as currency
+  currency?: string // For NumberCellRenderer and money type - currency code (e.g., 'USD', 'EUR')
+  locale?: string // For NumberCellRenderer and money type - locale for formatting (e.g., 'en-US', 'es-ES')
   disabled?: boolean // For CheckboxCellRenderer
   onChange?: (checked: boolean) => void // For CheckboxCellRenderer
 }
@@ -174,6 +177,9 @@ export function DataGrid<T extends Record<string, any>>({
                   decPlaces={options.decPlaces}
                   prefix={options.prefix}
                   suffix={options.suffix}
+                  formatAsMoney={options.formatAsMoney}
+                  currency={options.currency}
+                  locale={options.locale}
                 />
               )
               break
@@ -183,8 +189,9 @@ export function DataGrid<T extends Record<string, any>>({
                   value={value} 
                   align={options.align || 'right'}
                   decPlaces={options.decPlaces !== undefined ? options.decPlaces : defaultMoneyDecimalPlaces}
-                  prefix={options.prefix}
-                  suffix={options.suffix}
+                  formatAsMoney={true}
+                  currency={options.currency || 'USD'}
+                  locale={options.locale || 'en-US'}
                 />
               )
               break
