@@ -8,7 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@sofiapos/ui': path.resolve(__dirname, '../sofia-ui/src'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     port: 5173,

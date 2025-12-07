@@ -1,0 +1,42 @@
+# POS Application Specific Rules
+
+## POS-Specific Guidelines
+
+### Offline-First Architecture
+- **ALWAYS** implement offline-first functionality
+- **ALWAYS** use IndexedDB for local data storage (`@/db`)
+- **ALWAYS** queue API requests for background sync when offline
+- **ALWAYS** check `navigator.onLine` before making API calls
+- **ALWAYS** provide offline indicators in the UI
+
+### Registration & Authentication
+- **ALWAYS** check registration status before allowing access
+- **ALWAYS** use hardware ID for unique cashier identification
+- **ALWAYS** support both online and offline authentication
+- **ALWAYS** store local password hash for offline login
+
+### Shift Management
+- **ALWAYS** check for open shift before allowing POS operations
+- **ALWAYS** handle shift opening/closing with proper validation
+- **ALWAYS** sync shift data in background when online
+
+### Component Patterns
+- **ALWAYS** use `@sofiapos/ui` components when available
+- **ALWAYS** implement loading states for async operations
+- **ALWAYS** use toast notifications for user feedback
+- **ALWAYS** handle errors gracefully with translated messages
+
+### Data Flow
+- **ALWAYS** use TanStack Query for server state
+- **ALWAYS** use IndexedDB for local persistence
+- **ALWAYS** implement sync queue for offline operations
+- **ALWAYS** use React Context for global state (Auth, etc.)
+
+### File Structure
+- Pages: `src/pages/`
+- Components: `src/components/`
+- Hooks: `src/hooks/`
+- API: `src/api/`
+- DB: `src/db/`
+- Utils: `src/utils/`
+

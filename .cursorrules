@@ -1,0 +1,74 @@
+# SofiaPOS Project-Wide Coding Standards
+
+> **Note:** This file contains project-wide rules. For application-specific rules, see:
+> - `frontend/pos/.cursorrules` - POS application rules
+> - `frontend/console/.cursorrules` - Console application rules  
+> - `frontend/sofia-ui/.cursorrules` - UI library rules
+
+## Internationalization (i18n)
+
+**CRITICAL: All user-facing text MUST be internationalized using the translation system.**
+
+### Rules:
+1. **NEVER use hardcoded strings** in UI components - always use the translation hook
+2. **ALWAYS import and use** `useTranslation` hook from `@/i18n/hooks`
+3. **ALWAYS provide fallback text** using the `||` operator: `t('key') || 'Fallback text'`
+4. **ALWAYS add translation keys** to both English (`en/translation.json`) and Spanish (`es/translation.json`) files
+5. **Use hierarchical keys** following the pattern: `section.subsection.key` (e.g., `registration.title`, `shift.openShift`)
+
+### Example:
+```tsx
+import { useTranslation } from '@/i18n/hooks'
+
+export function MyComponent() {
+  const { t } = useTranslation()
+  
+  return (
+    <div>
+      <h1>{t('myComponent.title') || 'My Title'}</h1>
+      <p>{t('myComponent.description') || 'My description'}</p>
+      <button>{t('myComponent.submit') || 'Submit'}</button>
+    </div>
+  )
+}
+```
+
+### Translation File Structure:
+- Add keys to: `frontend/pos/src/i18n/locales/en/translation.json`
+- Add keys to: `frontend/pos/src/i18n/locales/es/translation.json`
+- Use nested objects for organization: `{ "section": { "key": "value" } }`
+
+## Component Guidelines
+
+1. **Always use TypeScript** with proper types
+2. **Always handle loading and error states**
+3. **Always use the sofia-ui components** when available
+4. **Always implement offline-first** functionality where applicable
+5. **Always add proper error handling** with user-friendly messages (translated)
+
+## API Integration
+
+1. **Always use** `apiClient` from `@/api/client`
+2. **Always handle offline scenarios** - queue requests for sync when offline
+3. **Always provide user feedback** via toast notifications (translated messages)
+
+## File Organization
+
+- Components: `frontend/pos/src/components/`
+- Pages: `frontend/pos/src/pages/`
+- Hooks: `frontend/pos/src/hooks/`
+- Utils: `frontend/pos/src/utils/`
+- API: `frontend/pos/src/api/`
+- i18n: `frontend/pos/src/i18n/`
+
+## Code Quality
+
+1. **Always run linter** before committing
+2. **Always use meaningful variable names**
+3. **Always add comments** for complex logic
+4. **Always follow existing patterns** in the codebase
+
+## UI
+
+1. Make sure components always support Theming as defined in sofia-ui library.
+

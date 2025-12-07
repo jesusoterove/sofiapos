@@ -1,0 +1,47 @@
+# Sofia UI Library Specific Rules
+
+## UI Library Guidelines
+
+### Component Development
+- **ALWAYS** create reusable, generic components
+- **ALWAYS** use TypeScript with proper prop types
+- **ALWAYS** export components from `src/index.ts`
+- **ALWAYS** follow existing component patterns
+- **ALWAYS** support theme customization via CSS variables
+
+### Component Props
+- **ALWAYS** use consistent prop naming conventions
+- **ALWAYS** provide default values where appropriate
+- **ALWAYS** document prop types with JSDoc comments
+- **ALWAYS** support `className` prop for styling overrides
+- **ALWAYS** support `fullWidth` prop for form components
+
+### Styling
+- **ALWAYS** use Tailwind CSS for styling
+- **ALWAYS** use CSS variables for theme colors
+- **ALWAYS** support dark mode where applicable
+- **ALWAYS** ensure responsive design
+- **ALWAYS** follow accessibility best practices
+
+### Component Structure
+- **ALWAYS** use functional components with hooks
+- **ALWAYS** implement proper error boundaries
+- **ALWAYS** handle loading and error states
+- **ALWAYS** provide proper ARIA labels
+
+### Dependencies
+- **ALWAYS** mark peer dependencies correctly in `package.json`
+- **ALWAYS** use external dependencies for ag-grid, react, etc.
+- **ALWAYS** avoid bundling dependencies (use externals in vite.config)
+
+### File Structure
+- Components: `src/components/`
+- Theme: `src/theme/`
+- Types: `src/types/`
+- Utils: `src/utils/`
+
+### Testing
+- **ALWAYS** write component tests
+- **ALWAYS** test accessibility
+- **ALWAYS** test responsive behavior
+

@@ -1,0 +1,40 @@
+# Console Application Specific Rules
+
+## Console-Specific Guidelines
+
+### Admin Interface Patterns
+- **ALWAYS** use `AdvancedDataGrid` for data tables (not `DataGrid`)
+- **ALWAYS** implement CRUD operations with proper validation
+- **ALWAYS** use form validation with React Hook Form
+- **ALWAYS** provide bulk operations where applicable
+
+### Data Management
+- **ALWAYS** use TanStack Query for data fetching
+- **ALWAYS** implement optimistic updates where appropriate
+- **ALWAYS** handle pagination for large datasets
+- **ALWAYS** provide search and filtering capabilities
+
+### UI Components
+- **ALWAYS** use `@sofiapos/ui` components
+- **ALWAYS** use `p-3` for outermost container padding (not `p-6`)
+- **ALWAYS** set grid height to `550px` (not `600px`)
+- **ALWAYS** implement responsive layouts
+
+### Form Patterns
+- **ALWAYS** use proper form validation
+- **ALWAYS** show loading states during submission
+- **ALWAYS** provide clear error messages
+- **ALWAYS** implement form reset after successful submission
+
+### API Integration
+- **ALWAYS** use `apiClient` from `@/api/client`
+- **ALWAYS** handle API errors with user-friendly messages
+- **ALWAYS** implement retry logic for failed requests
+- **ALWAYS** show loading indicators during API calls
+
+### File Structure
+- Pages: `src/pages/`
+- Components: `src/components/`
+- Hooks: `src/hooks/`
+- API: `src/api/`
+

@@ -1,0 +1,288 @@
+"""
+Cashier registration API endpoints.
+"""
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List, Optional
+
+from app.database import get_db
+from app.models import User, Role, Store, CashRegister
+from app.schemas.cashier import (
+    CashierRegisterRequest, CashierResponse, CashRegisterResponse, CashierUserCreateRequest
+)
+from app.schemas.user import RoleInfo, StoreInfo
+from app.api.v1.auth import get_current_user
+from app.services.auth_service import get_password_hash
+
+router = APIRouter(prefix="/cashiers", tags=["cashiers"])
+
+
+def get_or_create_cashier_role(db: Session) -> Role:
+    """
+    Get or create the Cashier role.
+    Returns the Cashier role.
+    """
+    cashier_role = db.query(Role).filter(Role.name == "Cashier").first()
+    
+    if not cashier_role:
+        # Create Cashier role if it doesn't exist
+        cashier_role = Role(
+            name="Cashier",
+            description="Cashier role for POS terminals"
+        )
+        db.add(cashier_role)
+        db.commit()
+        db.refresh(cashier_role)
+    
+    return cashier_role
+
+
+@router.post("/register", response_model=CashRegisterResponse, status_code=status.HTTP_201_CREATED)
+async def register_cashier(
+    cashier_data: CashierRegisterRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Register a new cashier terminal (cash register only).
+    Creates a cash register for the terminal. User creation is optional and done separately.
+    """
+    # Verify store exists
+    store = db.query(Store).filter(Store.id == cashier_data.store_id).first()
+    if not store:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Store with ID {cashier_data.store_id} not found"
+        )
+    
+    # Check if user has access to this store (admin/superuser only)
+    if not current_user.is_superuser and current_user.store_id != cashier_data.store_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to register cashiers for this store"
+        )
+    
+    # Check if cash register with this registration code already exists
+    cash_register_code = f"CR-{cashier_data.registration_code[:8].upper()}"
+    existing_cr = db.query(CashRegister).filter(CashRegister.code == cash_register_code).first()
+    if existing_cr:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cash register with registration code '{cashier_data.registration_code}' already exists"
+        )
+    
+    # Create cash register
+    cash_register = CashRegister(
+        store_id=cashier_data.store_id,
+        name=cashier_data.name,
+        code=cash_register_code,
+        is_active=True
+    )
+    db.add(cash_register)
+    db.commit()
+    db.refresh(cash_register)
+    
+    return CashRegisterResponse(
+        id=cash_register.id,
+        store_id=cash_register.store_id,
+        name=cash_register.name,
+        code=cash_register.code,
+        is_active=cash_register.is_active,
+        registration_code=cashier_data.registration_code,
+        created_at=cash_register.created_at
+    )
+
+
+@router.post("/{cash_register_id}/user", response_model=CashierResponse, status_code=status.HTTP_201_CREATED)
+async def create_cashier_user(
+    cash_register_id: int,
+    user_data: CashierUserCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Create a user for a cash register with Cashier role and store permissions.
+    """
+    # Verify cash register exists
+    cash_register = db.query(CashRegister).filter(CashRegister.id == cash_register_id).first()
+    if not cash_register:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cash register with ID {cash_register_id} not found"
+        )
+    
+    # Verify cash_register_id matches the request
+    if user_data.cash_register_id != cash_register_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cash register ID mismatch"
+        )
+    
+    # Check if user has access to this store (admin/superuser only)
+    if not current_user.is_superuser and current_user.store_id != cash_register.store_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to create users for this cash register"
+        )
+    
+    # Check if username already exists
+    existing_user = db.query(User).filter(User.username == user_data.username).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User with username '{user_data.username}' already exists"
+        )
+    
+    # Check if email already exists
+    existing_email = db.query(User).filter(User.email == user_data.email).first()
+    if existing_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User with email '{user_data.email}' already exists"
+        )
+    
+    # Get or create Cashier role
+    cashier_role = get_or_create_cashier_role(db)
+    
+    # Create user
+    hashed_password = get_password_hash(user_data.password)
+    
+    cashier_user = User(
+        username=user_data.username,
+        email=user_data.email,
+        full_name=user_data.full_name,
+        hashed_password=hashed_password,
+        store_id=cash_register.store_id,
+        is_active=True,
+        is_superuser=False
+    )
+    
+    # Assign Cashier role
+    cashier_user.roles = [cashier_role]
+    
+    db.add(cashier_user)
+    db.commit()
+    db.refresh(cashier_user)
+    
+    # Reload with relationships
+    from sqlalchemy.orm import joinedload
+    cashier_user = db.query(User).options(
+        joinedload(User.roles),
+        joinedload(User.store)
+    ).filter(User.id == cashier_user.id).first()
+    
+    # Build response
+    roles_list = [RoleInfo(id=role.id, name=role.name, description=role.description) for role in cashier_user.roles]
+    
+    store_info = None
+    if cashier_user.store:
+        store_info = StoreInfo(id=cashier_user.store.id, name=cashier_user.store.name, code=cashier_user.store.code)
+    
+    # Extract registration code from cash register code (CR-XXXXXXXX -> XXXXXXXX)
+    registration_code = cash_register.code.replace("CR-", "") if cash_register.code.startswith("CR-") else None
+    
+    return CashierResponse(
+        id=cashier_user.id,
+        username=cashier_user.username,
+        email=cashier_user.email,
+        full_name=cashier_user.full_name,
+        phone=cashier_user.phone,
+        store_id=cashier_user.store_id,
+        is_active=cashier_user.is_active,
+        is_superuser=cashier_user.is_superuser,
+        role_ids=[role.id for role in cashier_user.roles],
+        created_at=cashier_user.created_at,
+        updated_at=cashier_user.updated_at,
+        last_login=cashier_user.last_login,
+        roles=roles_list,
+        store=store_info,
+        registration_code=registration_code,
+        cash_register_id=cash_register.id,
+        cash_register_code=cash_register.code
+    )
+
+
+@router.get("", response_model=List[CashierResponse])
+async def list_cashiers(
+    store_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    List all cashiers (users with Cashier role).
+    """
+    # Get Cashier role
+    cashier_role = db.query(Role).filter(Role.name == "Cashier").first()
+    if not cashier_role:
+        return []
+    
+    # Query users with Cashier role
+    from sqlalchemy.orm import joinedload
+    query = db.query(User).join(User.roles).filter(Role.id == cashier_role.id)
+    
+    # Filter by store if provided
+    if store_id is not None:
+        # Check access
+        if not current_user.is_superuser and current_user.store_id != store_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this store"
+            )
+        query = query.filter(User.store_id == store_id)
+    elif not current_user.is_superuser:
+        # Non-superusers can only see their store's cashiers
+        if current_user.store_id:
+            query = query.filter(User.store_id == current_user.store_id)
+        else:
+            return []
+    
+    # Only active cashiers
+    query = query.filter(User.is_active == True)
+    
+    cashiers = query.options(
+        joinedload(User.roles),
+        joinedload(User.store)
+    ).all()
+    
+    # Build response list
+    result = []
+    for cashier in cashiers:
+        roles_list = [RoleInfo(id=role.id, name=role.name, description=role.description) for role in cashier.roles]
+        
+        store_info = None
+        if cashier.store:
+            store_info = StoreInfo(id=cashier.store.id, name=cashier.store.name, code=cashier.store.code)
+        
+        # Extract registration code from username (cashier_XXXXX)
+        registration_code = None
+        if cashier.username.startswith("cashier_"):
+            registration_code = cashier.username.replace("cashier_", "")
+        
+        # Find associated cash register by code pattern
+        cash_register = None
+        if registration_code:
+            cash_register_code = f"CR-{registration_code[:8].upper()}"
+            cash_register = db.query(CashRegister).filter(CashRegister.code == cash_register_code).first()
+        
+        result.append(CashierResponse(
+            id=cashier.id,
+            username=cashier.username,
+            email=cashier.email,
+            full_name=cashier.full_name,
+            phone=cashier.phone,
+            store_id=cashier.store_id,
+            is_active=cashier.is_active,
+            is_superuser=cashier.is_superuser,
+            role_ids=[role.id for role in cashier.roles],
+            created_at=cashier.created_at,
+            updated_at=cashier.updated_at,
+            last_login=cashier.last_login,
+            roles=roles_list,
+            store=store_info,
+            registration_code=registration_code,
+            cash_register_id=cash_register.id if cash_register else None,
+            cash_register_code=cash_register.code if cash_register else None
+        ))
+    
+    return result
+
