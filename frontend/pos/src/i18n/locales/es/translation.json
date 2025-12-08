@@ -26,7 +26,8 @@
     "error": "Error",
     "success": "Éxito",
     "next": "Siguiente",
-    "back": "Atrás"
+    "back": "Atrás",
+    "continue": "Continuar"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -70,7 +71,13 @@
     "cancelOrderConfirmTitle": "Cancelar Orden",
     "cancelOrderConfirmMessage": "¿Está seguro de que desea cancelar esta orden? Todos los artículos serán eliminados.",
     "processPayment": "Procesar Pago",
-    "printReceipt": "Imprimir Recibo"
+    "printReceipt": "Imprimir Recibo",
+    "onCashRegister": "En Caja",
+    "onCashRegisterDescription": "Ubicación predeterminada para órdenes de mostrador",
+    "selectTable": "Seleccionar Mesa",
+    "capacity": "Capacidad",
+    "noTablesAvailable": "No hay mesas disponibles",
+    "clickToEditQuantity": "Haga clic para editar cantidad"
   },
   "payment": {
     "title": "Pago",
@@ -139,7 +146,15 @@
     "retry": "Reintentar",
     "syncError": "Error de Sincronización",
     "reauthRequired": "Re-autenticación Requerida",
-    "reauthMessage": "Su sesión ha expirado. Por favor ingrese sus credenciales para continuar la sincronización."
+    "reauthMessage": "Su sesión ha expirado. Por favor ingrese sus credenciales para continuar la sincronización.",
+    "firstSync": "Primera Sincronización",
+    "starting": "Iniciando sincronización...",
+    "inProgress": "Sincronización en progreso",
+    "failed": "Sincronización fallida",
+    "complete": "Sincronización completa",
+    "notStarted": "Sincronización no iniciada",
+    "results": "Resultados de Sincronización",
+    "viewResults": "Ver resultados de sincronización"
   },
   "settings": {
     "title": "Configuración",
@@ -194,7 +209,27 @@
     "userCreationError": "Error al crear usuario",
     "userCreationSkipped": "Creación de usuario omitida. Puede crear un usuario más tarde.",
     "cashRegisterNotFound": "Caja registradora no encontrada",
-    "fillAllFields": "Por favor complete todos los campos"
+    "fillAllFields": "Por favor complete todos los campos",
+    "syncStep": {
+      "title": "Sincronizando Datos",
+      "description": "Descargando productos, materiales y configuraciones del servidor...",
+      "progress": "Sincronizando...",
+      "error": "Error de Sincronización",
+      "retry": "Reintentar",
+      "complete": "¡Sincronización Completa!",
+      "syncingProducts": "Sincronizando productos...",
+      "syncingMaterials": "Sincronizando materiales...",
+      "syncingSettings": "Sincronizando configuraciones...",
+      "productsSynced": "productos sincronizados",
+      "materialsSynced": "materiales sincronizados",
+      "settingsSynced": "configuraciones sincronizadas",
+      "alreadySynced": "Los datos ya estaban sincronizados. Puede sincronizar nuevamente para obtener las últimas actualizaciones.",
+      "syncAgain": "Sincronizar Nuevamente"
+    },
+    "alreadyRegistered": "Ya Registrado",
+    "alreadyRegisteredMessage": "Esta caja registradora ya está registrada. Puede continuar al siguiente paso.",
+    "cashRegister": "Caja Registradora",
+    "store": "Tienda"
   }
 }
 

@@ -56,7 +56,7 @@ async def get_open_shift(
 ):
     """
     Get the currently open shift for a store.
-    Returns 404 if no open shift exists.
+    Returns null if no open shift exists (for offline-first compatibility).
     """
     # Verify store exists
     store = db.query(Store).filter(Store.id == store_id).first()
@@ -79,12 +79,7 @@ async def get_open_shift(
         Shift.status == "open"
     ).first()
     
-    if not open_shift:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No open shift found for this store"
-        )
-    
+    # Return null if no open shift (instead of 404) for offline-first compatibility
     return open_shift
 
 

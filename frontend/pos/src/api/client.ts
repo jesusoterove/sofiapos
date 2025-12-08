@@ -69,10 +69,14 @@ apiClient.interceptors.response.use(
       if (!isSyncRequest) {
         // Only redirect to login for non-sync requests
         // Sync requests should handle 401 errors gracefully (they'll try refresh token)
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('pos_auth_token');
-        localStorage.removeItem('pos_refresh_token');
-        window.location.href = '/login';
+        // Use a flag to prevent multiple redirects
+        if (!window.location.pathname.includes('/login')) {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('pos_auth_token');
+          localStorage.removeItem('pos_refresh_token');
+          // Use replace to prevent back button issues
+          window.location.replace('/login');
+        }
       }
       // For sync requests, just reject the promise so sync can handle it (try refresh token)
     }

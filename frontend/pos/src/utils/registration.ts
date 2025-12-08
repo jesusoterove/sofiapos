@@ -3,6 +3,9 @@
  */
 const REGISTRATION_KEY = 'pos_registration'
 const REGISTRATION_CODE_KEY = 'pos_registration_code'
+const REGISTRATION_PROGRESS_KEY = 'pos_registration_progress'
+
+export type RegistrationStep = 'welcome' | 'credentials' | 'store' | 'sync' | 'createUser' | 'success'
 
 export interface RegistrationData {
   registrationCode: string
@@ -11,6 +14,20 @@ export interface RegistrationData {
   userId: number
   username: string
   registeredAt: string
+  registrationToken?: string
+  cashRegisterId?: number
+}
+
+export interface RegistrationProgress {
+  currentStep: RegistrationStep
+  adminToken: string | null
+  adminUsername: string
+  selectedStoreId: number | null
+  cashRegisterId: number | null
+  cashierName: string
+  storeName: string
+  syncCompleted: boolean
+  selectedLanguage?: string
 }
 
 /**
@@ -40,6 +57,8 @@ export function getRegistration(): RegistrationData | null {
  */
 export function saveRegistration(data: RegistrationData): void {
   localStorage.setItem(REGISTRATION_KEY, JSON.stringify(data))
+  // Clear progress when registration is complete
+  clearRegistrationProgress()
 }
 
 /**
@@ -92,5 +111,34 @@ export async function getRegistrationCode(): Promise<string> {
   
   localStorage.setItem(REGISTRATION_CODE_KEY, registrationCode)
   return registrationCode
+}
+
+/**
+ * Save registration progress.
+ */
+export function saveRegistrationProgress(progress: RegistrationProgress): void {
+  localStorage.setItem(REGISTRATION_PROGRESS_KEY, JSON.stringify(progress))
+}
+
+/**
+ * Get registration progress.
+ */
+export function getRegistrationProgress(): RegistrationProgress | null {
+  const data = localStorage.getItem(REGISTRATION_PROGRESS_KEY)
+  if (!data) return null
+  
+  try {
+    return JSON.parse(data)
+  } catch (error) {
+    console.error('Failed to parse registration progress:', error)
+    return null
+  }
+}
+
+/**
+ * Clear registration progress.
+ */
+export function clearRegistrationProgress(): void {
+  localStorage.removeItem(REGISTRATION_PROGRESS_KEY)
 }
 

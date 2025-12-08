@@ -11,8 +11,11 @@ from app.schemas.cashier import (
     CashierRegisterRequest, CashierResponse, CashRegisterResponse, CashierUserCreateRequest
 )
 from app.schemas.user import RoleInfo, StoreInfo
-from app.api.v1.auth import get_current_user
+from app.api.v1.auth import get_current_user, create_access_token, SECRET_KEY, ALGORITHM
 from app.services.auth_service import get_password_hash
+from datetime import timedelta
+from jose import JWTError, jwt
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/cash_registers", tags=["cash_registers"])
 
@@ -84,6 +87,20 @@ async def register_cash_register(
     db.commit()
     db.refresh(cash_register)
     
+    # Generate registration token (long-lived token for this cash register)
+    # Token contains: cash_register_id, registration_code, store_id
+    registration_token_data = {
+        "cash_register_id": cash_register.id,
+        "registration_code": cashier_data.registration_code,
+        "store_id": cash_register.store_id,
+        "type": "registration"
+    }
+    # Long-lived token (1 year expiry)
+    registration_token = create_access_token(
+        data=registration_token_data,
+        expires_delta=timedelta(days=365)
+    )
+    
     return CashRegisterResponse(
         id=cash_register.id,
         store_id=cash_register.store_id,
@@ -91,6 +108,7 @@ async def register_cash_register(
         code=cash_register.code,
         is_active=cash_register.is_active,
         registration_code=cashier_data.registration_code,
+        registration_token=registration_token,
         created_at=cash_register.created_at
     )
 
@@ -204,6 +222,44 @@ async def create_cash_register_user(
     )
 
 
+@router.get("/{cash_register_id}", response_model=CashRegisterResponse)
+async def get_cash_register(
+    cash_register_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get a single cash register by ID.
+    """
+    cash_register = db.query(CashRegister).filter(CashRegister.id == cash_register_id).first()
+    if not cash_register:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cash register with ID {cash_register_id} not found"
+        )
+    
+    # Check access
+    if not current_user.is_superuser and current_user.store_id != cash_register.store_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this cash register"
+        )
+    
+    # Extract registration code from code (CR-XXXXXXXX -> XXXXXXXX)
+    registration_code = cash_register.code.replace("CR-", "") if cash_register.code.startswith("CR-") else cash_register.code
+    
+    return CashRegisterResponse(
+        id=cash_register.id,
+        store_id=cash_register.store_id,
+        name=cash_register.name,
+        code=cash_register.code,
+        is_active=cash_register.is_active,
+        registration_code=registration_code,
+        registration_token="",  # Not returned for security
+        created_at=cash_register.created_at
+    )
+
+
 @router.get("/list", response_model=List[CashRegisterResponse])
 async def list_cash_registers(
     store_id: Optional[int] = None,
@@ -238,6 +294,8 @@ async def list_cash_registers(
         # Extract registration code from code (CR-XXXXXXXX -> XXXXXXXX)
         registration_code = cr.code.replace("CR-", "") if cr.code.startswith("CR-") else cr.code
         
+        # Note: registration_token is not included in list responses for security
+        # Only returned during initial registration
         result.append(CashRegisterResponse(
             id=cr.id,
             store_id=cr.store_id,
@@ -245,6 +303,7 @@ async def list_cash_registers(
             code=cr.code,
             is_active=cr.is_active,
             registration_code=registration_code,
+            registration_token="",  # Not returned in list for security
             created_at=cr.created_at
         ))
     

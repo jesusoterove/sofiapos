@@ -28,6 +28,7 @@ export interface POSDatabase extends DBSchema {
       order_number: string
       store_id: number
       customer_id?: number
+      table_id?: number | null
       status: 'draft' | 'paid' | 'cancelled'
       subtotal: number
       taxes: number
@@ -37,7 +38,7 @@ export interface POSDatabase extends DBSchema {
       created_at: string
       updated_at: string
     }
-    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number }
+    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number; 'by-table': number }
   }
   order_items: {
     key: number
@@ -102,11 +103,64 @@ export interface POSDatabase extends DBSchema {
       updated_at: string
     }
   }
+  inventory_entries: {
+    key: number
+    value: {
+      id: number
+      store_id: number
+      vendor_id?: number
+      entry_number: string
+      entry_type: 'purchase' | 'sale' | 'adjustment' | 'transfer' | 'waste' | 'return'
+      entry_date: string
+      notes?: string
+      created_by_user_id?: number
+      sync_status: 'synced' | 'pending' | 'error'
+      created_at: string
+      updated_at: string
+    }
+    indexes: { 'by-sync-status': string; 'by-store': number; 'by-entry-type': string }
+  }
+  inventory_transactions: {
+    key: number
+    value: {
+      id: number
+      entry_id: number
+      material_id?: number
+      product_id?: number
+      quantity: number
+      unit_of_measure_id?: number
+      unit_cost?: number
+      total_cost?: number
+      notes?: string
+      sync_status: 'synced' | 'pending' | 'error'
+    }
+    indexes: { 'by-entry': number; 'by-sync-status': string }
+  }
+  shifts: {
+    key: number
+    value: {
+      id: number | string
+      shift_number: string
+      store_id: number
+      status: 'open' | 'closed'
+      opened_at: string
+      closed_at?: string
+      opened_by_user_id?: number
+      closed_by_user_id?: number
+      initial_cash?: number
+      inventory_balance?: number
+      notes?: string
+      sync_status: 'synced' | 'pending' | 'error'
+      created_at: string
+      updated_at: string
+    }
+    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number }
+  }
   sync_queue: {
     key: number
     value: {
       id: number
-      type: 'order' | 'order_item' | 'product' | 'category' | 'customer'
+      type: 'order' | 'order_item' | 'product' | 'category' | 'customer' | 'inventory_entry' | 'inventory_transaction' | 'shift'
       action: 'create' | 'update' | 'delete'
       data_id: string | number
       data: any
@@ -118,11 +172,11 @@ export interface POSDatabase extends DBSchema {
 }
 
 const DB_NAME = 'sofiapos-db'
-const DB_VERSION = 1
+const DB_VERSION = 3
 
 export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
   return openDB<POSDatabase>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, oldVersion, newVersion, transaction) {
       // Products store
       if (!db.objectStoreNames.contains('products')) {
         const productStore = db.createObjectStore('products', { keyPath: 'id' })
@@ -137,6 +191,13 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
         orderStore.createIndex('by-status', 'status')
         orderStore.createIndex('by-sync-status', 'sync_status')
         orderStore.createIndex('by-store', 'store_id')
+        orderStore.createIndex('by-table', 'table_id')
+      } else if (oldVersion < 2) {
+        // Add by-table index if it doesn't exist (for existing databases upgrading to v2)
+        const orderStore = transaction.objectStore('orders')
+        if (!orderStore.indexNames.contains('by-table')) {
+          orderStore.createIndex('by-table', 'table_id')
+        }
       }
 
       // Order items store
@@ -169,11 +230,38 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
         db.createObjectStore('settings', { keyPath: 'key' })
       }
 
+      // Inventory entries store (added in version 2)
+      if (oldVersion < 2 && !db.objectStoreNames.contains('inventory_entries')) {
+        const inventoryEntryStore = db.createObjectStore('inventory_entries', { keyPath: 'id', autoIncrement: true })
+        inventoryEntryStore.createIndex('by-sync-status', 'sync_status')
+        inventoryEntryStore.createIndex('by-store', 'store_id')
+        inventoryEntryStore.createIndex('by-entry-type', 'entry_type')
+      }
+
+      // Inventory transactions store (added in version 2)
+      if (oldVersion < 2 && !db.objectStoreNames.contains('inventory_transactions')) {
+        const inventoryTransactionStore = db.createObjectStore('inventory_transactions', { keyPath: 'id', autoIncrement: true })
+        inventoryTransactionStore.createIndex('by-entry', 'entry_id')
+        inventoryTransactionStore.createIndex('by-sync-status', 'sync_status')
+      }
+
+      // Shifts store (added in version 3)
+      // Check if store doesn't exist (for any upgrade scenario)
+      if (!db.objectStoreNames.contains('shifts')) {
+        const shiftStore = db.createObjectStore('shifts', { keyPath: 'id' })
+        shiftStore.createIndex('by-status', 'status')
+        shiftStore.createIndex('by-sync-status', 'sync_status')
+        shiftStore.createIndex('by-store', 'store_id')
+      }
+
       // Sync queue store
       if (!db.objectStoreNames.contains('sync_queue')) {
         const syncQueueStore = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
         syncQueueStore.createIndex('by-type', 'type')
         syncQueueStore.createIndex('by-action', 'action')
+      } else if (oldVersion < 2) {
+        // Update sync_queue type enum to include inventory types (for existing databases)
+        // Note: IndexedDB doesn't support modifying existing stores, but we can ensure the type is correct in code
       }
     },
   })
@@ -181,7 +269,7 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
 
 export async function clearDatabase(): Promise<void> {
   const db = await openDatabase()
-  const stores = ['products', 'orders', 'order_items', 'categories', 'customers', 'materials', 'settings', 'sync_queue']
+  const stores = ['products', 'orders', 'order_items', 'categories', 'customers', 'materials', 'settings', 'inventory_entries', 'inventory_transactions', 'shifts', 'sync_queue']
   for (const storeName of stores) {
     await db.clear(storeName)
   }

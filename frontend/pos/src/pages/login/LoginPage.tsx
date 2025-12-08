@@ -26,13 +26,8 @@ export function LoginPage() {
   useEffect(() => {
     // Only navigate if we're still on the login page after authentication
     if (isAuthenticated && location.pathname === '/login') {
-      // Check if registered, if not go to registration
-      if (!isRegistered()) {
-        navigate({ to: '/register', replace: true })
-      } else {
-        // Check shift status
-        navigate({ to: '/', replace: true })
-      }
+      // Navigate to home (POSScreen will handle sync and shift checks)
+      navigate({ to: '/', replace: true })
     }
   }, [isAuthenticated, navigate, location.pathname])
 

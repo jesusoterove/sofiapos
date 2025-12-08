@@ -22,6 +22,7 @@ class CashRegisterResponse(BaseModel):
     code: str
     is_active: bool
     registration_code: str
+    registration_token: str
     created_at: datetime
 
     class Config:

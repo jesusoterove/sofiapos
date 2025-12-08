@@ -1,24 +1,17 @@
 /**
  * Protected route component that requires authentication.
- * Supports both online and offline authentication.
- * Also checks for registration status and sync completion.
+ * Sync and shift checks are handled in POSScreen.
  */
 import { Navigate, Outlet, useLocation } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/AuthContext'
-import { useSync } from '@/contexts/SyncContext'
-import { SyncScreen } from '@/components/sync/SyncScreen'
 import { Spinner } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 import { isRegistered } from '@/utils/registration'
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth()
-  const { isSyncComplete } = useSync()
   const { t } = useTranslation()
   const location = useLocation()
-
-  // Only check sync if authenticated (SyncProvider is inside AuthProvider)
-  const shouldCheckSync = isAuthenticated
 
   if (isLoading) {
     return (
@@ -40,27 +33,8 @@ export function ProtectedRoute() {
     return <Navigate to="/register" replace />
   }
 
-  // Show sync screen if syncing or if sync failed (but allow access)
-  // Only block if actively syncing and not complete
-  const { isSyncing, syncError } = useSync()
-  if (shouldCheckSync && isSyncing && !isSyncComplete && location.pathname !== '/register') {
-    return (
-      <SyncScreen>
-        <Outlet />
-      </SyncScreen>
-    )
-  }
-  
-  // If sync failed, show error but allow access (don't block the app)
-  // The SyncScreen will show the error message
-  if (shouldCheckSync && syncError && !isSyncComplete && location.pathname !== '/register') {
-    return (
-      <SyncScreen>
-        <Outlet />
-      </SyncScreen>
-    )
-  }
-
+  // Sync and shift checks are handled in POSScreen
+  // No blocking here - let POSScreen handle the flow
   return <Outlet />
 }
 

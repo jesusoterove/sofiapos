@@ -26,7 +26,8 @@
     "error": "Error",
     "success": "Success",
     "next": "Next",
-    "back": "Back"
+    "back": "Back",
+    "continue": "Continue"
   },
   "auth": {
     "login": "Login",
@@ -70,7 +71,13 @@
     "cancelOrderConfirmTitle": "Cancel Order",
     "cancelOrderConfirmMessage": "Are you sure you want to cancel this order? All items will be removed.",
     "processPayment": "Process Payment",
-    "printReceipt": "Print Receipt"
+    "printReceipt": "Print Receipt",
+    "onCashRegister": "On Cash Register",
+    "onCashRegisterDescription": "Default location for walk-in orders",
+    "selectTable": "Select Table",
+    "capacity": "Capacity",
+    "noTablesAvailable": "No tables available",
+    "clickToEditQuantity": "Click to edit quantity"
   },
   "payment": {
     "title": "Payment",
@@ -139,7 +146,15 @@
     "retry": "Retry",
     "syncError": "Sync Error",
     "reauthRequired": "Re-authentication Required",
-    "reauthMessage": "Your session has expired. Please enter your credentials to continue synchronization."
+    "reauthMessage": "Your session has expired. Please enter your credentials to continue synchronization.",
+    "firstSync": "First Synchronization",
+    "starting": "Starting synchronization...",
+    "inProgress": "Synchronization in progress",
+    "failed": "Synchronization failed",
+    "complete": "Synchronization complete",
+    "notStarted": "Synchronization not started",
+    "results": "Synchronization Results",
+    "viewResults": "View sync results"
   },
   "settings": {
     "title": "Settings",
@@ -194,7 +209,27 @@
     "userCreationError": "User creation failed",
     "userCreationSkipped": "User creation skipped. You can create a user later.",
     "cashRegisterNotFound": "Cash register not found",
-    "fillAllFields": "Please fill all fields"
+    "fillAllFields": "Please fill all fields",
+    "syncStep": {
+      "title": "Synchronizing Data",
+      "description": "Downloading products, materials, and settings from server...",
+      "progress": "Synchronizing...",
+      "error": "Synchronization Failed",
+      "retry": "Retry",
+      "complete": "Synchronization Complete!",
+      "syncingProducts": "Syncing products...",
+      "syncingMaterials": "Syncing materials...",
+      "syncingSettings": "Syncing settings...",
+      "productsSynced": "products synced",
+      "materialsSynced": "materials synced",
+      "settingsSynced": "settings synced",
+      "alreadySynced": "Data was already synchronized. You can sync again to get the latest updates.",
+      "syncAgain": "Sync Again"
+    },
+    "alreadyRegistered": "Already Registered",
+    "alreadyRegisteredMessage": "This cash register is already registered. You can continue to the next step.",
+    "cashRegister": "Cash Register",
+    "store": "Store"
   }
 }
 

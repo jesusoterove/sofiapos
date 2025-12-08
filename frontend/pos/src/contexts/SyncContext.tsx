@@ -13,7 +13,9 @@ interface SyncContextType {
   syncProgress: SyncProgress | null
   isSyncComplete: boolean
   syncError: string | null
+  isFirstSync: boolean
   retrySync: () => Promise<void>
+  startBackgroundSync: () => Promise<void>
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined)
@@ -29,9 +31,11 @@ export function SyncProvider({ children }: SyncProviderProps) {
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null)
   const [isSyncComplete, setIsSyncComplete] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [isFirstSync, setIsFirstSync] = useState(false)
+  const [isBackgroundMode, setIsBackgroundMode] = useState(false)
   const [showCredentialDialog, setShowCredentialDialog] = useState(false)
 
-  const performSync = async () => {
+  const performSync = async (backgroundMode: boolean = false) => {
     if (!isAuthenticated) {
       return
     }
@@ -41,6 +45,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
     if (!token) {
       setSyncError('Authentication token not found. Please log in again.')
       setIsSyncComplete(false)
+      setIsSyncing(false) // Make sure we're not in syncing state
       return
     }
 
@@ -48,11 +53,19 @@ export function SyncProvider({ children }: SyncProviderProps) {
     const alreadySynced = await hasCompletedInitialSync()
     if (alreadySynced) {
       setIsSyncComplete(true)
+      setIsSyncing(false)
+      setIsFirstSync(false)
       return
     }
 
     setIsSyncing(true)
+    setIsBackgroundMode(backgroundMode)
     setSyncError(null)
+    
+    // Determine if this is first sync
+    if (!backgroundMode) {
+      setIsFirstSync(true)
+    }
 
     try {
       const result = await performInitialSync((progress) => {
@@ -61,6 +74,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
 
       if (result.success) {
         setIsSyncComplete(true)
+        setIsFirstSync(false)
         setSyncProgress({
           step: 'complete',
           progress: 100,
@@ -79,6 +93,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
             })
             if (retryResult.success) {
               setIsSyncComplete(true)
+              setIsFirstSync(false)
               setSyncProgress({
                 step: 'complete',
                 progress: 100,
@@ -110,6 +125,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
             })
             if (retryResult.success) {
               setIsSyncComplete(true)
+              setIsFirstSync(false)
               setSyncProgress({
                 step: 'complete',
                 progress: 100,
@@ -136,17 +152,20 @@ export function SyncProvider({ children }: SyncProviderProps) {
     }
   }
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      performSync()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated])
+  // Don't auto-start sync - let POSScreen handle first sync flow
+  // Background syncs will be triggered manually
 
   const retrySync = async () => {
     setIsSyncComplete(false)
     setShowCredentialDialog(false)
-    await performSync()
+    await performSync(isBackgroundMode)
+  }
+
+  const startBackgroundSync = async () => {
+    // Only start if sync is not already complete
+    if (!isSyncComplete && !isSyncing) {
+      await performSync(true)
+    }
   }
 
   const handleCredentialSuccess = async () => {
@@ -163,7 +182,9 @@ export function SyncProvider({ children }: SyncProviderProps) {
         syncProgress,
         isSyncComplete,
         syncError,
+        isFirstSync,
         retrySync,
+        startBackgroundSync,
       }}
     >
       {children}
@@ -180,7 +201,18 @@ export function SyncProvider({ children }: SyncProviderProps) {
 export function useSync() {
   const context = useContext(SyncContext)
   if (context === undefined) {
-    throw new Error('useSync must be used within a SyncProvider')
+    // Return default values instead of throwing error
+    // This allows components to work even if SyncProvider is not available (e.g., during registration)
+    console.warn('useSync called outside SyncProvider, using default values')
+    return {
+      isSyncing: false,
+      syncProgress: null,
+      isSyncComplete: false,
+      syncError: null,
+      isFirstSync: false,
+      retrySync: async () => {},
+      startBackgroundSync: async () => {},
+    }
   }
   return context
 }
