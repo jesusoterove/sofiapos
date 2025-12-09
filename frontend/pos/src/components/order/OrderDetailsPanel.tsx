@@ -24,6 +24,7 @@ interface OrderDetailsPanelProps {
   onClearOrder: () => void
   onSaveDraft: () => Promise<void>
   onPayment: () => void
+  onOrderSaved?: () => void
   storeId: number
 }
 
@@ -37,6 +38,7 @@ export function OrderDetailsPanel({
   onClearOrder,
   onSaveDraft,
   onPayment,
+  onOrderSaved,
   storeId,
 }: OrderDetailsPanelProps) {
   const [showTableSelection, setShowTableSelection] = useState(false)
@@ -45,6 +47,10 @@ export function OrderDetailsPanel({
     // If order already has a table assigned, save directly
     if (order?.tableId !== undefined && order?.tableId !== null) {
       await onSaveDraft()
+      // Notify parent that order was saved
+      if (onOrderSaved) {
+        onOrderSaved()
+      }
       return
     }
 
@@ -55,11 +61,21 @@ export function OrderDetailsPanel({
   const handleTableSelected = async (table: { id: number } | null) => {
     setShowTableSelection(false)
     // Assign table to order
+    console.log('[OrderDetailsPanel] handleTableSelected - setting table:', table?.id)
     onSetTable(table?.id ?? null)
-    // Wait a bit for state to update, then save
-    // Use a promise-based approach instead of setTimeout
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    // Wait for React state update to complete
+    // Use requestAnimationFrame to ensure state update is processed
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 50)
+      })
+    })
+    console.log('[OrderDetailsPanel] handleTableSelected - calling onSaveDraft')
     await onSaveDraft()
+    // Notify parent that order was saved
+    if (onOrderSaved) {
+      onOrderSaved()
+    }
   }
 
   return (

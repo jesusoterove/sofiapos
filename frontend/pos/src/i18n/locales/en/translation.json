@@ -9,14 +9,17 @@
     "add": "Add",
     "remove": "Remove",
     "quantity": "Quantity",
+    "unit": "Unit",
     "price": "Price",
     "total": "Total",
     "subtotal": "Subtotal",
     "taxes": "Taxes",
+    "tax": "Tax",
     "discount": "Discount",
     "change": "Change",
     "pay": "Pay",
     "print": "Print",
+    "clear": "CLEAR",
     "close": "Close",
     "open": "Open",
     "yes": "Yes",
@@ -38,14 +41,31 @@
     "signInToContinue": "Sign in to continue",
     "loginRequired": "Please enter username and password",
     "loginSuccess": "Login successful!",
-    "loginError": "Invalid username or password"
+    "loginError": "Invalid username or password",
+    "mustBeOnlineForInitialLogin": "Must be online for initial login",
+    "enterLocalPassword": "Please enter your local password",
+    "offlineLoginSuccess": "Offline login successful!",
+    "invalidLocalPassword": "Invalid local password. Please login online to reset.",
+    "offlineLoginFailed": "Offline login failed",
+    "online": "Online",
+    "offline": "Offline",
+    "offlineUseLocalPassword": "You are offline. Use your local password to continue.",
+    "noLocalPasswordFound": "No local password found. Please connect to the internet to login.",
+    "localPassword": "Local Password",
+    "loginOffline": "Login Offline",
+    "forgotLocalPassword": "Forgot your local password? Connect to the internet and login online to reset it.",
+    "offlineConnectToLogin": "You are offline. Please connect to the internet to login.",
+    "afterLoginCanUseOffline": "After logging in, you can use your password offline.",
+    "pointOfSale": "Point of Sale"
   },
   "topBar": {
     "appName": "SofiaPOS",
     "version": "v1.0.0",
     "currentTime": "Current Time",
+    "home": "Home",
     "closeShift": "Close Shift",
-    "inventoryEntry": "Inventory Entry"
+    "inventoryEntry": "Inventory Entry",
+    "salesInvoices": "Sales Invoices"
   },
   "productSelection": {
     "title": "Products",
@@ -77,7 +97,15 @@
     "selectTable": "Select Table",
     "capacity": "Capacity",
     "noTablesAvailable": "No tables available",
-    "clickToEditQuantity": "Click to edit quantity"
+    "clickToEditQuantity": "Click to edit quantity",
+    "addNewTable": "Add New Table",
+    "newTable": "New Table",
+    "tableNumber": "Table Number",
+    "tableNumberPlaceholder": "e.g., 1, 2, 3",
+    "tableName": "Table Name (Optional)",
+    "tableNamePlaceholder": "e.g., Window Table",
+    "location": "Location (Optional)",
+    "locationPlaceholder": "e.g., Front, Back"
   },
   "payment": {
     "title": "Payment",
@@ -86,9 +114,37 @@
     "cash": "Cash",
     "bankTransfer": "Bank Transfer",
     "amountPaid": "Amount Paid",
+    "tenderedAmount": "Tendered amount: $",
+    "dueAmount": "Due amount: $",
     "change": "Change",
     "processPayment": "Process Payment",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "pay": "PAY",
+    "exact": "EXACT",
+    "print": "PRINT",
+    "ticket": "Ticket",
+    "printReceipt": "Printing receipt..."
+  },
+  "sales": {
+    "invoices": "Sales Invoices",
+    "invoiceDetails": "Invoice Details",
+    "invoiceNumber": "Invoice Number",
+    "date": "Date",
+    "noInvoices": "No paid invoices found"
+  },
+  "debug": {
+    "circuitBreakerActive": "Navigation Circuit Breaker Active",
+    "circuitBreakerMessage": "Navigation has been stopped to prevent an infinite loop.",
+    "navigationLog": "Navigation Log",
+    "navigationLogEntries": "Navigation Log (Last {{count}} entries)",
+    "time": "Time",
+    "component": "Component",
+    "from": "From",
+    "to": "To",
+    "reason": "Reason",
+    "reEnableNavigation": "Re-enable Navigation & Reload",
+    "copyLogToClipboard": "Copy Log to Clipboard",
+    "logCopied": "Navigation log copied to clipboard!"
   },
   "tables": {
     "title": "Tables",
@@ -113,7 +169,10 @@
     "removeUser": "Remove User",
     "inventoryCount": "Inventory Count",
     "startInventory": "Start Inventory Count",
-    "endInventory": "End Inventory Count"
+    "endInventory": "End Inventory Count",
+    "enterValidInitialCash": "Please enter a valid initial cash amount",
+    "enterValidInventoryBalance": "Please enter a valid inventory beginning balance",
+    "openShiftFailed": "Failed to open shift"
   },
   "cashRegister": {
     "title": "Cash Register",

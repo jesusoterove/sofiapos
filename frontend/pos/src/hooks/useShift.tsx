@@ -189,10 +189,24 @@ export function useShift() {
     [openShiftMutation]
   )
 
+  const hasOpenShift = !!currentOpenShift
+  const isLoading = isLoadingShift || openShiftMutation.isPending
+
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log('[useShift] State changed', {
+      hasOpenShift,
+      isLoading,
+      hasCurrentShift: !!currentOpenShift,
+      storeId: user?.store_id,
+      timestamp: new Date().toISOString(),
+    })
+  }, [hasOpenShift, isLoading, currentOpenShift, user?.store_id])
+
   return {
     currentShift: currentOpenShift || null,
-    hasOpenShift: !!currentOpenShift,
-    isLoading: isLoadingShift || openShiftMutation.isPending,
+    hasOpenShift,
+    isLoading,
     openShift,
     error: openShiftMutation.error,
   }

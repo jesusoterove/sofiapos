@@ -47,20 +47,10 @@ export function RegistrationPage() {
   const [registrationCode, setRegistrationCode] = useState<string>('')
   const [syncCompleted, setSyncCompleted] = useState<boolean>(savedProgress?.syncCompleted || false)
 
+  // Load registration code on mount
   useEffect(() => {
-    // Check if already registered - if so, redirect to login
-    if (isRegistered()) {
-      const registrationData = getRegistration()
-      if (registrationData) {
-        // Registration is complete, redirect to login
-        navigate({ to: '/login', replace: true })
-        return
-      }
-    }
-    
-    // Load registration code
     loadRegistrationCode()
-  }, [navigate])
+  }, [])
 
   const loadRegistrationCode = async () => {
     const code = await getRegistrationCode()
@@ -172,7 +162,7 @@ export function RegistrationPage() {
     localStorage.removeItem('pos_auth_token')
     
     // Registration is complete - navigate to login
-    // The RootRoute will handle routing based on registration status
+    // The beforeLoad guard will handle redirecting to /app if already authenticated
     navigate({ to: '/login', replace: true })
   }
 

@@ -156,11 +156,27 @@ export interface POSDatabase extends DBSchema {
     }
     indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number }
   }
+  tables: {
+    key: number
+    value: {
+      id: number
+      store_id: number
+      table_number: string
+      name: string | null
+      capacity: number
+      location: string | null
+      is_active: boolean
+      sync_status: 'synced' | 'pending' | 'error'
+      created_at: string
+      updated_at: string | null
+    }
+    indexes: { 'by-store': number; 'by-sync-status': string; 'by-active': boolean }
+  }
   sync_queue: {
     key: number
     value: {
       id: number
-      type: 'order' | 'order_item' | 'product' | 'category' | 'customer' | 'inventory_entry' | 'inventory_transaction' | 'shift'
+      type: 'order' | 'order_item' | 'product' | 'category' | 'customer' | 'inventory_entry' | 'inventory_transaction' | 'shift' | 'table'
       action: 'create' | 'update' | 'delete'
       data_id: string | number
       data: any
@@ -172,7 +188,7 @@ export interface POSDatabase extends DBSchema {
 }
 
 const DB_NAME = 'sofiapos-db'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
   return openDB<POSDatabase>(DB_NAME, DB_VERSION, {
@@ -254,6 +270,14 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
         shiftStore.createIndex('by-store', 'store_id')
       }
 
+      // Tables store (added in version 4)
+      if (!db.objectStoreNames.contains('tables')) {
+        const tableStore = db.createObjectStore('tables', { keyPath: 'id' })
+        tableStore.createIndex('by-store', 'store_id')
+        tableStore.createIndex('by-sync-status', 'sync_status')
+        tableStore.createIndex('by-active', 'is_active')
+      }
+
       // Sync queue store
       if (!db.objectStoreNames.contains('sync_queue')) {
         const syncQueueStore = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
@@ -269,9 +293,17 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
 
 export async function clearDatabase(): Promise<void> {
   const db = await openDatabase()
-  const stores = ['products', 'orders', 'order_items', 'categories', 'customers', 'materials', 'settings', 'inventory_entries', 'inventory_transactions', 'shifts', 'sync_queue']
-  for (const storeName of stores) {
-    await db.clear(storeName)
-  }
+  await db.clear('products')
+  await db.clear('orders')
+  await db.clear('order_items')
+  await db.clear('categories')
+  await db.clear('customers')
+  await db.clear('materials')
+  await db.clear('settings')
+  await db.clear('inventory_entries')
+  await db.clear('inventory_transactions')
+  await db.clear('shifts')
+  await db.clear('tables')
+  await db.clear('sync_queue')
 }
 

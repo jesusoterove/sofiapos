@@ -3,33 +3,21 @@
  * Supports online login (first time) and offline login (using local password).
  */
 import { useState, FormEvent, useEffect } from 'react'
-import { useNavigate, useLocation } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTranslation } from '@/i18n/hooks'
 import { Button, Input } from '@sofiapos/ui'
 import { toast } from 'react-toastify'
 import { FaEye, FaEyeSlash, FaWifi, FaBan } from 'react-icons/fa'
-import { isRegistered } from '@/utils/registration'
 
 export function LoginPage() {
   const { t } = useTranslation()
-  const { login, loginOffline, isAuthenticated, hasLocalPassword } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { login, loginOffline, hasLocalPassword } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [showOfflineLogin, setShowOfflineLogin] = useState(false)
-
-  useEffect(() => {
-    // Only navigate if we're still on the login page after authentication
-    if (isAuthenticated && location.pathname === '/login') {
-      // Navigate to home (POSScreen will handle sync and shift checks)
-      navigate({ to: '/', replace: true })
-    }
-  }, [isAuthenticated, navigate, location.pathname])
 
   useEffect(() => {
     const updateOnlineStatus = () => {
@@ -45,8 +33,13 @@ export function LoginPage() {
 
   // Show offline login option if offline and has local password
   useEffect(() => {
+    console.log('LoginPage: useEffect2::::');
     if (!isOnline && hasLocalPassword) {
+      console.log('LoginPage: useEffect2: setting showOfflineLogin to true');
       setShowOfflineLogin(true)
+    }
+    return () =>{
+      console.log('[LoginPage] useEffect2 cleanup:', location.pathname)
     }
   }, [isOnline, hasLocalPassword])
 
@@ -59,16 +52,16 @@ export function LoginPage() {
     }
 
     if (!isOnline) {
-      toast.error('Must be online for initial login')
+      toast.error(t('auth.mustBeOnlineForInitialLogin') || 'Must be online for initial login')
       return
     }
 
     setIsLoading(true)
     try {
+      console.log('Login:', username, password);
       await login(username, password)
       toast.success(t('auth.loginSuccess') || 'Login successful!')
-      // Navigation will be handled by the useEffect that watches isAuthenticated
-      // No need to navigate here to avoid conflicts
+      // Navigation will be handled by beforeLoad guard in router
     } catch (error: any) {
       toast.error(error.message || t('auth.loginError') || 'Login failed')
     } finally {
@@ -80,7 +73,7 @@ export function LoginPage() {
     e.preventDefault()
     
     if (!password) {
-      toast.error('Please enter your local password')
+      toast.error(t('auth.enterLocalPassword') || 'Please enter your local password')
       return
     }
 
@@ -88,14 +81,13 @@ export function LoginPage() {
     try {
       const success = await loginOffline(password)
       if (success) {
-        toast.success('Offline login successful!')
-        // Navigation will be handled by the useEffect that watches isAuthenticated
-        // No need to navigate here to avoid conflicts
+        toast.success(t('auth.offlineLoginSuccess') || 'Offline login successful!')
+        // Navigation will be handled by beforeLoad guard in router
       } else {
-        toast.error('Invalid local password. Please login online to reset.')
+        toast.error(t('auth.invalidLocalPassword') || 'Invalid local password. Please login online to reset.')
       }
     } catch (error: any) {
-      toast.error(error.message || 'Offline login failed')
+      toast.error(error.message || t('auth.offlineLoginFailed') || 'Offline login failed')
     } finally {
       setIsLoading(false)
     }
@@ -118,12 +110,12 @@ export function LoginPage() {
               {isOnline ? (
                 <>
                   <FaWifi className="text-green-200" />
-                  <span className="text-white opacity-90">Online</span>
+                  <span className="text-white opacity-90">{t('auth.online') || 'Online'}</span>
                 </>
               ) : (
                 <>
                   <FaBan className="text-yellow-200" />
-                  <span className="text-yellow-200">Offline</span>
+                  <span className="text-yellow-200">{t('auth.offline') || 'Offline'}</span>
                 </>
               )}
             </div>
@@ -135,20 +127,20 @@ export function LoginPage() {
               <>
                 <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
-                    You are offline. Use your local password to continue.
+                    {t('auth.offlineUseLocalPassword') || 'You are offline. Use your local password to continue.'}
                   </p>
                   {!hasLocalPassword && (
                     <p className="text-sm text-yellow-800 mt-2">
-                      No local password found. Please connect to the internet to login.
+                      {t('auth.noLocalPasswordFound') || 'No local password found. Please connect to the internet to login.'}
                     </p>
                   )}
                 </div>
                 <form onSubmit={handleOfflineLogin} className="space-y-4">
                   <Input
                     type={showPassword ? 'text' : 'password'}
-                    label="Local Password"
+                    label={t('auth.localPassword') || 'Local Password'}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     disabled={isLoading}
                     rightIcon={
                       <button
@@ -167,10 +159,10 @@ export function LoginPage() {
                     disabled={isLoading || !password}
                     className="w-full"
                   >
-                    {isLoading ? (t('common.loading') || 'Loading...') : 'Login Offline'}
+                    {isLoading ? (t('common.loading') || 'Loading...') : (t('auth.loginOffline') || 'Login Offline')}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-4">
-                    Forgot your local password? Connect to the internet and login online to reset it.
+                    {t('auth.forgotLocalPassword') || 'Forgot your local password? Connect to the internet and login online to reset it.'}
                   </p>
                 </form>
               </>
@@ -180,7 +172,7 @@ export function LoginPage() {
                   type="text"
                   label={t('auth.username') || 'Username'}
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
                   disabled={isLoading || !isOnline}
                   fullWidth
                 />
@@ -188,7 +180,7 @@ export function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   label={t('auth.password') || 'Password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   disabled={isLoading || !isOnline}
                   rightIcon={
                     <button
@@ -204,7 +196,7 @@ export function LoginPage() {
                 {!isOnline && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-800">
-                      You are offline. Please connect to the internet to login.
+                      {t('auth.offlineConnectToLogin') || 'You are offline. Please connect to the internet to login.'}
                     </p>
                   </div>
                 )}
@@ -218,7 +210,7 @@ export function LoginPage() {
                 </Button>
                 {hasLocalPassword && isOnline && (
                   <p className="text-xs text-center text-gray-500 mt-4">
-                    After logging in, you can use your password offline.
+                    {t('auth.afterLoginCanUseOffline') || 'After logging in, you can use your password offline.'}
                   </p>
                 )}
               </form>
@@ -231,7 +223,7 @@ export function LoginPage() {
               Sofia<span style={{ color: 'var(--color-primary-600)' }}>POS</span>
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              Point of Sale
+              {t('auth.pointOfSale') || 'Point of Sale'}
             </p>
           </div>
         </div>

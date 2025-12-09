@@ -25,7 +25,7 @@ interface SyncProviderProps {
 }
 
 export function SyncProvider({ children }: SyncProviderProps) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { t } = useTranslation()
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null)
@@ -67,10 +67,13 @@ export function SyncProvider({ children }: SyncProviderProps) {
       setIsFirstSync(true)
     }
 
+    // Get storeId from user or registration progress
+    const storeId = user?.store_id || null
+
     try {
       const result = await performInitialSync((progress) => {
         setSyncProgress(progress)
-      })
+      }, storeId || undefined)
 
       if (result.success) {
         setIsSyncComplete(true)
@@ -90,7 +93,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
             // Retry sync with new token
             const retryResult = await performInitialSync((progress) => {
               setSyncProgress(progress)
-            })
+            }, storeId || undefined)
             if (retryResult.success) {
               setIsSyncComplete(true)
               setIsFirstSync(false)
@@ -122,7 +125,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
           try {
             const retryResult = await performInitialSync((progress) => {
               setSyncProgress(progress)
-            })
+            }, storeId || undefined)
             if (retryResult.success) {
               setIsSyncComplete(true)
               setIsFirstSync(false)

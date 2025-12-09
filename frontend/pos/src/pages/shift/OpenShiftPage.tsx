@@ -31,12 +31,12 @@ export function OpenShiftPage() {
     e.preventDefault()
 
     if (!initialCash || parseFloat(initialCash) < 0) {
-      toast.error('Please enter a valid initial cash amount')
+      toast.error(t('shift.enterValidInitialCash') || 'Please enter a valid initial cash amount')
       return
     }
 
     if (requiresInventory && (!inventoryBalance || parseFloat(inventoryBalance) < 0)) {
-      toast.error('Please enter a valid inventory beginning balance')
+      toast.error(t('shift.enterValidInventoryBalance') || 'Please enter a valid inventory beginning balance')
       return
     }
 
@@ -47,9 +47,9 @@ export function OpenShiftPage() {
       })
 
       toast.success(t('shift.openShift') || 'Shift opened successfully!')
-      navigate({ to: '/', replace: true })
+      navigate({ to: '/app', replace: true })
     } catch (error: any) {
-      toast.error(error.message || 'Failed to open shift')
+      toast.error(error.message || t('shift.openShiftFailed') || 'Failed to open shift')
     }
   }
 

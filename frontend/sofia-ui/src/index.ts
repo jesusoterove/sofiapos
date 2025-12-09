@@ -76,6 +76,9 @@ export type { SettingsContextType, SettingsProviderProps } from './contexts/Sett
 export { sofiaUiTranslations } from './i18n/translations'
 export { default as sofiaUiTranslationsDefault } from './i18n/translations'
 
+// Utils
+export { formatPrice } from './utils/formatters'
+
 // Styles
 import './styles/theme.css'
 

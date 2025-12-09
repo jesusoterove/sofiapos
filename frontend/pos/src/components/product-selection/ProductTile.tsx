@@ -1,6 +1,7 @@
 /**
  * Product tile component for displaying individual products.
  */
+import { formatPrice } from '@sofiapos/ui'
 
 interface Product {
   id: number
@@ -20,17 +21,6 @@ interface ProductTileProps {
 }
 
 export function ProductTile({ product, onClick }: ProductTileProps) {
-  const formatPrice = (price: number) => {
-    // Map language code to locale
-    const locale = 'en-US'
-    
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(price)
-  }
-
   return (
     <button
       onClick={onClick}

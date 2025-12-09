@@ -1,7 +1,7 @@
 /**
  * Hook for managing order state and operations.
  */
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { openDatabase, saveOrder, saveOrderItem, addToSyncQueue } from '../db'
 import { getAllOrders, getOrderItems } from '../db/queries/orders'
 
@@ -34,6 +34,12 @@ export interface Order {
 
 export function useOrderManagement(storeId: number, location?: OrderLocation) {
   const [order, setOrder] = useState<Order | null>(null)
+  const orderRef = useRef<Order | null>(null)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    orderRef.current = order
+  }, [order])
 
   const calculateTotals = useCallback((items: OrderItem[]) => {
     const subtotal = items.reduce((sum, item) => sum + item.total, 0)
@@ -244,12 +250,19 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
   }, [])
 
   const setTable = useCallback((tableId?: number | null) => {
+    console.log('[useOrderManagement] setTable called with tableId:', tableId)
     setOrder((currentOrder) => {
-      if (!currentOrder) return currentOrder
-      return {
-        ...currentOrder,
-        tableId: tableId ?? null,
+      console.log('[useOrderManagement] setTable - currentOrder:', currentOrder)
+      if (!currentOrder) {
+        console.log('[useOrderManagement] setTable - no currentOrder, returning null')
+        return currentOrder
       }
+      const updatedOrder = {
+        ...currentOrder,
+        tableId: tableId !== undefined ? tableId : null,
+      }
+      console.log('[useOrderManagement] setTable - updatedOrder:', updatedOrder)
+      return updatedOrder
     })
   }, [])
 
@@ -258,21 +271,28 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
   }, [])
 
   const saveDraft = useCallback(async () => {
-    if (!order) return
+    // Use ref to get the latest order state (avoids stale closure issues)
+    const orderToSave = orderRef.current
+    
+    if (!orderToSave) {
+      console.log('[useOrderManagement] saveDraft - no order to save')
+      return
+    }
 
     const db = await openDatabase()
     
     // Recalculate totals before saving
-    const totals = calculateTotals(order.items)
+    const totals = calculateTotals(orderToSave.items)
     
     // ALWAYS save locally first (for performance, even when online)
+    console.log('[useOrderManagement] saveDraft - saving order with tableId:', orderToSave.tableId)
     const orderData = {
-      id: order.id,
-      order_number: order.orderNumber,
-      store_id: order.storeId,
-      customer_id: order.customerId,
-      table_id: order.tableId ?? null,
-      status: order.status,
+      id: orderToSave.id,
+      order_number: orderToSave.orderNumber,
+      store_id: orderToSave.storeId,
+      customer_id: orderToSave.customerId,
+      table_id: orderToSave.tableId ?? null,
+      status: orderToSave.status,
       subtotal: totals.subtotal,
       taxes: totals.taxes,
       discount: totals.discount,
@@ -282,13 +302,15 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
       updated_at: new Date().toISOString(),
     }
 
+    console.log('[useOrderManagement] saveDraft - orderData.table_id:', orderData.table_id)
+
     await saveOrder(db, orderData)
 
     // Save order items
-    for (const item of order.items) {
+    for (const item of orderToSave.items) {
       await saveOrderItem(db, {
         id: item.id,
-        order_id: order.id,
+        order_id: orderToSave.id,
         product_id: item.productId,
         product_name: item.productName,
         quantity: item.quantity,
@@ -301,18 +323,21 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
     }
 
     // Add to sync queue (only paid orders will be pushed)
-    if (order.status === 'paid') {
+    if (orderToSave.status === 'paid') {
       await addToSyncQueue(db, {
         type: 'order',
         action: 'create',
-        data_id: order.id,
+        data_id: orderToSave.id,
         data: orderData,
       })
     }
     
-    // Update local order with recalculated totals
-    setOrder((current) => current ? { ...current, ...totals } : null)
-  }, [order, calculateTotals])
+    // Update local order with recalculated totals (preserve tableId)
+    setOrder((current) => {
+      if (!current) return null
+      return { ...current, ...totals }
+    })
+  }, [calculateTotals])
 
   const markAsPaid = useCallback(async (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number) => {
     if (!order) return
@@ -335,7 +360,7 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
       discount: totals.discount,
       total: totals.total,
       sync_status: 'pending' as const,
-      created_at: order.created_at || new Date().toISOString(),
+      created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
 

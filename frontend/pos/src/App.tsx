@@ -4,7 +4,7 @@ import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { router } from './app/router'
 import { queryClient } from './app/queryClient'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SyncProvider } from './contexts/SyncContext'
 import { loadCustomHooks } from './hooks-system/loader'
 import { isElectron, getAppVersion } from './utils/electron'
@@ -14,6 +14,12 @@ import '@sofiapos/ui/styles/theme.css'
 
 // Load custom hooks
 loadCustomHooks()
+
+
+function SecuredApp() {
+  const auth = useAuth()
+  return <RouterProvider router={router} context={{ auth }} />
+}
 
 function App() {
   // Set app version in Electron
@@ -33,7 +39,7 @@ function App() {
         <MessageBoxProvider>
           <AuthProvider>
             <SyncProvider>
-              <RouterProvider router={router} />
+              <SecuredApp />
               <ToastContainer
                 position="top-right"
                 autoClose={3000}

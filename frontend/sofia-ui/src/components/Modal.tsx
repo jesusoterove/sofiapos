@@ -8,6 +8,7 @@ export interface ModalProps {
   isOpen: boolean
   onClose: () => void
   title?: string
+  hideTitle?: boolean
   children: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
   showCloseButton?: boolean
@@ -26,6 +27,7 @@ export function Modal({
   isOpen,
   onClose,
   title,
+  hideTitle = false,
   children,
   size = 'md',
   showCloseButton = true,
@@ -64,9 +66,9 @@ export function Modal({
         onClick={(e) => e.stopPropagation()}
         style={{ backgroundColor: 'var(--color-bg-paper, #FFFFFF)' }}
       >
-        {(title || showCloseButton) && (
+        {((title && !hideTitle) || showCloseButton) && (
           <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--color-border-default, #E5E7EB)' }}>
-            {title && (
+            {title && !hideTitle && (
               <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary, #111827)' }}>
                 {title}
               </h2>

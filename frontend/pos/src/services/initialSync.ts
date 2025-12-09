@@ -1,19 +1,21 @@
 /**
  * Initial sync service for fetching master data on app startup.
- * Syncs: Products, Customers, Materials (Vendors), Settings
+ * Syncs: Products, Customers, Materials (Vendors), Settings, Tables
  */
 import { openDatabase, POSDatabase } from '../db'
 import type { IDBPDatabase } from 'idb'
 import { saveProducts } from '../db/queries/products'
+import { saveTables } from '../db/queries/tables'
 import { listProducts } from '../api/products'
 import { listMaterials } from '../api/materials'
 import { getGlobalSettings } from '../api/settings'
+import { listTables } from '../api/tables'
 import type { Product } from '../api/products'
 import type { Material } from '../api/materials'
 import type { Setting } from '../api/settings'
 
 export interface SyncProgress {
-  step: 'products' | 'materials' | 'settings' | 'complete'
+  step: 'products' | 'materials' | 'settings' | 'tables' | 'complete'
   progress: number // 0-100
   message: string
 }
@@ -24,6 +26,7 @@ export interface SyncResult {
   productsCount?: number
   materialsCount?: number
   settingsCount?: number
+  tablesCount?: number
 }
 
 /**
@@ -89,7 +92,7 @@ async function syncSettings(db: IDBPDatabase<POSDatabase>): Promise<number> {
     settings.map((s: Setting) =>
       tx.store.put({
         key: s.key,
-        value: s.value,
+        value: typeof s.value === 'string' ? s.value : JSON.stringify(s.value),
         store_id: s.store_id,
         updated_at: new Date().toISOString(),
       })
@@ -101,16 +104,27 @@ async function syncSettings(db: IDBPDatabase<POSDatabase>): Promise<number> {
 }
 
 /**
+ * Sync tables from API to IndexedDB
+ */
+async function syncTables(db: IDBPDatabase<POSDatabase>, storeId?: number): Promise<number> {
+  const tables = await listTables(storeId, true)
+  
+  await saveTables(db, tables)
+  return tables.length
+}
+
+/**
  * Perform initial sync of all master data.
  * Returns progress updates via callback.
  */
 export async function performInitialSync(
-  onProgress?: (progress: SyncProgress) => void
+  onProgress?: (progress: SyncProgress) => void,
+  storeId?: number
 ): Promise<SyncResult> {
   try {
     const db = await openDatabase()
     
-    // Sync Products (25%)
+    // Sync Products (20%)
     onProgress?.({
       step: 'products',
       progress: 0,
@@ -119,34 +133,47 @@ export async function performInitialSync(
     const productsCount = await syncProducts(db)
     onProgress?.({
       step: 'products',
-      progress: 25,
+      progress: 20,
       message: `Synced ${productsCount} products`,
     })
     
-    // Sync Materials/Vendors (50%)
+    // Sync Materials/Vendors (40%)
     onProgress?.({
       step: 'materials',
-      progress: 25,
+      progress: 20,
       message: 'Syncing materials...',
     })
     const materialsCount = await syncMaterials(db)
     onProgress?.({
       step: 'materials',
-      progress: 50,
+      progress: 40,
       message: `Synced ${materialsCount} materials`,
     })
     
-    // Sync Settings (75%)
+    // Sync Settings (60%)
     onProgress?.({
       step: 'settings',
-      progress: 50,
+      progress: 40,
       message: 'Syncing settings...',
     })
     const settingsCount = await syncSettings(db)
     onProgress?.({
       step: 'settings',
-      progress: 75,
+      progress: 60,
       message: `Synced ${settingsCount} settings`,
+    })
+    
+    // Sync Tables (80%)
+    onProgress?.({
+      step: 'tables',
+      progress: 60,
+      message: 'Syncing tables...',
+    })
+    const tablesCount = await syncTables(db, storeId)
+    onProgress?.({
+      step: 'tables',
+      progress: 80,
+      message: `Synced ${tablesCount} tables`,
     })
     
     // Complete (100%)
@@ -161,6 +188,7 @@ export async function performInitialSync(
       productsCount,
       materialsCount,
       settingsCount,
+      tablesCount,
     }
   } catch (error: any) {
     // Extract more detailed error message

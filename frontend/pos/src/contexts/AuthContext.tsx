@@ -2,9 +2,8 @@
  * Authentication context for POS application with offline-first support.
  * Supports online login to generate local password, and offline login using local password.
  */
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react'
 import apiClient from '@/api/client'
-import { openDatabase } from '@/db'
 
 interface User {
   id: number
@@ -33,6 +32,31 @@ const LOCAL_PASSWORD_KEY = 'pos_local_password_hash'
 const USER_DATA_KEY = 'pos_user_data'
 const AUTH_TOKEN_KEY = 'pos_auth_token'
 const REFRESH_TOKEN_KEY = 'pos_refresh_token'
+const AUTH_INITIALIZED_KEY = 'pos_auth_initialized'
+
+// Utility function to wait for auth initialization (for use in beforeLoad)
+// This checks if AuthContext has finished initializing by looking for a flag
+export async function waitForAuthInitialization(maxWaitMs: number = 1000): Promise<boolean> {
+  const startTime = Date.now()
+  
+  // Check if already initialized (flag set by AuthContext)
+  if (localStorage.getItem(AUTH_INITIALIZED_KEY) === 'true') {
+    return true
+  }
+  
+  // Poll for initialization flag
+  while (Date.now() - startTime < maxWaitMs) {
+    if (localStorage.getItem(AUTH_INITIALIZED_KEY) === 'true') {
+      return true
+    }
+    // Wait a bit before checking again
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+  
+  // If we've waited too long, assume initialization is complete (or failed)
+  // AuthContext initialization is very fast (just reading localStorage)
+  return true
+}
 
 // Simple password hashing using Web Crypto API
 async function hashPassword(password: string): Promise<string> {
@@ -46,9 +70,19 @@ async function hashPassword(password: string): Promise<string> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const isInitializedRef = useRef(false)
 
-  // Check for existing auth on mount
+  // Check for existing auth on mount - only once
   useEffect(() => {
+    // Prevent multiple initializations (e.g., from React Strict Mode)
+    if (isInitializedRef.current) {
+      console.log('[AuthContext] Already initialized, skipping')
+      return
+    }
+
+    isInitializedRef.current = true
+    console.log('[AuthContext] Initializing...')
+
     const checkAuth = async () => {
       // Check if we have stored user data
       const storedUserData = localStorage.getItem(USER_DATA_KEY)
@@ -56,18 +90,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const userData = JSON.parse(storedUserData)
           setUser(userData)
+          console.log('[AuthContext] Restored user from localStorage:', userData.username)
         } catch (error) {
-          console.error('Failed to parse stored user data:', error)
+          console.error('[AuthContext] Failed to parse stored user data:', error)
           localStorage.removeItem(USER_DATA_KEY)
         }
       }
       setIsLoading(false)
+      // Set flag to indicate initialization is complete (for beforeLoad hooks)
+      localStorage.setItem(AUTH_INITIALIZED_KEY, 'true')
+      console.log('[AuthContext] Initialization complete')
     }
-
+    
     checkAuth()
   }, [])
 
-  const login = async (username: string, password: string) => {
+  const login = useCallback(async (username: string, password: string) => {
     try {
       // Check if online
       if (!navigator.onLine) {
@@ -114,19 +152,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       throw new Error(error.response?.data?.detail || 'Login failed')
     }
-  }
+  }, [])
 
-  const generateLocalPassword = async (onlinePassword: string): Promise<string> => {
+  const generateLocalPassword = useCallback(async (onlinePassword: string): Promise<string> => {
     // Generate a hash from the online password
     return await hashPassword(onlinePassword)
-  }
+  }, [])
 
-  const verifyLocalPassword = async (inputPassword: string, storedHash: string): Promise<boolean> => {
+  const verifyLocalPassword = useCallback(async (inputPassword: string, storedHash: string): Promise<boolean> => {
     const inputHash = await hashPassword(inputPassword)
     return inputHash === storedHash
-  }
+  }, [])
 
-  const loginOffline = async (localPassword: string): Promise<boolean> => {
+  const loginOffline = useCallback(async (localPassword: string): Promise<boolean> => {
     const storedHash = localStorage.getItem(LOCAL_PASSWORD_KEY)
     if (!storedHash) {
       return false
@@ -142,38 +180,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userData)
           return true
         } catch (error) {
-          console.error('Failed to parse stored user data:', error)
+          console.error('[AuthContext] Failed to parse stored user data:', error)
           return false
         }
       }
     }
     return false
-  }
+  }, [verifyLocalPassword])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem(USER_DATA_KEY)
     // Note: We keep LOCAL_PASSWORD_KEY so user can login offline again
+    // Keep AUTH_INITIALIZED_KEY so beforeLoad knows auth has been initialized
     setUser(null)
-  }
+  }, [])
 
-  const hasLocalPassword = !!localStorage.getItem(LOCAL_PASSWORD_KEY)
+  // Memoize hasLocalPassword to avoid recalculating on every render
+  const hasLocalPassword = useMemo(() => {
+    return !!localStorage.getItem(LOCAL_PASSWORD_KEY)
+  }, [user]) // Recalculate only when user changes (login/logout)
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      login,
+      loginOffline,
+      logout,
+      hasLocalPassword,
+      generateLocalPassword,
+      verifyLocalPassword,
+    }),
+    [user, isLoading, hasLocalPassword, login, loginOffline, logout, generateLocalPassword, verifyLocalPassword]
+  )
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        loginOffline,
-        logout,
-        hasLocalPassword,
-        generateLocalPassword,
-        verifyLocalPassword,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )

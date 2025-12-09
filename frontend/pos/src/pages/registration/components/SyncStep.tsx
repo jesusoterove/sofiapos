@@ -6,6 +6,7 @@ import { useTranslation } from '@/i18n/hooks'
 import { Button, Spinner } from '@sofiapos/ui'
 import { FaArrowLeft, FaCheckCircle, FaExclamationTriangle, FaSync } from 'react-icons/fa'
 import { performInitialSync, SyncProgress, hasCompletedInitialSync } from '@/services/initialSync'
+import { getRegistrationProgress } from '@/utils/registration'
 import apiClient from '@/api/client'
 
 interface SyncStepProps {
@@ -55,10 +56,14 @@ export function SyncStep({ onNext, onBack, adminToken }: SyncStepProps) {
     setSyncError(null)
     setSyncComplete(false)
 
+    // Get storeId from registration progress
+    const progress = getRegistrationProgress()
+    const storeId = progress?.selectedStoreId || undefined
+
     try {
       const result = await performInitialSync((progress) => {
         setSyncProgress(progress)
-      })
+      }, storeId)
 
       if (result.success) {
         setSyncComplete(true)

@@ -6,9 +6,14 @@ import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from '@/i18n/hooks'
 import { useAuth } from '@/contexts/AuthContext'
 import { IconButton } from '@sofiapos/ui'
-import { FaSignOutAlt, FaBox, FaClock } from 'react-icons/fa'
+import { FaSignOutAlt, FaBox, FaClock, FaFileInvoice, FaHome } from 'react-icons/fa'
 
-export function TopBar() {
+interface TopBarProps {
+  onSalesInvoicesClick?: () => void
+  onHomeClick?: () => void
+}
+
+export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
   const { t } = useTranslation()
   const { logout, user } = useAuth()
   const navigate = useNavigate()
@@ -53,6 +58,18 @@ export function TopBar() {
     console.log('Inventory entry clicked')
   }
 
+  const handleSalesInvoices = () => {
+    if (onSalesInvoicesClick) {
+      onSalesInvoicesClick()
+    }
+  }
+
+  const handleHome = () => {
+    if (onHomeClick) {
+      onHomeClick()
+    }
+  }
+
   return (
     <div
       className="h-15 flex items-center justify-between px-4 py-3"
@@ -81,6 +98,36 @@ export function TopBar() {
 
       {/* Right: Action Buttons */}
       <div className="flex items-center gap-2">
+        <IconButton
+          variant="secondary"
+          onClick={handleHome}
+          title={t('topBar.home') || 'Home'}
+          className={`h-9 flex items-center justify-center ${isWideScreen ? 'px-3 gap-2' : 'w-9'}`}
+          style={{
+            backgroundColor: 'transparent',
+            borderColor: 'var(--color-primary-600)',
+            color: 'var(--color-primary-50)',
+          }}
+          aria-label={t('topBar.home') || 'Home'}
+        >
+          <FaHome />
+          {isWideScreen && <span className="text-sm">{t('topBar.home') || 'Home'}</span>}
+        </IconButton>
+        <IconButton
+          variant="secondary"
+          onClick={handleSalesInvoices}
+          title={t('topBar.salesInvoices') || 'Sales Invoices'}
+          className={`h-9 flex items-center justify-center ${isWideScreen ? 'px-3 gap-2' : 'w-9'}`}
+          style={{
+            backgroundColor: 'transparent',
+            borderColor: 'var(--color-primary-600)',
+            color: 'var(--color-primary-50)',
+          }}
+          aria-label={t('topBar.salesInvoices') || 'Sales Invoices'}
+        >
+          <FaFileInvoice />
+          {isWideScreen && <span className="text-sm">{t('topBar.salesInvoices') || 'Sales Invoices'}</span>}
+        </IconButton>
         <IconButton
           variant="secondary"
           onClick={handleCloseShift}

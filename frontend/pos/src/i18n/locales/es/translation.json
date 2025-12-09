@@ -9,14 +9,17 @@
     "add": "Agregar",
     "remove": "Quitar",
     "quantity": "Cantidad",
+    "unit": "Unidad",
     "price": "Precio",
     "total": "Total",
     "subtotal": "Subtotal",
     "taxes": "Impuestos",
+    "tax": "Impuesto",
     "discount": "Descuento",
     "change": "Cambio",
     "pay": "Pagar",
     "print": "Imprimir",
+    "clear": "LIMPIAR",
     "close": "Cerrar",
     "open": "Abrir",
     "yes": "Sí",
@@ -38,14 +41,31 @@
     "signInToContinue": "Inicia sesión para continuar",
     "loginRequired": "Por favor ingresa usuario y contraseña",
     "loginSuccess": "¡Inicio de sesión exitoso!",
-    "loginError": "Usuario o contraseña inválidos"
+    "loginError": "Usuario o contraseña inválidos",
+    "mustBeOnlineForInitialLogin": "Debe estar en línea para el inicio de sesión inicial",
+    "enterLocalPassword": "Por favor ingrese su contraseña local",
+    "offlineLoginSuccess": "¡Inicio de sesión sin conexión exitoso!",
+    "invalidLocalPassword": "Contraseña local inválida. Por favor inicie sesión en línea para restablecerla.",
+    "offlineLoginFailed": "Inicio de sesión sin conexión fallido",
+    "online": "En Línea",
+    "offline": "Sin Conexión",
+    "offlineUseLocalPassword": "Está sin conexión. Use su contraseña local para continuar.",
+    "noLocalPasswordFound": "No se encontró contraseña local. Por favor conéctese a internet para iniciar sesión.",
+    "localPassword": "Contraseña Local",
+    "loginOffline": "Iniciar Sesión Sin Conexión",
+    "forgotLocalPassword": "¿Olvidó su contraseña local? Conéctese a internet e inicie sesión en línea para restablecerla.",
+    "offlineConnectToLogin": "Está sin conexión. Por favor conéctese a internet para iniciar sesión.",
+    "afterLoginCanUseOffline": "Después de iniciar sesión, puede usar su contraseña sin conexión.",
+    "pointOfSale": "Punto de Venta"
   },
   "topBar": {
     "appName": "SofiaPOS",
     "version": "v1.0.0",
     "currentTime": "Hora Actual",
+    "home": "Inicio",
     "closeShift": "Cerrar Turno",
-    "inventoryEntry": "Entrada de Inventario"
+    "inventoryEntry": "Entrada de Inventario",
+    "salesInvoices": "Facturas de Venta"
   },
   "productSelection": {
     "title": "Productos",
@@ -77,7 +97,15 @@
     "selectTable": "Seleccionar Mesa",
     "capacity": "Capacidad",
     "noTablesAvailable": "No hay mesas disponibles",
-    "clickToEditQuantity": "Haga clic para editar cantidad"
+    "clickToEditQuantity": "Haga clic para editar cantidad",
+    "addNewTable": "Agregar Nueva Mesa",
+    "newTable": "Nueva Mesa",
+    "tableNumber": "Número de Mesa",
+    "tableNumberPlaceholder": "ej., 1, 2, 3",
+    "tableName": "Nombre de Mesa (Opcional)",
+    "tableNamePlaceholder": "ej., Mesa de Ventana",
+    "location": "Ubicación (Opcional)",
+    "locationPlaceholder": "ej., Frente, Atrás"
   },
   "payment": {
     "title": "Pago",
@@ -86,9 +114,37 @@
     "cash": "Efectivo",
     "bankTransfer": "Transferencia Bancaria",
     "amountPaid": "Monto Pagado",
+    "tenderedAmount": "Monto pagado: $",
+    "dueAmount": "Monto debido: $",
     "change": "Cambio",
     "processPayment": "Procesar Pago",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "pay": "PAGAR",
+    "exact": "EXACTO",
+    "print": "IMPRIMIR",
+    "ticket": "Ticket",
+    "printReceipt": "Imprimiendo recibo..."
+  },
+  "sales": {
+    "invoices": "Facturas de Venta",
+    "invoiceDetails": "Detalles de Factura",
+    "invoiceNumber": "Número de Factura",
+    "date": "Fecha",
+    "noInvoices": "No se encontraron facturas pagadas"
+  },
+  "debug": {
+    "circuitBreakerActive": "Cortacircuitos de Navegación Activo",
+    "circuitBreakerMessage": "La navegación se ha detenido para prevenir un bucle infinito.",
+    "navigationLog": "Registro de Navegación",
+    "navigationLogEntries": "Registro de Navegación (Últimas {{count}} entradas)",
+    "time": "Hora",
+    "component": "Componente",
+    "from": "Desde",
+    "to": "Hacia",
+    "reason": "Razón",
+    "reEnableNavigation": "Reactivar Navegación y Recargar",
+    "copyLogToClipboard": "Copiar Registro al Portapapeles",
+    "logCopied": "¡Registro de navegación copiado al portapapeles!"
   },
   "tables": {
     "title": "Mesas",
@@ -113,7 +169,10 @@
     "removeUser": "Remover Usuario",
     "inventoryCount": "Conteo de Inventario",
     "startInventory": "Conteo de Inventario Inicial",
-    "endInventory": "Conteo de Inventario Final"
+    "endInventory": "Conteo de Inventario Final",
+    "enterValidInitialCash": "Por favor ingrese un monto inicial de efectivo válido",
+    "enterValidInventoryBalance": "Por favor ingrese un balance inicial de inventario válido",
+    "openShiftFailed": "Error al abrir el turno"
   },
   "cashRegister": {
     "title": "Caja Registradora",

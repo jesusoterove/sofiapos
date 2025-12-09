@@ -4,11 +4,11 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '@/i18n/hooks'
 import { useOffline } from '@/hooks/useOffline'
-import { useOrders, type OrderLocation } from '@/hooks/useOrders'
+import { useOrders } from '@/hooks/useOrders'
 import { useSync } from '@/contexts/SyncContext'
 import { Badge, Button, IconButton } from '@sofiapos/ui'
 import { FaCog, FaExclamationTriangle } from 'react-icons/fa'
-import { listTables, type Table } from '@/api/tables'
+import { getTables, type Table } from '@/db/queries/tables'
 import { SyncResultsModal } from '@/components/sync/SyncResultsModal'
 
 const STORE_ID = 1 // TODO: Get from context/settings
@@ -27,10 +27,13 @@ export function BottomBar() {
 
   const loadTables = async () => {
     try {
-      const tablesData = await listTables(STORE_ID, true)
+      // Get tables from local IndexedDB (synced data) instead of API
+      const tablesData = await getTables(STORE_ID, true)
       setTables(tablesData)
     } catch (error) {
-      console.error('Failed to load tables:', error)
+      console.error('Failed to load tables from IndexedDB:', error)
+      // Fallback: set empty array if loading fails
+      setTables([])
     }
   }
 
@@ -96,7 +99,7 @@ export function BottomBar() {
       </div>
 
       {/* Center: Orders Navigation */}
-      <div className="flex items-center gap-2 flex-1 overflow-x-auto px-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+      <div className="flex items-center gap-2 flex-1 overflow-x-auto px-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--color-border-default) transparent' }}>
         {/* Cash Register Button (Fixed) */}
         <Button
           variant={isCashRegisterActive ? 'primary' : 'secondary'}

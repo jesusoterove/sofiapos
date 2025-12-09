@@ -148,6 +148,45 @@ class SyncManager {
           }
         }
         break
+      case 'table':
+        if (item.action === 'create') {
+          const response = await axios.post(`${API_BASE_URL}/api/v1/tables`, {
+            store_id: item.data.store_id,
+            table_number: item.data.table_number,
+            name: item.data.name,
+            capacity: item.data.capacity,
+            location: item.data.location,
+            is_active: item.data.is_active,
+          })
+          // Update table sync status after successful sync
+          const db = await openDatabase()
+          const table = await db.get('tables', item.data_id)
+          if (table) {
+            // Update with server ID if different
+            const updatedTable = {
+              ...table,
+              id: response.data.id,
+              sync_status: 'synced' as const,
+              updated_at: response.data.updated_at || null,
+            }
+            await db.put('tables', updatedTable)
+          }
+        } else if (item.action === 'update') {
+          await axios.put(`${API_BASE_URL}/api/v1/tables/${item.data_id}`, {
+            table_number: item.data.table_number,
+            name: item.data.name,
+            capacity: item.data.capacity,
+            location: item.data.location,
+            is_active: item.data.is_active,
+          })
+          // Update table sync status after successful sync
+          const db = await openDatabase()
+          const table = await db.get('tables', item.data_id)
+          if (table) {
+            await db.put('tables', { ...table, sync_status: 'synced' })
+          }
+        }
+        break
       // Add other types as needed
     }
   }
