@@ -4,6 +4,7 @@ import { LoginPage } from '@/pages/login/LoginPage'
 import { RegistrationPage } from '@/pages/registration/RegistrationPage'
 import { CheckShiftPage } from '@/pages/shift/CheckShiftPage'
 import { OpenShiftPage } from '@/pages/shift/OpenShiftPage'
+import { SalesInvoicesPage } from '@/pages/sales/SalesInvoicesPage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { RootRoute } from '@/components/RootRoute'
 import { isRegistered, getRegistrationProgress } from '@/utils/registration'
@@ -188,6 +189,13 @@ const openShiftRoute = createRoute({
   component: OpenShiftPage,
 })
 
+// Sales invoices route (protected)
+const salesInvoicesRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/sales-invoices',
+  component: SalesInvoicesPage,
+})
+
 // ============================================================================
 // ROUTE TREE
 // ============================================================================
@@ -201,6 +209,7 @@ const routeTree = rootRoute.addChildren([
     appIndexRoute,
     checkShiftRoute,
     openShiftRoute,
+    salesInvoicesRoute,
   ]),
 ])
 

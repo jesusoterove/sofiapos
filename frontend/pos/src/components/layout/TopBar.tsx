@@ -61,12 +61,16 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
   const handleSalesInvoices = () => {
     if (onSalesInvoicesClick) {
       onSalesInvoicesClick()
+    } else {
+      navigate({ to: '/app/sales-invoices', replace: false })
     }
   }
 
   const handleHome = () => {
     if (onHomeClick) {
       onHomeClick()
+    } else {
+      navigate({ to: '/app', replace: false })
     }
   }
 

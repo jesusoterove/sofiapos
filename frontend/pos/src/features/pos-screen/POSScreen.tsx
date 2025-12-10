@@ -12,7 +12,6 @@ import { POSLayout } from '@/components/layout/POSLayout'
 import { ProductSelectionPanel } from '@/components/product-selection/ProductSelectionPanel'
 import { OrderDetailsPanel } from '@/components/order/OrderDetailsPanel'
 import { PaymentScreen } from '@/components/payment/PaymentScreen'
-import { SalesInvoicesView } from '@/components/sales/SalesInvoicesView'
 import { useOrderManagementContext } from '@/contexts/OrderManagementContext'
 import { useShift } from '@/hooks/useShift'
 import { toast } from 'react-toastify'
@@ -28,7 +27,6 @@ export function POSScreen() {
   const [showPaymentScreen, setShowPaymentScreen] = useState(false)
   const [isOperationsEnabled, setIsOperationsEnabled] = useState(false)
   const [hasCheckedShift, setHasCheckedShift] = useState(false)
-  const [currentView, setCurrentView] = useState<'pos' | 'invoices'>('pos')
   const hasNavigatedRef = useRef(false)
   const navigationCountRef = useRef(0)
   
@@ -197,50 +195,40 @@ export function POSScreen() {
   }
 
   const handleSalesInvoicesClick = () => {
-    setCurrentView('invoices')
-  }
-
-  const handleBackToPOS = () => {
-    setCurrentView('pos')
+    navigate({ to: '/app/sales-invoices', replace: false })
   }
 
   return (
-    <POSLayout onSalesInvoicesClick={handleSalesInvoicesClick} onHomeClick={handleBackToPOS}>
-      {currentView === 'invoices' ? (
-        <SalesInvoicesView onBack={handleBackToPOS} />
-      ) : (
-        <>
-          {/* Disable operations if not enabled */}
-          <div className="flex-1 flex overflow-hidden" style={{ opacity: isOperationsEnabled ? 1 : 0.5, pointerEvents: isOperationsEnabled ? 'auto' : 'none' }}>
-            <ProductSelectionPanel onProductSelect={handleProductSelect} />
-            <OrderDetailsPanel
-              order={order}
-              totals={totals}
-              onUpdateQuantity={updateQuantity}
-              onRemoveItem={removeItem}
-              onSetCustomer={setCustomer}
-              onSetTable={setTable}
-              onClearOrder={handleCancelOrder}
-              onSaveDraft={saveDraft}
-              onPayment={handlePayment}
-              onOrderSaved={handleOrderSaved}
-              storeId={storeId}
-            />
-          </div>
-          
-          <PaymentScreen
-            isOpen={showPaymentScreen}
-            onClose={() => setShowPaymentScreen(false)}
-            order={order}
-            orderTotal={totals.total}
-            orderSubtotal={totals.subtotal}
-            orderTaxes={totals.taxes}
-            orderDiscount={totals.discount}
-            onProcessPayment={handleProcessPayment}
-            onPrintReceipt={handlePrintReceipt}
-          />
-        </>
-      )}
+    <POSLayout onSalesInvoicesClick={handleSalesInvoicesClick}>
+      {/* Disable operations if not enabled */}
+      <div className="flex-1 flex overflow-hidden" style={{ opacity: isOperationsEnabled ? 1 : 0.5, pointerEvents: isOperationsEnabled ? 'auto' : 'none' }}>
+        <ProductSelectionPanel onProductSelect={handleProductSelect} />
+        <OrderDetailsPanel
+          order={order}
+          totals={totals}
+          onUpdateQuantity={updateQuantity}
+          onRemoveItem={removeItem}
+          onSetCustomer={setCustomer}
+          onSetTable={setTable}
+          onClearOrder={handleCancelOrder}
+          onSaveDraft={saveDraft}
+          onPayment={handlePayment}
+          onOrderSaved={handleOrderSaved}
+          storeId={storeId}
+        />
+      </div>
+      
+      <PaymentScreen
+        isOpen={showPaymentScreen}
+        onClose={() => setShowPaymentScreen(false)}
+        order={order}
+        orderTotal={totals.total}
+        orderSubtotal={totals.subtotal}
+        orderTaxes={totals.taxes}
+        orderDiscount={totals.discount}
+        onProcessPayment={handleProcessPayment}
+        onPrintReceipt={handlePrintReceipt}
+      />
     </POSLayout>
   )
 }

@@ -183,7 +183,7 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
         </div>
 
         {/* Invoice Details */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-1">
           <div className="mb-4">
             <div className="text-sm" style={{ color: 'var(--color-text-secondary, #6B7280)' }}>
               {t('sales.invoiceNumber') || 'Invoice Number'}
@@ -302,7 +302,7 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* AdvancedDataGrid */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-1">
         <AdvancedDataGrid
           rowData={invoices}
           columnDefs={columns}
