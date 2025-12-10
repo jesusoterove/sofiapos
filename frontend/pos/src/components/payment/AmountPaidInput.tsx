@@ -25,9 +25,8 @@ export function AmountPaidInput({ value, label }: AmountPaidInputProps) {
   if (label === '') {
     return (
       <div
-        className="flex-1 h-14 text-2xl font-bold text-right px-4 py-2 border rounded-lg"
+        className="flex-1 h-10 text-2xl font-bold text-right px-4 py-0"
         style={{
-          borderColor: 'var(--color-border-default, #E5E7EB)',
           backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
           color: 'var(--color-text-primary, #111827)',
         }}
@@ -38,14 +37,18 @@ export function AmountPaidInput({ value, label }: AmountPaidInputProps) {
   }
 
   return (
-    <div>
+    <div
+      className="border-b"
+      style={{
+        borderBottomColor: 'var(--color-border-default, #E5E7EB)',
+      }}
+    >
       <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary, #111827)' }}>
         {displayLabel}
       </label>
       <div
-        className="h-14 text-2xl font-bold text-right px-4 py-2 border rounded-lg"
+        className="h-14 text-2xl font-bold text-right px-4 py-2"
         style={{
-          borderColor: 'var(--color-border-default, #E5E7EB)',
           backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
           color: 'var(--color-text-primary, #111827)',
         }}

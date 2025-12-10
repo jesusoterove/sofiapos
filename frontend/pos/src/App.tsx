@@ -6,7 +6,9 @@ import { router } from './app/router'
 import { queryClient } from './app/queryClient'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SyncProvider } from './contexts/SyncContext'
+import { OrderManagementProvider } from './contexts/OrderManagementContext'
 import { loadCustomHooks } from './hooks-system/loader'
+import { getRegistration } from './utils/registration'
 import { isElectron, getAppVersion } from './utils/electron'
 import { useEffect } from 'react'
 import { ThemeProvider, MessageBoxProvider } from '@sofiapos/ui'
@@ -33,24 +35,30 @@ function App() {
     }
   }, [])
 
+  // Get store ID from registration
+  const registration = getRegistration()
+  const storeId = registration?.storeId || 1 // Fallback to 1 if not registered yet
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <MessageBoxProvider>
           <AuthProvider>
             <SyncProvider>
-              <SecuredApp />
-              <ToastContainer
-                position="top-right"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-              />
+              <OrderManagementProvider storeId={storeId}>
+                <SecuredApp />
+                <ToastContainer
+                  position="top-right"
+                  autoClose={3000}
+                  hideProgressBar={false}
+                  newestOnTop={false}
+                  closeOnClick
+                  rtl={false}
+                  pauseOnFocusLoss
+                  draggable
+                  pauseOnHover
+                />
+              </OrderManagementProvider>
             </SyncProvider>
           </AuthProvider>
         </MessageBoxProvider>

@@ -99,6 +99,7 @@ export function OrderItemsList({ items, onUpdateQuantity, onRemoveItem }: OrderI
       emptyMessage={t('order.noItems') || 'No items in order'}
       compact={true}
       className="border-0"
+      gridStyle={{ minWidth: '476px' }}
     />
   )
 }

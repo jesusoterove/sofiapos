@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react'
 import { Modal, Button, Input } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 import { getTables, createTable, type Table } from '@/db/queries/tables'
+import { getAllOrders } from '@/db/queries/orders'
+import { openDatabase } from '@/db/indexeddb'
 
 interface TableSelectionDialogProps {
   isOpen: boolean
@@ -20,7 +22,7 @@ export function TableSelectionDialog({
   storeId,
 }: TableSelectionDialogProps) {
   const { t } = useTranslation()
-  const [tables, setTables] = useState<Table[]>([])
+  const [availableTables, setAvailableTables] = useState<Table[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null)
   const [showNewTableForm, setShowNewTableForm] = useState(false)
@@ -41,7 +43,21 @@ export function TableSelectionDialog({
     try {
       // Load tables from IndexedDB (offline-first)
       const tablesData = await getTables(storeId, true)
-      setTables(tablesData)
+
+      // Load open orders to determine busy tables
+      const db = await openDatabase()
+      const draftOrders = await getAllOrders(db, 'draft')
+      
+      // Get table IDs that have active orders
+      const busyTableIds = new Set(
+        draftOrders
+          .map(order => order.table_id)
+          .filter((tableId): tableId is number => tableId !== null && tableId !== undefined)
+      )
+
+      // Filter out busy tables - show only non-busy tables
+      const nonBusyTables = tablesData.filter(table => !busyTableIds.has(table.id))
+      setAvailableTables(nonBusyTables)
     } catch (error) {
       console.error('Failed to load tables:', error)
     } finally {
@@ -75,8 +91,11 @@ export function TableSelectionDialog({
       setNewTableLocation('')
       setShowNewTableForm(false)
       
-      // Auto-select the newly created table
+      // Auto-select the newly created table and close dialog
       setSelectedTableId(table.id)
+      // Auto-select the table since it's newly created
+      onSelectTable(table)
+      onClose()
     } catch (error) {
       console.error('Failed to create table:', error)
     } finally {
@@ -86,7 +105,7 @@ export function TableSelectionDialog({
 
   const handleSelect = () => {
     const selectedTable = selectedTableId
-      ? tables.find((t) => t.id === selectedTableId) || null
+      ? availableTables.find((t) => t.id === selectedTableId) || null
       : null
     onSelectTable(selectedTable)
     onClose()
@@ -111,41 +130,45 @@ export function TableSelectionDialog({
           </div>
         ) : (
           <>
-            {/* Cash Register Option */}
-            <button
-              onClick={handleCashRegister}
-              className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
-                selectedTableId === null
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-default hover:bg-gray-50'
-              }`}
-              style={{
-                borderColor:
-                  selectedTableId === null
-                    ? 'var(--color-primary-500)'
-                    : 'var(--color-border-default)',
-                backgroundColor:
-                  selectedTableId === null ? 'var(--color-primary-50)' : 'transparent',
-              }}
-            >
-              <div className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                {t('order.onCashRegister') || 'On Cash Register'}
-              </div>
-              <div className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                {t('order.onCashRegisterDescription') || 'Default location for walk-in orders'}
-              </div>
-            </button>
-
-            {/* New Table Button */}
-            {!showNewTableForm && (
+            {/* Cash Register and Add New Table - 2 Column Grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Cash Register Option */}
               <button
-                onClick={() => setShowNewTableForm(true)}
-                className="w-full p-3 border-2 border-dashed rounded-lg text-center transition-colors hover:bg-gray-50"
-                style={{ borderColor: 'var(--color-border-default)', color: 'var(--color-text-secondary)' }}
+                onClick={handleCashRegister}
+                className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                  selectedTableId === null
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-default hover:bg-gray-50'
+                }`}
+                style={{
+                  borderColor:
+                    selectedTableId === null
+                      ? 'var(--color-primary-500)'
+                      : 'var(--color-border-default)',
+                  backgroundColor:
+                    selectedTableId === null ? 'var(--color-primary-50)' : 'transparent',
+                }}
               >
-                + {t('order.addNewTable') || 'Add New Table'}
+                <div className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                  {t('order.onCashRegister') || 'On Cash Register'}
+                </div>
+                <div className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                  {t('order.onCashRegisterDescription') || 'Default location for walk-in orders'}
+                </div>
               </button>
-            )}
+
+              {/* New Table Button */}
+              {!showNewTableForm && (
+                <button
+                  onClick={() => setShowNewTableForm(true)}
+                  className="p-3 border-2 border-dashed rounded-lg text-center transition-colors hover:bg-gray-50"
+                  style={{ borderColor: 'var(--color-border-default)', color: 'var(--color-text-secondary)' }}
+                >
+                  + {t('order.addNewTable') || 'Add New Table'}
+                </button>
+              )}
+              {showNewTableForm && <div></div>}
+            </div>
 
             {/* New Table Form */}
             {showNewTableForm && (
@@ -206,47 +229,45 @@ export function TableSelectionDialog({
               </div>
             )}
 
-            {/* Tables List */}
-            <div className="max-h-96 overflow-y-auto space-y-2">
-              {tables.length === 0 && !showNewTableForm ? (
+            {/* Tables List - 3 Column Grid */}
+            <div className="max-h-96 overflow-y-auto">
+              {availableTables.length === 0 && !showNewTableForm ? (
                 <div className="text-center py-8" style={{ color: 'var(--color-text-secondary)' }}>
                   {t('order.noTablesAvailable') || 'No tables available'}
                 </div>
               ) : (
-                tables.map((table) => (
-                  <button
-                    key={table.id}
-                    onClick={() => setSelectedTableId(table.id)}
-                    className={`w-full p-4 border-2 rounded-lg text-left transition-colors ${
-                      selectedTableId === table.id
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-default hover:bg-gray-50'
-                    }`}
-                    style={{
-                      borderColor:
+                <div className="grid grid-cols-3 gap-2">
+                  {availableTables.map((table) => (
+                    <button
+                      key={table.id}
+                      onClick={() => setSelectedTableId(table.id)}
+                      className={`p-3 border-2 rounded-lg text-center transition-colors ${
                         selectedTableId === table.id
-                          ? 'var(--color-primary-500)'
-                          : 'var(--color-border-default)',
-                      backgroundColor:
-                        selectedTableId === table.id ? 'var(--color-primary-50)' : 'transparent',
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                          {table.name || `Table ${table.table_number}`}
-                        </div>
-                        <div className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                          {table.location && `${table.location} • `}
-                          {t('order.capacity') || 'Capacity'}: {table.capacity}
-                        </div>
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-default hover:bg-gray-50'
+                      }`}
+                      style={{
+                        borderColor:
+                          selectedTableId === table.id
+                            ? 'var(--color-primary-500)'
+                            : 'var(--color-border-default)',
+                        backgroundColor:
+                          selectedTableId === table.id ? 'var(--color-primary-50)' : 'transparent',
+                      }}
+                    >
+                      <div className="font-medium text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                        {table.name || `Table ${table.table_number}`}
                       </div>
-                      <div className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+                      <div className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                        {table.location && `${table.location} • `}
+                        {t('order.capacity') || 'Cap'}: {table.capacity}
+                      </div>
+                      <div className="text-xs mt-1 font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                         #{table.table_number}
                       </div>
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 

@@ -2,7 +2,7 @@
  * Payment screen component with two-panel layout.
  */
 import { useState } from 'react'
-import { Modal, Button } from '@sofiapos/ui'
+import { Modal, Button, formatPrice } from '@sofiapos/ui'
 import { PaymentMethodSelector } from './PaymentMethodSelector'
 import { AmountPaidInput } from './AmountPaidInput'
 import { ChangeDisplay } from './ChangeDisplay'
@@ -120,13 +120,29 @@ export function PaymentScreen({
         </div>
 
         {/* Right Panel: Payment Controls */}
-        <div className="w-1/2 flex flex-col p-3 pt-0 space-y-4 overflow-y-auto">
+        <div className="w-1/2 flex flex-col p-3 pt-0 space-y-3 overflow-y-auto">
           {/* Payment Method Toggle */}
           <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
 
+          {/* Total Display */}
+          <div className="flex items-center gap-2 border-b" style={{ borderBottomColor: 'var(--color-border-default, #E5E7EB)' }}>
+            <label className="text-lg font-medium" style={{ color: 'var(--color-text-primary, #111827)' }}>
+              {t('common.total') || 'Total'}: 
+            </label>
+            <div
+              className="flex-1 h-10 text-2xl font-bold text-right px-4 py-0"
+              style={{
+                backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
+                color: 'var(--color-text-primary, #111827)',
+              }}
+            >
+              {formatPrice(orderTotal, 'en-US', 'USD', 2)}
+            </div>
+          </div>
+
           {/* Tendered Amount Input */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" style={{ color: 'var(--color-text-primary, #111827)' }}>
+          <div className="flex items-center gap-2 border-b" style={{ borderBottomColor: 'var(--color-border-default, #E5E7EB)' }}>
+            <label className="text-lg font-medium" style={{ color: 'var(--color-text-primary, #111827)' }}>
               {t('payment.tenderedAmount') || 'Tendered amount: $'}
             </label>
             <AmountPaidInput

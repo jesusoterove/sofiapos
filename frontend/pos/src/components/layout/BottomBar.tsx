@@ -4,19 +4,20 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '@/i18n/hooks'
 import { useOffline } from '@/hooks/useOffline'
-import { useOrders } from '@/hooks/useOrders'
+import { useOrderManagementContext } from '@/contexts/OrderManagementContext'
 import { useSync } from '@/contexts/SyncContext'
 import { Badge, Button, IconButton } from '@sofiapos/ui'
 import { FaCog, FaExclamationTriangle } from 'react-icons/fa'
 import { getTables, type Table } from '@/db/queries/tables'
 import { SyncResultsModal } from '@/components/sync/SyncResultsModal'
-
-const STORE_ID = 1 // TODO: Get from context/settings
+import { getRegistration } from '@/utils/registration'
+import { TableOrdersList } from './TableOrdersList'
 
 export function BottomBar() {
   const { t } = useTranslation()
   const { isOnline, pendingCount, syncNow } = useOffline()
-  const { openOrders, currentLocation, switchToLocation, switchToCashRegister } = useOrders(STORE_ID)
+  // Use context instead of hook directly - this ensures state persists across remounts
+  const { openOrders, currentLocation, switchToLocation, switchToCashRegister } = useOrderManagementContext()
   const { syncError, isFirstSync } = useSync()
   const [tables, setTables] = useState<Table[]>([])
   const [showSyncResults, setShowSyncResults] = useState(false)
@@ -27,8 +28,11 @@ export function BottomBar() {
 
   const loadTables = async () => {
     try {
+      // Get store ID from registration
+      const registration = getRegistration()
+      const storeId = registration?.storeId || 1 // Fallback to 1 if not registered yet
       // Get tables from local IndexedDB (synced data) instead of API
-      const tablesData = await getTables(STORE_ID, true)
+      const tablesData = await getTables(storeId, true)
       setTables(tablesData)
     } catch (error) {
       console.error('Failed to load tables from IndexedDB:', error)
@@ -48,10 +52,6 @@ export function BottomBar() {
   }
 
   const isCashRegisterActive = currentLocation === 'cash_register'
-  const isTableActive = (tableId: number) =>
-    currentLocation !== 'cash_register' &&
-    typeof currentLocation === 'object' &&
-    currentLocation.tableId === tableId
 
   // Show failed sync button only for background syncs (not first sync)
   const showFailedSyncButton = syncError && !isFirstSync
@@ -99,7 +99,7 @@ export function BottomBar() {
       </div>
 
       {/* Center: Orders Navigation */}
-      <div className="flex items-center gap-2 flex-1 overflow-x-auto px-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--color-border-default) transparent' }}>
+      <div className="flex items-center gap-2 flex-1 px-4">
         {/* Cash Register Button (Fixed) */}
         <Button
           variant={isCashRegisterActive ? 'primary' : 'secondary'}
@@ -110,24 +110,14 @@ export function BottomBar() {
           {t('order.onCashRegister') || 'On Cash Register'}
         </Button>
 
-        {/* Table Orders (Scrollable) */}
-        {openOrders
-          .filter((order) => order.tableId !== undefined && order.tableId !== null)
-          .map((order) => {
-            const tableId = order.tableId!
-            const active = isTableActive(tableId)
-            return (
-              <Button
-                key={order.id}
-                variant={active ? 'primary' : 'secondary'}
-                onClick={() => switchToLocation({ type: 'table', tableId })}
-                className="whitespace-nowrap flex-shrink-0"
-                size="sm"
-              >
-                {getTableName(tableId)} ({order.itemCount})
-              </Button>
-            )
-          })}
+        {/* Table Orders List Component */}
+        <TableOrdersList
+          openOrders={openOrders}
+          currentLocation={currentLocation}
+          switchToLocation={switchToLocation}
+          tables={tables}
+          getTableName={getTableName}
+        />
       </div>
 
       {/* Right: Failed Sync Button & Settings */}

@@ -107,6 +107,8 @@ export interface DataGridProps<T> {
   compact?: boolean
   /** Custom className */
   className?: string
+  /** Custom CSS styles for the grid container */
+  gridStyle?: React.CSSProperties
 }
 
 export function DataGrid<T extends Record<string, any>>({
@@ -129,6 +131,7 @@ export function DataGrid<T extends Record<string, any>>({
   height,
   compact = false,
   className = '',
+  gridStyle: gridStyleProp,
 }: DataGridProps<T>) {
   const { t } = useTranslation()
   const settingsContext = useContext(SettingsContext)
@@ -376,6 +379,7 @@ export function DataGrid<T extends Record<string, any>>({
     height: height ? (typeof height === 'number' ? `${height}px` : height) : 'auto',
     display: 'flex',
     flexDirection: 'column',
+    ...gridStyleProp,
   }
 
   const tableStyle: React.CSSProperties = {

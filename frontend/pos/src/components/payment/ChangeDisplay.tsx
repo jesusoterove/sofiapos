@@ -33,10 +33,25 @@ export function ChangeDisplay({ change, disabled = false }: ChangeDisplayProps) 
     return 'var(--color-success-600, #16A34A)' // Green for change
   }
 
+  const getBorderColor = () => {
+    if (disabled) {
+      return 'var(--color-border-disabled, #D1D5DB)'
+    }
+    if (isNegative) {
+      return 'var(--color-danger-600, #DC2626)' // Red border for negative
+    }
+    return 'var(--color-border-default, #E5E7EB)'
+  }
+
   return (
-    <div className="flex items-center gap-2">
+    <div
+      className="flex items-center gap-2 mt-0 border-b"
+      style={{
+        borderBottomColor: getBorderColor(),
+      }}
+    >
       <label 
-        className="text-sm font-medium" 
+        className="text-lg font-medium" 
         style={{ 
           color: disabled 
             ? 'var(--color-text-disabled, #9CA3AF)' 
@@ -46,19 +61,12 @@ export function ChangeDisplay({ change, disabled = false }: ChangeDisplayProps) 
         {t('payment.change') || 'Change: $'}
       </label>
       <div
-        className={`flex-1 h-14 text-2xl font-bold text-right px-4 py-2 border rounded-lg ${
+        className={`flex-1 h-10 text-2xl font-bold text-right px-4 py-0 ${
           disabled ? 'opacity-50 cursor-not-allowed' : ''
         }`}
         style={{
-          borderColor: disabled 
-            ? 'var(--color-border-disabled, #D1D5DB)' 
-            : isNegative
-            ? 'var(--color-danger-200, #FECACA)' // Light red border for negative
-            : 'var(--color-border-default, #E5E7EB)',
           backgroundColor: disabled 
             ? 'var(--color-bg-disabled, #F3F4F6)' 
-            : isNegative
-            ? 'var(--color-danger-50, #FEF2F2)' // Light red background for negative
             : 'var(--color-bg-paper, #FFFFFF)',
           color: getTextColor(),
         }}

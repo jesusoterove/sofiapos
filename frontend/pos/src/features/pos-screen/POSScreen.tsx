@@ -13,15 +13,16 @@ import { ProductSelectionPanel } from '@/components/product-selection/ProductSel
 import { OrderDetailsPanel } from '@/components/order/OrderDetailsPanel'
 import { PaymentScreen } from '@/components/payment/PaymentScreen'
 import { SalesInvoicesView } from '@/components/sales/SalesInvoicesView'
-import { useOrderManagement } from '@/hooks/useOrderManagement'
-import { useOrders } from '@/hooks/useOrders'
+import { useOrderManagementContext } from '@/contexts/OrderManagementContext'
 import { useShift } from '@/hooks/useShift'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
-
-const STORE_ID = 1 // TODO: Get from context/settings
+import { getRegistration } from '@/utils/registration'
 
 export function POSScreen() {
+  // Get store ID from registration
+  const registration = getRegistration()
+  const storeId = registration?.storeId || 1 // Fallback to 1 if not registered yet
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [showPaymentScreen, setShowPaymentScreen] = useState(false)
@@ -31,9 +32,9 @@ export function POSScreen() {
   const hasNavigatedRef = useRef(false)
   const navigationCountRef = useRef(0)
   
-  const { currentLocation, switchToCashRegister, refetchOrders } = useOrders(STORE_ID)
   const { hasOpenShift, isLoading: shiftLoading } = useShift()
   
+  // Use context instead of hook directly - this ensures state persists across remounts
   const {
     order,
     totals,
@@ -45,7 +46,20 @@ export function POSScreen() {
     clearOrder,
     saveDraft,
     markAsPaid,
-  } = useOrderManagement(STORE_ID, currentLocation)
+    switchToCashRegister,
+    refetchOrders,
+  } = useOrderManagementContext()
+
+  // Debug: Log when order changes in POSScreen
+  useEffect(() => {
+    console.log('[POSScreen] order prop received:', {
+      orderId: order?.id,
+      orderNumber: order?.orderNumber,
+      tableId: order?.tableId,
+      itemCount: order?.items?.length || 0,
+      orderReference: order,
+    })
+  }, [order])
 
   // Check if shift is open - only run once when shift loading completes
   useEffect(() => {
@@ -169,11 +183,11 @@ export function POSScreen() {
     toast.info(t('payment.printReceipt') || 'Printing receipt...')
   }
 
-  const handleCancelOrder = () => {
-    clearOrder()
+  const handleCancelOrder = async () => {
+    await clearOrder()
     // Switch to cash register when order is cancelled
     switchToCashRegister()
-    // Refresh orders list
+    // Refresh orders list (clearOrder already calls refetchOrders, but keep this for safety)
     refetchOrders()
   }
 
@@ -210,7 +224,7 @@ export function POSScreen() {
               onSaveDraft={saveDraft}
               onPayment={handlePayment}
               onOrderSaved={handleOrderSaved}
-              storeId={STORE_ID}
+              storeId={storeId}
             />
           </div>
           

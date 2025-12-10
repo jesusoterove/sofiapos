@@ -1,9 +1,15 @@
 /**
  * Hook for managing order state and operations.
+ * This is the single source of truth for order management, including:
+ * - Current location state
+ * - List of open orders
+ * - Current order being edited
+ * - Order operations (add, remove, update, save, etc.)
  */
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { openDatabase, saveOrder, saveOrderItem, addToSyncQueue } from '../db'
-import { getAllOrders, getOrderItems } from '../db/queries/orders'
+import { getAllOrders, getOrderItems, deleteOrder, getOrder } from '../db/queries/orders'
 
 export type OrderLocation = 'cash_register' | { type: 'table'; tableId: number }
 
@@ -32,13 +38,34 @@ export interface Order {
   total: number
 }
 
-export function useOrderManagement(storeId: number, location?: OrderLocation) {
+export interface OpenOrder {
+  id: string
+  orderNumber: string
+  tableId?: number | null
+  total: number
+  itemCount: number
+  location: OrderLocation
+}
+
+export function useOrderManagement(storeId: number) {
   const [order, setOrder] = useState<Order | null>(null)
+  const [currentLocation, setCurrentLocation] = useState<OrderLocation>('cash_register')
   const orderRef = useRef<Order | null>(null)
+  const loadCancelledRef = useRef(false)
+  const [orderRefId, setOrderRefId] = useState<string | null>(null)
+  const shouldAutoSaveRef = useRef(false) // Flag to track if we should auto-save
+  const isInitialLoadRef = useRef(true) // Track if this is the initial load
 
   // Keep ref in sync with state
   useEffect(() => {
     orderRef.current = order
+    console.log('[useOrderManagement] Order state changed:', {
+      orderId: order?.id,
+      orderNumber: order?.orderNumber,
+      tableId: order?.tableId,
+      itemCount: order?.items?.length || 0,
+      orderReference: order,
+    })
   }, [order])
 
   const calculateTotals = useCallback((items: OrderItem[]) => {
@@ -49,79 +76,210 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
 
     return { subtotal, taxes, discount, total }
   }, [])
-  
-  // Load order for current location on mount or location change
-  useEffect(() => {
-    const loadOrderForLocation = async (loc: OrderLocation) => {
+
+  // Fetch open (draft) orders list
+  const { data: openOrders = [], refetch: refetchOrders } = useQuery({
+    queryKey: ['openOrders', storeId],
+    queryFn: async () => {
+      const db = await openDatabase()
+      const orders = await getAllOrders(db, 'draft')
+      
+      // Transform to OpenOrder format
+      const transformed: OpenOrder[] = []
+      
+      for (const order of orders) {
+        try {
+          const items = await getOrderItems(db, order.id)
+          const location: OrderLocation = order.table_id
+            ? { type: 'table', tableId: order.table_id }
+            : 'cash_register'
+          
+          transformed.push({
+            id: order.id,
+            orderNumber: order.order_number,
+            tableId: order.table_id ?? undefined,
+            total: order.total,
+            itemCount: items.length,
+            location,
+          })
+        } catch (error) {
+          console.error(`Error loading items for order ${order.id}:`, error)
+        }
+      }
+      
+      return transformed
+    },
+    staleTime: 5000, // Refetch every 5 seconds
+    refetchInterval: 5000,
+  })
+
+  // Create a stable key for location comparison
+  const locationKey = useMemo(() => {
+    return currentLocation === 'cash_register' 
+      ? 'cash_register' 
+      : `table-${currentLocation.tableId}`
+  }, [currentLocation])
+
+  // Helper function to transform database items to OrderItem format
+  const transformItems = useCallback((items: Awaited<ReturnType<typeof getOrderItems>>): OrderItem[] => {
+    return items.map((item) => ({
+      id: item.id,
+      productId: item.product_id,
+      productName: item.product_name,
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      taxRate: item.tax_rate,
+      total: item.total,
+      taxAmount: item.tax_amount,
+    }))
+  }, [])
+
+  // Helper function to create Order from database order and items
+  const createOrderFromDb = useCallback((dbOrder: Awaited<ReturnType<typeof getAllOrders>>[0], orderItems: OrderItem[]): Order => {
+    const totals = calculateTotals(orderItems)
+    // Always create a new object with new array reference to ensure React detects changes
+    return {
+      id: dbOrder.id,
+      orderNumber: dbOrder.order_number,
+      storeId: dbOrder.store_id,
+      customerId: dbOrder.customer_id,
+      tableId: dbOrder.table_id ?? null,
+      items: [...orderItems], // Ensure items array is always a new reference
+      status: 'draft' as const,
+      ...totals,
+    }
+  }, [calculateTotals])
+
+  // Load order for a specific location
+  const loadOrderForLocation = useCallback(async (loc: OrderLocation) => {
+    // Reset cancellation flag
+    loadCancelledRef.current = false
+    
+    console.log('[useOrderManagement] loadOrderForLocation called with location:', loc)
+    
+    if (loadCancelledRef.current) {
+      console.log('[useOrderManagement] Load cancelled for location:', loc)
+      return
+    }
+    
+    try {
       const db = await openDatabase()
       const draftOrders = await getAllOrders(db, 'draft')
+      console.log('[useOrderManagement] Found draft orders:', draftOrders.length)
+      
+      if (loadCancelledRef.current) return
+      
+      // Find the order based on location type
+      let foundOrder: Awaited<ReturnType<typeof getAllOrders>>[0] | undefined
       
       if (loc === 'cash_register') {
         // Find cash register order (table_id is null)
-        const cashOrder = draftOrders.find((o) => !o.table_id)
-        if (cashOrder) {
-          const items = await getOrderItems(db, cashOrder.id)
-          const orderItems: OrderItem[] = items.map((item) => ({
-            id: item.id,
-            productId: item.product_id,
-            productName: item.product_name,
-            quantity: item.quantity,
-            unitPrice: item.unit_price,
-            taxRate: item.tax_rate,
-            total: item.total,
-            taxAmount: item.tax_amount,
-          }))
-          const totals = calculateTotals(orderItems)
-          setOrder({
-            id: cashOrder.id,
-            orderNumber: cashOrder.order_number,
-            storeId: cashOrder.store_id,
-            customerId: cashOrder.customer_id,
-            tableId: null,
-            items: orderItems,
-            status: 'draft',
-            ...totals,
-          })
-        } else {
-          setOrder(null)
-        }
+        foundOrder = draftOrders.find((o) => !o.table_id)
+        console.log('[useOrderManagement] Cash register order found:', foundOrder?.id)
       } else if (typeof loc === 'object' && loc.type === 'table') {
         // Find table order
-        const tableOrder = draftOrders.find((o) => o.table_id === loc.tableId)
-        if (tableOrder) {
-          const items = await getOrderItems(db, tableOrder.id)
-          const orderItems: OrderItem[] = items.map((item) => ({
-            id: item.id,
-            productId: item.product_id,
-            productName: item.product_name,
-            quantity: item.quantity,
-            unitPrice: item.unit_price,
-            taxRate: item.tax_rate,
-            total: item.total,
-            taxAmount: item.tax_amount,
-          }))
-          const totals = calculateTotals(orderItems)
-          setOrder({
-            id: tableOrder.id,
-            orderNumber: tableOrder.order_number,
-            storeId: tableOrder.store_id,
-            customerId: tableOrder.customer_id,
-            tableId: tableOrder.table_id ?? null,
-            items: orderItems,
-            status: 'draft',
-            ...totals,
+        console.log('[useOrderManagement] Looking for table order with tableId:', loc.tableId)
+        console.log('[useOrderManagement] Available draft orders table_ids:', draftOrders.map(o => ({ id: o.id, table_id: o.table_id, table_id_type: typeof o.table_id })))
+        foundOrder = draftOrders.find((o) => {
+          const orderTableId = o.table_id
+          const targetTableId = loc.tableId
+          return orderTableId !== null && orderTableId !== undefined && 
+                 targetTableId !== null && targetTableId !== undefined &&
+                 Number(orderTableId) === Number(targetTableId)
+        })
+        console.log('[useOrderManagement] Table order found:', foundOrder?.id, 'for tableId:', loc.tableId)
+      }
+      
+      if (loadCancelledRef.current) return
+      
+      if (foundOrder) {
+        const items = await getOrderItems(db, foundOrder.id)
+        if (loadCancelledRef.current) return
+        
+        console.log('[useOrderManagement] Order items:', items.length)
+        const orderItems = transformItems(items)
+        const newOrder = createOrderFromDb(foundOrder, orderItems)
+        
+        if (!loadCancelledRef.current) {
+          // newOrder already has new array reference from createOrderFromDb
+          // But create a completely new object reference to ensure React detects the change
+          const orderToSet: Order = {
+            ...newOrder,
+            items: [...newOrder.items], // Ensure items array is a new reference
+          }
+          
+          console.log('[useOrderManagement] Setting order (before setOrder):', {
+            orderId: orderToSet.id,
+            orderNumber: orderToSet.orderNumber,
+            tableId: orderToSet.tableId,
+            itemCount: orderToSet.items.length,
+            orderReference: orderToSet,
+            itemsReference: orderToSet.items,
+            timestamp: Date.now(),
           })
-        } else {
+          
+          // Use direct value - React will detect the new object reference
+          setOrder(orderToSet)
+          
+          console.log('[useOrderManagement] setOrder called, order should update')
+        }
+      } else {
+        if (!loadCancelledRef.current) {
+          const locationDesc = loc === 'cash_register' 
+            ? 'cash register' 
+            : `table ${typeof loc === 'object' ? loc.tableId : ''}`
+          console.log('[useOrderManagement] No order found for', locationDesc, 'setting order to null')
           setOrder(null)
         }
       }
+    } catch (error) {
+      if (!loadCancelledRef.current) {
+        console.error('[useOrderManagement] Error loading order for location:', error)
+        setOrder(null)
+      }
     }
+  }, [transformItems, createOrderFromDb])
+
+  // Load order when location changes (for initial load and location key changes)
+  useEffect(() => {
+    console.log('[useOrderManagement] useEffect triggered, loading order for location:', currentLocation, 'locationKey:', locationKey)
+    // Disable auto-save during location changes/initial load
+    shouldAutoSaveRef.current = false
+    isInitialLoadRef.current = true
+    loadOrderForLocation(currentLocation).then(() => {
+      // After loading completes, enable auto-save for future changes
+      isInitialLoadRef.current = false
+      shouldAutoSaveRef.current = true
+    })
     
-    const currentLoc = location || 'cash_register'
-    loadOrderForLocation(currentLoc)
-  }, [location, calculateTotals])
+    // Cleanup function to cancel if location changes before load completes
+    return () => {
+      loadCancelledRef.current = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationKey]) // Use locationKey for stable comparison
+
+
+  // Location switching functions
+  const switchToLocation = useCallback(async (location: OrderLocation) => {
+    console.log('[useOrderManagement] switchToLocation called with:', location)
+    setCurrentLocation(location)
+    // Load order immediately after setting location
+    await loadOrderForLocation(location)
+    setOrderRefId(new Date().getTime().toString())
+  }, [loadOrderForLocation])
+
+  const switchToCashRegister = useCallback(() => {
+    console.log('[useOrderManagement] switchToCashRegister called')
+    const location: OrderLocation = 'cash_register'
+    setCurrentLocation(location)
+    // Load order immediately after setting location
+    loadOrderForLocation(location)
+  }, [loadOrderForLocation])
 
   const removeItem = useCallback((itemId: string) => {
+    // Enable auto-save for this change
+    shouldAutoSaveRef.current = true
     setOrder((currentOrder) => {
       if (!currentOrder) return currentOrder
 
@@ -138,19 +296,21 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
 
   const addItem = useCallback(
     (product: { id: number; name: string; selling_price: number; tax_rate: number }) => {
+      // Enable auto-save for this change
+      shouldAutoSaveRef.current = true
       setOrder((currentOrder) => {
         // If no order exists, create one with default location based on current location
         const orderId = currentOrder?.id || `order-${Date.now()}`
         const orderNumber = currentOrder?.orderNumber || `ORD-${Date.now()}`
         const existingItem = currentOrder?.items.find((item) => item.productId === product.id)
         
-        // Determine tableId based on location
+        // Determine tableId based on current location
         let tableId: number | null | undefined = currentOrder?.tableId
-        if (!currentOrder && location) {
-          if (location === 'cash_register') {
+        if (!currentOrder) {
+          if (currentLocation === 'cash_register') {
             tableId = null
-          } else if (typeof location === 'object' && location.type === 'table') {
-            tableId = location.tableId
+          } else if (typeof currentLocation === 'object' && currentLocation.type === 'table') {
+            tableId = currentLocation.tableId
           }
         }
 
@@ -188,19 +348,20 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
 
         const totals = calculateTotals(newItems)
 
+        // Create a completely new object with new array reference
         return {
           id: orderId,
           orderNumber,
           storeId,
           customerId: currentOrder?.customerId,
           tableId: tableId ?? null,
-          items: newItems,
+          items: [...newItems], // Ensure items array is a new reference
           status: 'draft' as const,
           ...totals,
         }
       })
     },
-    [storeId, calculateTotals, location]
+    [storeId, calculateTotals, currentLocation]
   )
 
   const updateQuantity = useCallback(
@@ -210,6 +371,8 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
         return
       }
 
+      // Enable auto-save for this change
+      shouldAutoSaveRef.current = true
       setOrder((currentOrder) => {
         if (!currentOrder) return currentOrder
 
@@ -229,9 +392,10 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
 
         const totals = calculateTotals(newItems)
 
+        // Create a completely new object with new array reference
         return {
           ...currentOrder,
-          items: newItems,
+          items: [...newItems], // Ensure items array is a new reference
           ...totals,
         }
       })
@@ -266,9 +430,38 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
     })
   }, [])
 
-  const clearOrder = useCallback(() => {
+  const clearOrder = useCallback(async () => {
+    // Get the current order before clearing
+    const orderToDelete = orderRef.current
+    
+    // Clear the order state first
     setOrder(null)
-  }, [])
+    
+    // If there's a saved draft order, delete it from the database
+    if (orderToDelete?.id && orderToDelete.status === 'draft') {
+      try {
+        const db = await openDatabase()
+        console.log('[useOrderManagement] clearOrder - deleting draft order from database:', orderToDelete.id)
+        await deleteOrder(db, orderToDelete.id)
+        console.log('[useOrderManagement] clearOrder - draft order deleted successfully')
+        
+        // Refetch open orders list to update the UI
+        refetchOrders()
+      } catch (error) {
+        console.error('[useOrderManagement] clearOrder - error deleting order:', error)
+        // Don't throw - we've already cleared the state, so continue
+        // Still refetch to ensure UI is up to date
+        refetchOrders()
+      }
+    } else if (orderToDelete?.id) {
+      // Order exists but is not a draft (e.g., paid) - just clear state, don't delete
+      console.log('[useOrderManagement] clearOrder - order is not a draft, skipping deletion:', orderToDelete.status)
+      refetchOrders()
+    } else {
+      // No order to delete - just refetch to ensure UI is up to date
+      refetchOrders()
+    }
+  }, [refetchOrders])
 
   const saveDraft = useCallback(async () => {
     // Use ref to get the latest order state (avoids stale closure issues)
@@ -280,6 +473,24 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
     }
 
     const db = await openDatabase()
+    
+    // Check if this is the first time saving to a table (order was on cash register, now has tableId)
+    // We need to check the database to see if there was a previous version with tableId = null
+    let wasCashRegisterOrder = false
+    if (orderToSave.tableId !== null && orderToSave.tableId !== undefined) {
+      try {
+        const existingOrder = await getOrder(db, orderToSave.id)
+        // If order exists in DB with tableId = null, it was a cash register order
+        wasCashRegisterOrder = existingOrder?.table_id === null || existingOrder?.table_id === undefined
+      } catch (error) {
+        // If order doesn't exist in DB, it's a new order being saved to table for first time
+        // Check if current location is cash register
+        wasCashRegisterOrder = currentLocation === 'cash_register'
+      }
+    }
+    const isNowTableOrder = orderToSave.tableId !== null && orderToSave.tableId !== undefined
+    const isFirstTimeSavingToTable = wasCashRegisterOrder && isNowTableOrder
+    const isOnCashRegister = currentLocation === 'cash_register'
     
     // Recalculate totals before saving
     const totals = calculateTotals(orderToSave.items)
@@ -332,12 +543,46 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
       })
     }
     
-    // Update local order with recalculated totals (preserve tableId)
-    setOrder((current) => {
-      if (!current) return null
-      return { ...current, ...totals }
-    })
-  }, [calculateTotals])
+    // Refetch open orders list to update the UI
+    refetchOrders()
+
+    // If this is the first time saving to a table and we're still on cash register, clear the cash register order
+    if (isFirstTimeSavingToTable && isOnCashRegister) {
+      console.log('[useOrderManagement] saveDraft - order saved to table for first time, clearing cash register order')
+      // Clear the order state to trigger loading the cash register order (which should be null now)
+      setOrder(null)
+      // The useEffect will automatically load the cash register order (which should be null)
+    } else {
+      // Update local order with recalculated totals (preserve tableId)
+      setOrder((current) => {
+        if (!current) return null
+        return { ...current, ...totals }
+      })
+    }
+  }, [calculateTotals, refetchOrders, currentLocation])
+
+  // Auto-save order when it changes (but not on initial load or location change)
+  useEffect(() => {
+    // Skip auto-save if:
+    // 1. This is the initial load
+    // 2. Auto-save is disabled (during location changes)
+    // 3. There's no order
+    if (isInitialLoadRef.current || !shouldAutoSaveRef.current || !order) {
+      return
+    }
+
+    // Auto-save the order after a short delay to batch rapid changes
+    const timeoutId = setTimeout(() => {
+      console.log('[useOrderManagement] Auto-saving order after change')
+      saveDraft().catch((error) => {
+        console.error('[useOrderManagement] Error auto-saving order:', error)
+      })
+    }, 300) // 300ms debounce to batch rapid changes
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [order?.items, order?.subtotal, order?.taxes, order?.total, order?.customerId, order?.tableId, saveDraft])
 
   const markAsPaid = useCallback(async (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number) => {
     if (!order) return
@@ -393,7 +638,10 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
         amount_paid: amountPaid,
       },
     })
-  }, [order, calculateTotals])
+
+    // Refetch open orders list to update the UI
+    refetchOrders()
+  }, [order, calculateTotals, refetchOrders])
 
   const totals = useMemo(() => {
     if (!order) {
@@ -408,8 +656,20 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
   }, [order])
 
   return {
+    // Current order being edited
     order,
     totals,
+    
+    // Open orders list (for BottomBar)
+    openOrders,
+    refetchOrders,
+    
+    // Location management
+    currentLocation,
+    switchToLocation,
+    switchToCashRegister,
+    
+    // Order operations
     addItem,
     updateQuantity,
     removeItem,
@@ -418,6 +678,6 @@ export function useOrderManagement(storeId: number, location?: OrderLocation) {
     clearOrder,
     saveDraft,
     markAsPaid,
+    orderRefId,
   }
 }
-

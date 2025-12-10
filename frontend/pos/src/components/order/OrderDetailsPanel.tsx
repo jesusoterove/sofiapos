@@ -1,7 +1,7 @@
 /**
  * Order details panel component.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CustomerSelector } from './CustomerSelector'
 import { OrderItemsList } from './OrderItemsList'
 import { OrderTotals } from './OrderTotals'
@@ -21,7 +21,7 @@ interface OrderDetailsPanelProps {
   onRemoveItem: (itemId: string) => void
   onSetCustomer: (customerId?: number) => void
   onSetTable: (tableId?: number | null) => void
-  onClearOrder: () => void
+  onClearOrder: () => Promise<void>
   onSaveDraft: () => Promise<void>
   onPayment: () => void
   onOrderSaved?: () => void
@@ -43,6 +43,11 @@ export function OrderDetailsPanel({
 }: OrderDetailsPanelProps) {
   const [showTableSelection, setShowTableSelection] = useState(false)
 
+  // Track order changes to ensure component updates
+  useEffect(() => {
+    console.log('[OrderDetailsPanel] order prop changed, component should re-render')
+  }, [order?.id, order?.items?.length, order?.total, order])
+
   const handleSaveDraft = async () => {
     // If order already has a table assigned, save directly
     if (order?.tableId !== undefined && order?.tableId !== null) {
@@ -57,6 +62,22 @@ export function OrderDetailsPanel({
     // Otherwise, show table selection dialog
     setShowTableSelection(true)
   }
+
+  useEffect(() => {
+    console.log('[OrderDetailsPanel] order prop changed:', {
+      orderId: order?.id,
+      orderNumber: order?.orderNumber,
+      tableId: order?.tableId,
+      itemCount: order?.items?.length || 0,
+      total: order?.total,
+      itemsReference: order?.items,
+      orderReference: order,
+    })
+  }, [order])
+
+  useEffect(() => {
+    console.log('[OrderDetailsPanel] totals prop changed:', totals)
+  }, [totals])
 
   const handleTableSelected = async (table: { id: number } | null) => {
     setShowTableSelection(false)
