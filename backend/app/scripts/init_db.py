@@ -248,6 +248,14 @@ def create_default_settings(db: Session):
             "is_system_setting": True,
             "store_id": None,  # Global setting
         },
+        {
+            "key": "default_language",
+            "value": "es",
+            "value_type": "string",
+            "description": "Default language for the application (e.g., 'en' for English, 'es' for Spanish)",
+            "is_system_setting": True,
+            "store_id": None,  # Global setting
+        },
     ]
     
     for setting_data in settings:

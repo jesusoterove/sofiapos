@@ -63,6 +63,7 @@
     "version": "v1.0.0",
     "currentTime": "Hora Actual",
     "home": "Inicio",
+    "openShift": "Abrir Turno",
     "closeShift": "Cerrar Turno",
     "inventoryEntry": "Entrada de Inventario",
     "salesInvoices": "Facturas de Venta"
@@ -164,7 +165,12 @@
     "title": "Turno",
     "openShift": "Abrir Turno",
     "closeShift": "Cerrar Turno",
+    "closeShiftWarning": "Advertencia: Esta acción no se puede revertir. Por favor asegúrese de que todos los datos sean correctos antes de continuar.",
+    "closeShiftSuccess": "¡Turno cerrado exitosamente!",
+    "closeShiftFailed": "Error al cerrar el turno",
+    "noOpenShift": "No se encontró turno abierto",
     "shiftNumber": "Número de Turno",
+    "shiftDetails": "Detalle del Turno",
     "status": "Estado",
     "openedAt": "Abierto En",
     "closedAt": "Cerrado En",
@@ -175,7 +181,22 @@
     "endInventory": "Conteo de Inventario Final",
     "enterValidInitialCash": "Por favor ingrese un monto inicial de efectivo válido",
     "enterValidInventoryBalance": "Por favor ingrese un balance inicial de inventario válido",
-    "openShiftFailed": "Error al abrir el turno"
+    "openShiftFailed": "Error al abrir el turno",
+    "closingInformation": "Información de Cierre",
+    "endDate": "Fecha Fin",
+    "endTime": "Hora Fin",
+    "receivedBy": "Recibido Por",
+    "finalCash": "Efectivo Final",
+    "closingNotes": "Notas de Cierre",
+    "finalBalances": "Balances Finales",
+    "beginningBalance": "Balance Inicial",
+    "endBalance": "Balance Final",
+    "enterEndBalance": "Ingrese el balance final de inventario. Este valor no será editable después de confirmar.",
+    "confirmAndClose": "CONFIRMAR Y CERRAR",
+    "ingredientProduct": "Ingrediente / Producto",
+    "unitOfMeasure": "U.M.",
+    "balanceInitial": "Balance Inicial",
+    "balanceFinal": "Balance Final"
   },
   "cashRegister": {
     "title": "Caja Registradora",
@@ -216,7 +237,8 @@
     "complete": "Sincronización completa",
     "notStarted": "Sincronización no iniciada",
     "results": "Resultados de Sincronización",
-    "viewResults": "Ver resultados de sincronización"
+    "viewResults": "Ver resultados de sincronización",
+    "authFailure": "Error de autenticación de sincronización. Haga clic para volver a autenticarse."
   },
   "settings": {
     "title": "Configuración",

@@ -3,8 +3,8 @@
  */
 import { useState, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { openDatabase, getAllProducts, searchProducts } from '../db'
-import apiClient from '../api/client'
+import { openDatabase, getAllProducts } from '../db'
+import { getAllCategories } from '../db/queries/categories'
 
 export interface Product {
   id: number
@@ -22,7 +22,17 @@ export function useProductSelection() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>()
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Fetch products from IndexedDB (offline-first)
+  // Fetch ALL products from IndexedDB (for category determination)
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ['all-products'],
+    queryFn: async () => {
+      const db = await openDatabase()
+      return getAllProducts(db) // Always fetch all products
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  // Fetch filtered products based on selected category
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products', selectedCategoryId],
     queryFn: async () => {
@@ -49,22 +59,35 @@ export function useProductSelection() {
     )
   }, [products, searchQuery])
 
-  // Get unique categories from products
+  // Fetch categories from IndexedDB (synced from API)
+  const { data: allCategories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const db = await openDatabase()
+      return getAllCategories(db)
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  // Get categories that have products (filter from synced categories)
+  // Use allProducts instead of products to ensure all categories are always shown
   const categories = useMemo(() => {
-    const categoryMap = new Map<number, { id: number; name: string }>()
-    products.forEach((product) => {
+    const productCategoryIds = new Set<number>()
+    allProducts.forEach((product) => {
       if (product.category_id) {
-        // For now, we'll use a placeholder - in real app, categories would come from API
-        if (!categoryMap.has(product.category_id)) {
-          categoryMap.set(product.category_id, {
-            id: product.category_id,
-            name: `Category ${product.category_id}`, // TODO: Fetch actual category names
-          })
-        }
+        productCategoryIds.add(product.category_id)
       }
     })
-    return Array.from(categoryMap.values())
-  }, [products])
+    
+    // Filter synced categories to only include those that have products
+    return allCategories
+      .filter((category) => productCategoryIds.has(category.id))
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [allCategories, allProducts])
 
   const selectCategory = useCallback((categoryId: number | undefined) => {
     setSelectedCategoryId(categoryId)

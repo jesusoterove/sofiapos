@@ -63,6 +63,7 @@
     "version": "v1.0.0",
     "currentTime": "Current Time",
     "home": "Home",
+    "openShift": "Open Shift",
     "closeShift": "Close Shift",
     "inventoryEntry": "Inventory Entry",
     "salesInvoices": "Sales Invoices"
@@ -164,7 +165,12 @@
     "title": "Shift",
     "openShift": "Open Shift",
     "closeShift": "Close Shift",
+    "closeShiftWarning": "Warning: This action cannot be reversed. Please ensure all data is correct before proceeding.",
+    "closeShiftSuccess": "Shift closed successfully!",
+    "closeShiftFailed": "Failed to close shift",
+    "noOpenShift": "No open shift found",
     "shiftNumber": "Shift Number",
+    "shiftDetails": "Shift Details",
     "status": "Status",
     "openedAt": "Opened At",
     "closedAt": "Closed At",
@@ -175,7 +181,22 @@
     "endInventory": "End Inventory Count",
     "enterValidInitialCash": "Please enter a valid initial cash amount",
     "enterValidInventoryBalance": "Please enter a valid inventory beginning balance",
-    "openShiftFailed": "Failed to open shift"
+    "openShiftFailed": "Failed to open shift",
+    "closingInformation": "Closing Information",
+    "endDate": "End Date",
+    "endTime": "End Time",
+    "receivedBy": "Received By",
+    "finalCash": "Final Cash Amount",
+    "closingNotes": "Closing Notes",
+    "finalBalances": "Final Balances",
+    "beginningBalance": "Beginning Balance",
+    "endBalance": "End Balance",
+    "enterEndBalance": "Enter the final inventory balance. This value will not be editable after confirmation.",
+    "confirmAndClose": "CONFIRM AND CLOSE",
+    "ingredientProduct": "Ingredient / Product",
+    "unitOfMeasure": "U.M.",
+    "balanceInitial": "Balance Initial",
+    "balanceFinal": "Balance Final"
   },
   "cashRegister": {
     "title": "Cash Register",
@@ -216,7 +237,8 @@
     "complete": "Synchronization complete",
     "notStarted": "Synchronization not started",
     "results": "Synchronization Results",
-    "viewResults": "View sync results"
+    "viewResults": "View sync results",
+    "authFailure": "Sync authentication failed. Click to re-authenticate."
   },
   "settings": {
     "title": "Settings",

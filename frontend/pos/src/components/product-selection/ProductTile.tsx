@@ -15,12 +15,25 @@ interface Product {
   tax_rate: number
 }
 
+type ProductTileSize = 'small' | 'medium' | 'large'
+
 interface ProductTileProps {
   product: Product
   onClick: () => void
+  size?: ProductTileSize
 }
 
-export function ProductTile({ product, onClick }: ProductTileProps) {
+const SIZE_DIMENSIONS: Record<ProductTileSize, number> = {
+  small: 110,
+  medium: 150,
+  large: 190,
+}
+
+export function ProductTile({ product, onClick, size = 'small' }: ProductTileProps) {
+  const imageSize = SIZE_DIMENSIONS[size]
+  const imageSizePx = `${imageSize}px`
+  const buttonMaxWidth = `${imageSize + 8}px` // imageSize + 8px for padding (p-1 = 4px on each side)
+
   return (
     <button
       onClick={onClick}
@@ -28,7 +41,7 @@ export function ProductTile({ product, onClick }: ProductTileProps) {
       style={{
         minHeight: '100px',
         minWidth: '100px',
-        maxWidth: '120px',
+        maxWidth: buttonMaxWidth,
         backgroundColor: 'var(--color-bg-paper)',
         borderColor: 'var(--color-border-default)',
       }}
@@ -36,12 +49,12 @@ export function ProductTile({ product, onClick }: ProductTileProps) {
       <div className="flex flex-col h-full">
         {/* Product Image Placeholder */}
         <div
-          className="w-full rounded mb-2 flex items-center justify-center"
+          className="rounded flex items-center justify-center"
           style={{ 
             aspectRatio: '1 / 1',
+            width: imageSizePx,
+            height: imageSizePx,
             backgroundColor: 'var(--color-border-light)',
-            maxWidth: '120px',
-            maxHeight: '120px',
           }}
         >
           <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>

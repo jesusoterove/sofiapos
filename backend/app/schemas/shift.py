@@ -45,3 +45,21 @@ class ShiftCloseRequest(BaseModel):
     """Schema for closing a shift."""
     notes: Optional[str] = None
 
+
+class ShiftInventoryEntryResponse(BaseModel):
+    """Schema for shift inventory entry response."""
+    rec_id: int
+    shift_id: int
+    entry_type: str  # 'beg_bal', 'refill', 'end_bal'
+    product_id: Optional[int] = None
+    material_id: Optional[int] = None
+    uofm_id: int
+    quantity: float
+    created_dt: datetime
+    # Include related data
+    product_name: Optional[str] = None
+    material_name: Optional[str] = None
+    uofm_abbreviation: Optional[str] = None
+
+    class Config:
+        from_attributes = True

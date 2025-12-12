@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { openDatabase } from '@/db/indexeddb'
 import { getAllOrders, getOrderItems } from '@/db/queries/orders'
 import { useTranslation } from '@/i18n/hooks'
-import { AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
+import { AdvancedDataGrid, AdvancedDataGridColumn, formatPrice } from '@sofiapos/ui'
 
 interface Invoice {
   id: string
@@ -77,10 +77,6 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`
-  }
-
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleString('en-US', {
@@ -120,21 +116,21 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
       field: 'subtotal',
       width: 120,
       sortable: true,
-      cellRenderer: (params: any) => formatCurrency(params.value || 0),
+      cellRenderer: (params: any) => formatPrice(params.value || 0),
     },
     {
       headerName: t('common.discount') || 'Discount',
       field: 'discount',
       width: 120,
       sortable: true,
-      cellRenderer: (params: any) => formatCurrency(params.value || 0),
+      cellRenderer: (params: any) => formatPrice(params.value || 0),
     },
     {
       headerName: t('common.tax') || 'Tax',
       field: 'taxes',
       width: 120,
       sortable: true,
-      cellRenderer: (params: any) => formatCurrency(params.value || 0),
+      cellRenderer: (params: any) => formatPrice(params.value || 0),
     },
     {
       headerName: t('common.total') || 'Total',
@@ -143,7 +139,7 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
       sortable: true,
       cellRenderer: (params: any) => (
         <span style={{ color: 'var(--color-success-600, #16A34A)', fontWeight: 'bold' }}>
-          {formatCurrency(params.value || 0)}
+          {formatPrice(params.value || 0)}
         </span>
       ),
     },
@@ -235,10 +231,10 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
                         {item.quantity}
                       </td>
                       <td className="px-4 py-2 text-right" style={{ color: 'var(--color-text-primary, #111827)' }}>
-                        {formatCurrency(item.unit_price)}
+                        {formatPrice(item.unit_price)}
                       </td>
                       <td className="px-4 py-2 text-right font-medium" style={{ color: 'var(--color-text-primary, #111827)' }}>
-                        {formatCurrency(item.total)}
+                        {formatPrice(item.total)}
                       </td>
                     </tr>
                   ))}
@@ -254,7 +250,7 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
                 {t('common.subtotal') || 'Subtotal'}
               </span>
               <span style={{ color: 'var(--color-text-primary, #111827)' }}>
-                {formatCurrency(selectedInvoice.subtotal)}
+                {formatPrice(selectedInvoice.subtotal)}
               </span>
             </div>
             {selectedInvoice.discount > 0 && (
@@ -263,7 +259,7 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
                   {t('common.discount') || 'Discount'}
                 </span>
                 <span style={{ color: 'var(--color-text-primary, #111827)' }}>
-                  -{formatCurrency(selectedInvoice.discount)}
+                  -{formatPrice(selectedInvoice.discount)}
                 </span>
               </div>
             )}
@@ -272,12 +268,12 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
                 {t('common.tax') || 'Tax'}
               </span>
               <span style={{ color: 'var(--color-text-primary, #111827)' }}>
-                {formatCurrency(selectedInvoice.taxes)}
+                {formatPrice(selectedInvoice.taxes)}
               </span>
             </div>
             <div className="flex justify-between text-xl font-bold pt-2 border-t" style={{ borderColor: 'var(--color-border-default, #E5E7EB)', color: 'var(--color-text-primary, #111827)' }}>
               <span>{t('common.total') || 'Total'}</span>
-              <span>{formatCurrency(selectedInvoice.total)}</span>
+              <span>{formatPrice(selectedInvoice.total)}</span>
             </div>
           </div>
         </div>

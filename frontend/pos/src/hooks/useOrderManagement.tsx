@@ -437,26 +437,34 @@ export function useOrderManagement(storeId: number) {
     // Clear the order state first
     setOrder(null)
     
-    // If there's a saved draft order, delete it from the database
-    if (orderToDelete?.id && orderToDelete.status === 'draft') {
+    // Check database status before deleting (in-memory state might be stale after markAsPaid)
+    if (orderToDelete?.id) {
       try {
         const db = await openDatabase()
-        console.log('[useOrderManagement] clearOrder - deleting draft order from database:', orderToDelete.id)
-        await deleteOrder(db, orderToDelete.id)
-        console.log('[useOrderManagement] clearOrder - draft order deleted successfully')
+        const dbOrder = await getOrder(db, orderToDelete.id)
+        
+        // Only delete if order exists in DB and is still a draft
+        // If order was marked as paid, it should remain in the database
+        if (dbOrder && dbOrder.status === 'draft') {
+          console.log('[useOrderManagement] clearOrder - deleting draft order from database:', orderToDelete.id)
+          await deleteOrder(db, orderToDelete.id)
+          console.log('[useOrderManagement] clearOrder - draft order deleted successfully')
+        } else if (dbOrder) {
+          // Order exists but is not a draft (e.g., paid) - just clear state, don't delete
+          console.log('[useOrderManagement] clearOrder - order is not a draft, skipping deletion:', dbOrder.status)
+        } else {
+          // Order doesn't exist in DB - nothing to delete
+          console.log('[useOrderManagement] clearOrder - order not found in database, nothing to delete')
+        }
         
         // Refetch open orders list to update the UI
         refetchOrders()
       } catch (error) {
-        console.error('[useOrderManagement] clearOrder - error deleting order:', error)
+        console.error('[useOrderManagement] clearOrder - error checking/deleting order:', error)
         // Don't throw - we've already cleared the state, so continue
         // Still refetch to ensure UI is up to date
         refetchOrders()
       }
-    } else if (orderToDelete?.id) {
-      // Order exists but is not a draft (e.g., paid) - just clear state, don't delete
-      console.log('[useOrderManagement] clearOrder - order is not a draft, skipping deletion:', orderToDelete.status)
-      refetchOrders()
     } else {
       // No order to delete - just refetch to ensure UI is up to date
       refetchOrders()
@@ -585,20 +593,25 @@ export function useOrderManagement(storeId: number) {
   }, [order?.items, order?.subtotal, order?.taxes, order?.total, order?.customerId, order?.tableId, saveDraft])
 
   const markAsPaid = useCallback(async (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number) => {
-    if (!order) return
+    // Use ref to get the latest order state (avoids stale closure issues)
+    const currentOrder = orderRef.current
+    if (!currentOrder) {
+      console.error('[useOrderManagement] markAsPaid - no order to mark as paid')
+      return
+    }
 
     const db = await openDatabase()
     
     // Recalculate totals
-    const totals = calculateTotals(order.items)
+    const totals = calculateTotals(currentOrder.items)
     
     // ALWAYS save locally first with paid status (for performance)
     const orderData = {
-      id: order.id,
-      order_number: order.orderNumber,
-      store_id: order.storeId,
-      customer_id: order.customerId,
-      table_id: order.tableId ?? null,
+      id: currentOrder.id,
+      order_number: currentOrder.orderNumber,
+      store_id: currentOrder.storeId,
+      customer_id: currentOrder.customerId,
+      table_id: currentOrder.tableId ?? null,
       status: 'paid' as const,
       subtotal: totals.subtotal,
       taxes: totals.taxes,
@@ -609,13 +622,15 @@ export function useOrderManagement(storeId: number) {
       updated_at: new Date().toISOString(),
     }
 
+    console.log('[useOrderManagement] markAsPaid - saving order as paid:', orderData.id, orderData.status)
     await saveOrder(db, orderData)
+    console.log('[useOrderManagement] markAsPaid - order saved successfully')
 
     // Save order items
-    for (const item of order.items) {
+    for (const item of currentOrder.items) {
       await saveOrderItem(db, {
         id: item.id,
-        order_id: order.id,
+        order_id: currentOrder.id,
         product_id: item.productId,
         product_name: item.productName,
         quantity: item.quantity,
@@ -631,7 +646,7 @@ export function useOrderManagement(storeId: number) {
     await addToSyncQueue(db, {
       type: 'order',
       action: 'create',
-      data_id: order.id,
+      data_id: currentOrder.id,
       data: {
         ...orderData,
         payment_method: paymentMethod,
@@ -639,9 +654,11 @@ export function useOrderManagement(storeId: number) {
       },
     })
 
+    console.log('[useOrderManagement] markAsPaid - payment processed, order saved with paid status')
+
     // Refetch open orders list to update the UI
     refetchOrders()
-  }, [order, calculateTotals, refetchOrders])
+  }, [calculateTotals, refetchOrders])
 
   const totals = useMemo(() => {
     if (!order) {

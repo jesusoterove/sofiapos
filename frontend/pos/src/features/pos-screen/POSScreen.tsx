@@ -4,16 +4,16 @@
  * Flow:
  * 1. Check if shift is open
  *    - If yes → enable order processing
- *    - If no → navigate to open_shift
+ *    - If no → disable product selection and order details panels (but keep top bar buttons available)
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { POSLayout } from '@/components/layout/POSLayout'
 import { ProductSelectionPanel } from '@/components/product-selection/ProductSelectionPanel'
 import { OrderDetailsPanel } from '@/components/order/OrderDetailsPanel'
 import { PaymentScreen } from '@/components/payment/PaymentScreen'
 import { useOrderManagementContext } from '@/contexts/OrderManagementContext'
-import { useShift } from '@/hooks/useShift'
+import { useShiftContext } from '@/contexts/ShiftContext'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { getRegistration } from '@/utils/registration'
@@ -25,12 +25,11 @@ export function POSScreen() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [showPaymentScreen, setShowPaymentScreen] = useState(false)
-  const [isOperationsEnabled, setIsOperationsEnabled] = useState(false)
-  const [hasCheckedShift, setHasCheckedShift] = useState(false)
-  const hasNavigatedRef = useRef(false)
-  const navigationCountRef = useRef(0)
   
-  const { hasOpenShift, isLoading: shiftLoading } = useShift()
+  const { hasOpenShift, isLoading: shiftLoading } = useShiftContext()
+  
+  // Enable operations only when shift is open and loaded
+  const isOperationsEnabled = !shiftLoading && hasOpenShift
   
   // Use context instead of hook directly - this ensures state persists across remounts
   const {
@@ -58,91 +57,6 @@ export function POSScreen() {
       orderReference: order,
     })
   }, [order])
-
-  // Check if shift is open - only run once when shift loading completes
-  useEffect(() => {
-    // EMERGENCY STOP: Check if circuit breaker is disabled
-    if (localStorage.getItem('pos_navigation_circuit_breaker') === 'disabled') {
-      console.error('[POSScreen] CIRCUIT BREAKER DISABLED - Navigation stopped')
-      return
-    }
-
-    console.log('[POSScreen] Shift check effect triggered', {
-      hasCheckedShift,
-      shiftLoading,
-      hasOpenShift,
-      navigationCount: navigationCountRef.current,
-      timestamp: new Date().toISOString(),
-    })
-
-    // Circuit breaker: Stop if we've navigated too many times
-    if (navigationCountRef.current >= 3) {
-      console.error('[POSScreen] CIRCUIT BREAKER: Too many navigations - stopping loop')
-      localStorage.setItem('pos_navigation_circuit_breaker', 'disabled')
-      return
-    }
-
-    // CRITICAL: Don't check again if already checked (prevents loops)
-    if (hasCheckedShift) {
-      console.log('[POSScreen] Shift already checked, skipping')
-      return
-    }
-
-    // Wait for shift to finish loading
-    if (shiftLoading) {
-      console.log('[POSScreen] Shift still loading, skipping')
-      return
-    }
-    
-    // Prevent multiple navigations in the same render cycle
-    if (hasNavigatedRef.current) {
-      console.log('[POSScreen] Already navigated in this effect, skipping')
-      return
-    }
-    
-    console.log('[POSScreen] Performing shift check', { hasOpenShift })
-    
-    // Mark as checked BEFORE any async operations or state changes
-    setHasCheckedShift(true)
-    
-    if (!hasOpenShift) {
-      // No open shift - navigate to open shift page
-      // Check global navigation count first
-      const globalCount = parseInt(localStorage.getItem('pos_global_nav_count') || '0', 10)
-      if (globalCount >= 15) {
-        console.error('[POSScreen] GLOBAL CIRCUIT BREAKER: Too many navigations - stopping')
-        localStorage.setItem('pos_navigation_circuit_breaker', 'disabled')
-        return
-      }
-
-      console.log('[POSScreen] No open shift, navigating to /app/open-shift')
-      hasNavigatedRef.current = true
-      navigationCountRef.current++
-      const newGlobalCount = globalCount + 1
-      localStorage.setItem('pos_global_nav_count', newGlobalCount.toString())
-      
-      // Log navigation
-      const logs = JSON.parse(localStorage.getItem('pos_navigation_log') || '[]')
-      logs.push({
-        timestamp: new Date().toISOString(),
-        component: 'POSScreen',
-        from: '/app',
-        to: '/app/open-shift',
-        reason: `No open shift. hasOpenShift: ${hasOpenShift}, shiftLoading: ${shiftLoading}`,
-        state: { hasOpenShift, shiftLoading, hasCheckedShift: true, globalCount: newGlobalCount }
-      })
-      if (logs.length > 50) logs.shift()
-      localStorage.setItem('pos_navigation_log', JSON.stringify(logs))
-
-      navigate({ to: '/app/open-shift', replace: true })
-      return
-    }
-    
-    // Shift is open - enable operations
-    console.log('[POSScreen] Shift is open, enabling operations')
-    setIsOperationsEnabled(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasOpenShift, shiftLoading]) // REMOVED hasCheckedShift from dependencies to prevent loops
   const handleProductSelect = (product: any) => {
     addItem(product)
   }

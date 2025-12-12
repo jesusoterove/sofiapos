@@ -7,14 +7,14 @@ import { useTranslation } from '@/i18n/hooks'
 import { Button, Input, Card } from '@sofiapos/ui'
 import { toast } from 'react-toastify'
 import { useAuth } from '@/contexts/AuthContext'
-import { useShift } from '@/hooks/useShift'
+import { useShiftContext } from '@/contexts/ShiftContext'
 import { FaDollarSign, FaBox } from 'react-icons/fa'
 
 export function OpenShiftPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { openShift, isLoading } = useShift()
+  const { openShift, isLoading } = useShiftContext()
   
   const [initialCash, setInitialCash] = useState('')
   const [inventoryBalance, setInventoryBalance] = useState('')

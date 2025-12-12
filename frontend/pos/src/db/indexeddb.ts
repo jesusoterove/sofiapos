@@ -172,6 +172,28 @@ export interface POSDatabase extends DBSchema {
     }
     indexes: { 'by-store': number; 'by-sync-status': string; 'by-active': boolean }
   }
+  inventory_control_config: {
+    key: number
+    value: {
+      id: number
+      item_type: 'Product' | 'Material'
+      product_id?: number | null
+      material_id?: number | null
+      show_in_inventory: boolean
+      priority: number
+      uofm1_id?: number | null
+      uofm2_id?: number | null
+      uofm3_id?: number | null
+      product_name?: string | null
+      material_name?: string | null
+      uofm1_abbreviation?: string | null
+      uofm2_abbreviation?: string | null
+      uofm3_abbreviation?: string | null
+      sync_status: 'synced' | 'pending' | 'error'
+      updated_at: string
+    }
+    indexes: { 'by-sync-status': string; 'by-show-in-inventory': boolean }
+  }
   sync_queue: {
     key: number
     value: {
@@ -188,11 +210,11 @@ export interface POSDatabase extends DBSchema {
 }
 
 const DB_NAME = 'sofiapos-db'
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
   return openDB<POSDatabase>(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion, newVersion, transaction) {
+    upgrade(db, oldVersion, _newVersion, transaction) {
       // Products store
       if (!db.objectStoreNames.contains('products')) {
         const productStore = db.createObjectStore('products', { keyPath: 'id' })
@@ -278,6 +300,13 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
         tableStore.createIndex('by-active', 'is_active')
       }
 
+      // Inventory control config store (added in version 5)
+      if (oldVersion < 5 && !db.objectStoreNames.contains('inventory_control_config')) {
+        const inventoryConfigStore = db.createObjectStore('inventory_control_config', { keyPath: 'id' })
+        inventoryConfigStore.createIndex('by-sync-status', 'sync_status')
+        inventoryConfigStore.createIndex('by-show-in-inventory', 'show_in_inventory')
+      }
+
       // Sync queue store
       if (!db.objectStoreNames.contains('sync_queue')) {
         const syncQueueStore = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
@@ -304,6 +333,7 @@ export async function clearDatabase(): Promise<void> {
   await db.clear('inventory_transactions')
   await db.clear('shifts')
   await db.clear('tables')
+  await db.clear('inventory_control_config')
   await db.clear('sync_queue')
 }
 

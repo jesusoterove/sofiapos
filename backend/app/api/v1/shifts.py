@@ -8,10 +8,11 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.database import get_db
-from app.models import Shift, ShiftUser, Store, User
+from app.models import Shift, ShiftUser, ShiftInventory, Store, User, Product, Material, UnitOfMeasure
 from app.schemas.shift import (
-    ShiftOpenRequest, ShiftResponse, ShiftUpdate, ShiftCloseRequest
+    ShiftOpenRequest, ShiftResponse, ShiftUpdate, ShiftCloseRequest, ShiftInventoryEntryResponse
 )
+from app.schemas.inventory_control import ShiftInventoryEntry
 from app.api.v1.auth import get_current_user
 
 router = APIRouter(prefix="/shifts", tags=["shifts"])
@@ -312,4 +313,134 @@ async def close_shift(
     db.refresh(shift)
     
     return shift
+
+
+@router.post("/{shift_id}/close-with-inventory", response_model=ShiftResponse)
+async def close_shift_with_inventory(
+    shift_id: int,
+    close_data: dict,  # Will use ShiftCloseWithInventoryRequest from inventory_control schema
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Close a shift with inventory end balances.
+    """
+    from app.schemas.inventory_control import ShiftCloseWithInventoryRequest
+    
+    # Parse the request
+    close_request = ShiftCloseWithInventoryRequest(**close_data)
+    
+    shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not shift:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Shift with ID {shift_id} not found"
+        )
+    
+    # Check access
+    if not current_user.is_superuser and current_user.store_id != shift.store_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this shift"
+        )
+    
+    # Check if shift is already closed
+    if shift.status == "closed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Shift is already closed"
+        )
+    
+    # Close the shift
+    shift.status = "closed"
+    shift.closed_by_user_id = current_user.id
+    shift.closed_at = datetime.now()
+    if close_request.notes:
+        shift.notes = (shift.notes or "") + f"\n[Closed] {close_request.notes}"
+    
+    # Create inventory entries for end balances
+    for entry in close_request.inventory_entries:
+        inventory_entry = ShiftInventory(
+            shift_id=shift.id,
+            entry_type="end_bal",
+            product_id=entry.product_id,
+            material_id=entry.material_id,
+            uofm_id=entry.uofm_id,
+            quantity=entry.quantity
+        )
+        db.add(inventory_entry)
+    
+    db.commit()
+    db.refresh(shift)
+    
+    return shift
+
+
+@router.get("/{shift_id}/inventory", response_model=List[ShiftInventoryEntryResponse])
+async def get_shift_inventory(
+    shift_id: int,
+    entry_type: Optional[str] = None,  # 'beg_bal', 'refill', 'end_bal'
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get inventory entries for a shift.
+    """
+    shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not shift:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Shift with ID {shift_id} not found"
+        )
+    
+    # Check access
+    if not current_user.is_superuser and current_user.store_id != shift.store_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this shift"
+        )
+    
+    # Query inventory entries
+    query = db.query(ShiftInventory).filter(ShiftInventory.shift_id == shift_id)
+    
+    if entry_type:
+        query = query.filter(ShiftInventory.entry_type == entry_type)
+    
+    entries = query.all()
+    
+    # Enrich with related data
+    result = []
+    for entry in entries:
+        entry_dict = {
+            "rec_id": entry.rec_id,
+            "shift_id": entry.shift_id,
+            "entry_type": entry.entry_type,
+            "product_id": entry.product_id,
+            "material_id": entry.material_id,
+            "uofm_id": entry.uofm_id,
+            "quantity": float(entry.quantity),
+            "created_dt": entry.created_dt,
+            "product_name": None,
+            "material_name": None,
+            "uofm_abbreviation": None,
+        }
+        
+        if entry.product_id:
+            product = db.query(Product).filter(Product.id == entry.product_id).first()
+            if product:
+                entry_dict["product_name"] = product.name
+        
+        if entry.material_id:
+            material = db.query(Material).filter(Material.id == entry.material_id).first()
+            if material:
+                entry_dict["material_name"] = material.name
+        
+        if entry.uofm_id:
+            uofm = db.query(UnitOfMeasure).filter(UnitOfMeasure.id == entry.uofm_id).first()
+            if uofm:
+                entry_dict["uofm_abbreviation"] = uofm.abbreviation
+        
+        result.append(ShiftInventoryEntryResponse(**entry_dict))
+    
+    return result
 

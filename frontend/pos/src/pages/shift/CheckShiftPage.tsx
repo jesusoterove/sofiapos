@@ -3,14 +3,14 @@
  */
 import { useEffect, useRef } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useShift } from '@/hooks/useShift'
+import { useShiftContext } from '@/contexts/ShiftContext'
 import { Spinner } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 
 export function CheckShiftPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { currentShift, hasOpenShift, isLoading } = useShift()
+  const { hasOpenShift, isLoading } = useShiftContext()
   const hasNavigatedRef = useRef(false)
   const navigationCountRef = useRef(0)
 

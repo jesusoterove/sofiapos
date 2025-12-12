@@ -5,8 +5,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from '@/i18n/hooks'
 import { useAuth } from '@/contexts/AuthContext'
+import { useShiftContext } from '@/contexts/ShiftContext'
 import { IconButton } from '@sofiapos/ui'
 import { FaSignOutAlt, FaBox, FaClock, FaFileInvoice, FaHome } from 'react-icons/fa'
+import { CloseShiftModal } from '@/components/shift/CloseShiftModal'
 
 interface TopBarProps {
   onSalesInvoicesClick?: () => void
@@ -17,8 +19,10 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
   const { t } = useTranslation()
   const { logout, user } = useAuth()
   const navigate = useNavigate()
+  const { hasOpenShift } = useShiftContext()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -49,8 +53,13 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
   }
 
   const handleCloseShift = () => {
-    // TODO: Implement close shift
-    console.log('Close shift clicked')
+    if (hasOpenShift) {
+      // Show confirmation modal to close shift
+      setShowCloseShiftModal(true)
+    } else {
+      // Navigate to open shift page
+      navigate({ to: '/app/open-shift', replace: false })
+    }
   }
 
   const handleInventoryEntry = () => {
@@ -135,17 +144,17 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
         <IconButton
           variant="secondary"
           onClick={handleCloseShift}
-          title={t('topBar.closeShift') || 'Close Shift'}
+          title={hasOpenShift ? (t('topBar.closeShift') || 'Close Shift') : (t('topBar.openShift') || 'Open Shift')}
           className={`h-9 flex items-center justify-center ${isWideScreen ? 'px-3 gap-2' : 'w-9'}`}
           style={{
             backgroundColor: 'transparent',
             borderColor: 'var(--color-primary-600)',
             color: 'var(--color-primary-50)',
           }}
-          aria-label={t('topBar.closeShift') || 'Close Shift'}
+          aria-label={hasOpenShift ? (t('topBar.closeShift') || 'Close Shift') : (t('topBar.openShift') || 'Open Shift')}
         >
           <FaClock />
-          {isWideScreen && <span className="text-sm">{t('topBar.closeShift') || 'Close Shift'}</span>}
+          {isWideScreen && <span className="text-sm">{hasOpenShift ? (t('topBar.closeShift') || 'Close Shift') : (t('topBar.openShift') || 'Open Shift')}</span>}
         </IconButton>
         <IconButton
           variant="secondary"
@@ -178,6 +187,12 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
           {isWideScreen && <span className="text-sm">{t('auth.logout') || 'Logout'}</span>}
         </IconButton>
       </div>
+
+      {/* Close Shift Confirmation Modal */}
+      <CloseShiftModal
+        isOpen={showCloseShiftModal}
+        onClose={() => setShowCloseShiftModal(false)}
+      />
     </div>
   )
 }

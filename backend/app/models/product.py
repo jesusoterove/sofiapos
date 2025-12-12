@@ -61,6 +61,7 @@ class Product(Base):
     kit_components = relationship("KitComponent", foreign_keys="KitComponent.product_id", back_populates="product", cascade="all, delete-orphan")
     component_of = relationship("KitComponent", foreign_keys="KitComponent.component_id", back_populates="component", cascade="all, delete-orphan")
     store_prices = relationship("StoreProductPrice", back_populates="product", cascade="all, delete-orphan")
+    inventory_config = relationship("InventoryControlConfig", back_populates="product", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Product(id={self.id}, name='{self.name}', code='{self.code}')>"
@@ -84,6 +85,7 @@ class Material(Base):
     base_uofm = relationship("UnitOfMeasure", foreign_keys=[base_uofm_id])
     unit_of_measures = relationship("MaterialUnitOfMeasure", back_populates="material", cascade="all, delete-orphan")
     recipe_materials = relationship("RecipeMaterial", back_populates="material")
+    inventory_config = relationship("InventoryControlConfig", back_populates="material", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Material(id={self.id}, name='{self.name}', code='{self.code}')>"

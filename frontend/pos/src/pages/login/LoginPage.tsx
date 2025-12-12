@@ -3,6 +3,7 @@
  * Supports online login (first time) and offline login (using local password).
  */
 import { useState, FormEvent, useEffect } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTranslation } from '@/i18n/hooks'
 import { Button, Input } from '@sofiapos/ui'
@@ -11,6 +12,7 @@ import { FaEye, FaEyeSlash, FaWifi, FaBan } from 'react-icons/fa'
 
 export function LoginPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { login, loginOffline, hasLocalPassword } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -61,7 +63,8 @@ export function LoginPage() {
       console.log('Login:', username, password);
       await login(username, password)
       toast.success(t('auth.loginSuccess') || 'Login successful!')
-      // Navigation will be handled by beforeLoad guard in router
+      // Navigate to root after successful login (will redirect to /app)
+      navigate({ to: '/', replace: true })
     } catch (error: any) {
       toast.error(error.message || t('auth.loginError') || 'Login failed')
     } finally {
@@ -82,7 +85,8 @@ export function LoginPage() {
       const success = await loginOffline(password)
       if (success) {
         toast.success(t('auth.offlineLoginSuccess') || 'Offline login successful!')
-        // Navigation will be handled by beforeLoad guard in router
+        // Navigate to root after successful offline login (will redirect to /app)
+        navigate({ to: '/', replace: true })
       } else {
         toast.error(t('auth.invalidLocalPassword') || 'Invalid local password. Please login online to reset.')
       }

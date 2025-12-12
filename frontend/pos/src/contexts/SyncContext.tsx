@@ -1,7 +1,7 @@
 /**
  * Sync context for managing initial sync status.
  */
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { performInitialSync, hasCompletedInitialSync, SyncProgress } from '../services/initialSync'
 import { useAuth } from './AuthContext'
 import { refreshToken } from '../services/tokenRefresh'
@@ -14,8 +14,10 @@ interface SyncContextType {
   isSyncComplete: boolean
   syncError: string | null
   isFirstSync: boolean
+  syncAuthFailure: boolean // Track if sync failed due to authentication
   retrySync: () => Promise<void>
   startBackgroundSync: () => Promise<void>
+  clearSyncAuthFailure: () => void // Clear the auth failure flag
 }
 
 const SyncContext = createContext<SyncContextType | undefined>(undefined)
@@ -34,6 +36,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
   const [isFirstSync, setIsFirstSync] = useState(false)
   const [isBackgroundMode, setIsBackgroundMode] = useState(false)
   const [showCredentialDialog, setShowCredentialDialog] = useState(false)
+  const [syncAuthFailure, setSyncAuthFailure] = useState(false) // Track sync auth failures
 
   const performSync = async (backgroundMode: boolean = false) => {
     if (!isAuthenticated) {
@@ -174,9 +177,30 @@ export function SyncProvider({ children }: SyncProviderProps) {
   const handleCredentialSuccess = async () => {
     setShowCredentialDialog(false)
     setSyncError(null)
+    setSyncAuthFailure(false) // Clear auth failure flag
     // Retry sync after successful re-authentication
     await retrySync()
   }
+
+  const clearSyncAuthFailure = () => {
+    setSyncAuthFailure(false)
+  }
+
+  // Listen for sync auth failure events from API client
+  useEffect(() => {
+    const handleSyncAuthFailure = () => {
+      // Only set auth failure for background syncs (not first sync)
+      if (isBackgroundMode || !isFirstSync) {
+        setSyncAuthFailure(true)
+        setSyncError('Authentication failed during synchronization. Please re-enter your credentials.')
+      }
+    }
+
+    window.addEventListener('sync:auth-failure', handleSyncAuthFailure)
+    return () => {
+      window.removeEventListener('sync:auth-failure', handleSyncAuthFailure)
+    }
+  }, [isBackgroundMode, isFirstSync])
 
   return (
     <SyncContext.Provider
@@ -186,8 +210,10 @@ export function SyncProvider({ children }: SyncProviderProps) {
         isSyncComplete,
         syncError,
         isFirstSync,
+        syncAuthFailure,
         retrySync,
         startBackgroundSync,
+        clearSyncAuthFailure,
       }}
     >
       {children}
@@ -207,15 +233,17 @@ export function useSync() {
     // Return default values instead of throwing error
     // This allows components to work even if SyncProvider is not available (e.g., during registration)
     console.warn('useSync called outside SyncProvider, using default values')
-    return {
-      isSyncing: false,
-      syncProgress: null,
-      isSyncComplete: false,
-      syncError: null,
-      isFirstSync: false,
-      retrySync: async () => {},
-      startBackgroundSync: async () => {},
-    }
+      return {
+        isSyncing: false,
+        syncProgress: null,
+        isSyncComplete: false,
+        syncError: null,
+        isFirstSync: false,
+        syncAuthFailure: false,
+        retrySync: async () => {},
+        startBackgroundSync: async () => {},
+        clearSyncAuthFailure: () => {},
+      }
   }
   return context
 }

@@ -13,6 +13,7 @@ from app.database import SessionLocal, engine, Base
 from app.scripts.init_db import init_db
 from app.scripts.force_create_admin import force_create_admin_user
 from app.models import Store, StoreProductGroup, Material, UnitOfMeasure
+from app.services.store_service import ensure_store_tables
 
 
 def create_default_store(db: Session):
@@ -29,9 +30,18 @@ def create_default_store(db: Session):
         db.commit()
         db.refresh(store)
         print("✓ Default store created")
+        
+        # Ensure tables exist for the default store
+        ensure_store_tables(db, store.id, store.default_tables_count)
+        db.commit()
+        print(f"✓ {store.default_tables_count} default tables created for store")
+        
         return store
     else:
         print("✓ Default store already exists")
+        # Ensure tables exist even if store already exists (in case tables were deleted)
+        ensure_store_tables(db, existing.id, existing.default_tables_count)
+        db.commit()
         return existing
 
 

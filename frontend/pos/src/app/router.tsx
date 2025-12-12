@@ -4,10 +4,11 @@ import { LoginPage } from '@/pages/login/LoginPage'
 import { RegistrationPage } from '@/pages/registration/RegistrationPage'
 import { CheckShiftPage } from '@/pages/shift/CheckShiftPage'
 import { OpenShiftPage } from '@/pages/shift/OpenShiftPage'
+import { CloseShiftPage } from '@/pages/shift/CloseShiftPage'
 import { SalesInvoicesPage } from '@/pages/sales/SalesInvoicesPage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { RootRoute } from '@/components/RootRoute'
-import { isRegistered, getRegistrationProgress } from '@/utils/registration'
+import { isRegistered } from '@/utils/registration'
 import { waitForAuthInitialization } from '@/contexts/AuthContext'
 
 // Constants for localStorage keys
@@ -50,16 +51,6 @@ const rootRoute = createRootRoute({
     
     // Check registration status
     const registered = isRegistered()
-    const progress = getRegistrationProgress()
-    
-    // If registration is incomplete and at sync step or later, continue registration
-    if (!registered && progress && (progress.currentStep === 'sync' || progress.currentStep === 'createUser' || progress.currentStep === 'success')) {
-      console.log('[rootRoute beforeLoad] Registration incomplete at sync step, redirecting to /register')
-      throw redirect({
-        to: '/register',
-      })
-    }
-    
     // If not registered, redirect to registration
     if (!registered) {
       console.log('[rootRoute beforeLoad] Not registered, redirecting to /register')
@@ -144,11 +135,14 @@ const protectedLayoutRoute = createRoute({
   path: '/app',
   component: ProtectedRoute,
   beforeLoad: async () => {
+    console.log('[protectedLayoutRoute beforeLoad] STARTING - path:', window.location.pathname)
+    
     // Wait for AuthContext to finish initializing
     await waitForAuthInitialization(1000)
     
     // Check registration status
-    if (!isRegistered()) {
+    const registered = isRegistered()
+    if (!registered) {
       console.log('[protectedLayoutRoute beforeLoad] Not registered, redirecting to /register')
       throw redirect({
         to: '/register',
@@ -156,7 +150,8 @@ const protectedLayoutRoute = createRoute({
     }
 
     // Check authentication status
-    if (!isAuthenticated()) {
+    const authCheck = isAuthenticated()
+    if (!authCheck) {
       console.log('[protectedLayoutRoute beforeLoad] Not authenticated, redirecting to /login')
       throw redirect({
         to: '/login',
@@ -196,6 +191,13 @@ const salesInvoicesRoute = createRoute({
   component: SalesInvoicesPage,
 })
 
+// Close shift route (protected)
+const closeShiftRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/close-shift',
+  component: CloseShiftPage,
+})
+
 // ============================================================================
 // ROUTE TREE
 // ============================================================================
@@ -209,6 +211,7 @@ const routeTree = rootRoute.addChildren([
     appIndexRoute,
     checkShiftRoute,
     openShiftRoute,
+    closeShiftRoute,
     salesInvoicesRoute,
   ]),
 ])

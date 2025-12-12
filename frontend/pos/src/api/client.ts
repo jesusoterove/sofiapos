@@ -1,10 +1,11 @@
 /**
  * API client setup for POS application.
- * Includes offline detection and request queuing.
+ * Includes offline detection, request queuing, and refresh token mechanism.
  */
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { refreshToken } from '@/services/tokenRefresh';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -17,6 +18,10 @@ const apiClient: AxiosInstance = axios.create({
 
 // Track online/offline status
 let isOnline = navigator.onLine;
+
+// Track if we're currently refreshing the token to prevent multiple refresh attempts
+// (Currently not used but kept for future enhancement of request queuing during refresh)
+// let isRefreshing = false;
 
 window.addEventListener('online', () => {
   isOnline = true;
@@ -51,39 +56,93 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor with refresh token mechanism
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    
     // Handle network errors
     if (!error.response && error.message === 'Network Error') {
       // Queue request for later sync
       // syncQueue.add(error.config);
+      return Promise.reject(error);
     }
     
-    // Handle common errors
+    // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
       // Check if this is a sync request (by checking config metadata)
-      const isSyncRequest = error.config?.metadata?.isSyncRequest === true;
+      const isSyncRequest = (originalRequest as any)?.metadata?.isSyncRequest === true;
       
-      if (!isSyncRequest) {
-        // Only redirect to login for non-sync requests
-        // Sync requests should handle 401 errors gracefully (they'll try refresh token)
-        // Use a flag to prevent multiple redirects
-        if (!window.location.pathname.includes('/login')) {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('pos_auth_token');
-          localStorage.removeItem('pos_refresh_token');
-          // Use replace to prevent back button issues
-          window.location.replace('/login');
+      // If we haven't tried refreshing yet and this isn't a refresh token request itself
+      if (!originalRequest._retry && !isSyncRequest) {
+        originalRequest._retry = true;
+        
+        // Try to refresh the token
+        try {
+          const newToken = await refreshToken();
+          
+          if (newToken) {
+            // Update the token in localStorage
+            localStorage.setItem('pos_auth_token', newToken);
+            
+            // Update the authorization header for the failed request
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+            
+            // Retry the original request with the new token
+            return apiClient(originalRequest);
+          } else {
+            // Refresh failed - clear tokens and redirect to login
+            await handleAuthFailure();
+            return Promise.reject(error);
+          }
+        } catch (refreshError) {
+          // Refresh token failed - clear tokens and redirect to login
+          console.error('Token refresh failed:', refreshError);
+          await handleAuthFailure();
+          return Promise.reject(error);
         }
+      } else {
+        // Already tried refreshing or this is a sync request
+        // For sync requests, trigger auth failure notification (no redirect)
+        // For non-sync requests that already tried refresh, also trigger notification
+        // (All 401s in background operations should be handled via sync notification)
+        await handleAuthFailure();
+        return Promise.reject(error);
       }
-      // For sync requests, just reject the promise so sync can handle it (try refresh token)
     }
     
     return Promise.reject(error);
   }
 );
+
+/**
+ * Handle authentication failure during background sync.
+ * Instead of redirecting, triggers a sync auth failure event that the UI can handle.
+ * This allows background sync failures to be handled gracefully without disrupting the user.
+ */
+async function handleAuthFailure() {
+  // Check if this is a sync request (background sync)
+  // We determine this by checking if the request has the isSyncRequest flag
+  // or if it's coming from a background sync operation
+  
+  // Dispatch event for sync auth failure (for background syncs)
+  // The SyncContext will listen to this and show a notification button
+  const syncAuthFailureEvent = new CustomEvent('sync:auth-failure', {
+    detail: {
+      timestamp: new Date().toISOString(),
+      reason: 'token_refresh_failed',
+    }
+  });
+  window.dispatchEvent(syncAuthFailureEvent);
+  
+  // Note: We do NOT clear tokens or redirect here
+  // The sync system will handle re-authentication via CredentialDialog
+  // This ensures background sync failures don't disrupt the UI
+  console.warn('[apiClient] Sync authentication failure - notification will be shown in UI');
+}
 
 export default apiClient;
 

@@ -70,22 +70,26 @@ async def register_cash_register(
     # So we can use up to 47 chars from registration_code, but we'll use the full code
     cash_register_code = f"CR-{cashier_data.registration_code.upper()}"
     existing_cr = db.query(CashRegister).filter(CashRegister.code == cash_register_code).first()
-    if existing_cr:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cash register with registration code '{cashier_data.registration_code}' already exists"
-        )
     
-    # Create cash register
-    cash_register = CashRegister(
-        store_id=cashier_data.store_id,
-        name=cashier_data.name,
-        code=cash_register_code,
-        is_active=True
-    )
-    db.add(cash_register)
-    db.commit()
-    db.refresh(cash_register)
+    if existing_cr:
+        # Update existing cash register
+        existing_cr.store_id = cashier_data.store_id
+        existing_cr.name = cashier_data.name
+        existing_cr.is_active = True  # Ensure it's active
+        db.commit()
+        db.refresh(existing_cr)
+        cash_register = existing_cr
+    else:
+        # Create new cash register
+        cash_register = CashRegister(
+            store_id=cashier_data.store_id,
+            name=cashier_data.name,
+            code=cash_register_code,
+            is_active=True
+        )
+        db.add(cash_register)
+        db.commit()
+        db.refresh(cash_register)
     
     # Generate registration token (long-lived token for this cash register)
     # Token contains: cash_register_id, registration_code, store_id

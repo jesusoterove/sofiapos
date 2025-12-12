@@ -7,20 +7,22 @@ import { useOffline } from '@/hooks/useOffline'
 import { useOrderManagementContext } from '@/contexts/OrderManagementContext'
 import { useSync } from '@/contexts/SyncContext'
 import { Badge, Button, IconButton } from '@sofiapos/ui'
-import { FaCog, FaExclamationTriangle } from 'react-icons/fa'
+import { FaCog, FaExclamationTriangle, FaSync } from 'react-icons/fa'
 import { getTables, type Table } from '@/db/queries/tables'
 import { SyncResultsModal } from '@/components/sync/SyncResultsModal'
+import { CredentialDialog } from '@/components/sync/CredentialDialog'
 import { getRegistration } from '@/utils/registration'
 import { TableOrdersList } from './TableOrdersList'
 
 export function BottomBar() {
-  const { t } = useTranslation()
   const { isOnline, pendingCount, syncNow } = useOffline()
   // Use context instead of hook directly - this ensures state persists across remounts
   const { openOrders, currentLocation, switchToLocation, switchToCashRegister } = useOrderManagementContext()
-  const { syncError, isFirstSync } = useSync()
+  const { syncError, isFirstSync, syncAuthFailure, clearSyncAuthFailure, retrySync } = useSync()
+  const { t } = useTranslation()
   const [tables, setTables] = useState<Table[]>([])
   const [showSyncResults, setShowSyncResults] = useState(false)
+  const [showCredentialDialog, setShowCredentialDialog] = useState(false)
 
   useEffect(() => {
     loadTables()
@@ -46,6 +48,18 @@ export function BottomBar() {
     console.log('Settings clicked')
   }
 
+  const handleSyncAuthFailureClick = () => {
+    // Open credential dialog when sync auth failure button is clicked
+    setShowCredentialDialog(true)
+  }
+
+  const handleCredentialSuccess = async () => {
+    setShowCredentialDialog(false)
+    clearSyncAuthFailure()
+    // Retry sync after successful re-authentication
+    await retrySync()
+  }
+
   const getTableName = (tableId: number) => {
     const table = tables.find((t) => t.id === tableId)
     return table ? (table.name || `Table ${table.table_number}`) : `Table ${tableId}`
@@ -55,6 +69,9 @@ export function BottomBar() {
 
   // Show failed sync button only for background syncs (not first sync)
   const showFailedSyncButton = syncError && !isFirstSync
+  
+  // Sync auth failure button is always visible, but only enabled when online and there's an auth failure
+  const isSyncAuthFailureButtonEnabled = syncAuthFailure && isOnline && !isFirstSync
 
   return (
     <div
@@ -120,8 +137,24 @@ export function BottomBar() {
         />
       </div>
 
-      {/* Right: Failed Sync Button & Settings */}
+      {/* Right: Sync Auth Failure Button, Failed Sync Button & Settings */}
       <div className="flex items-center gap-2">
+        {/* Sync Auth Failure Button - always visible, enabled only when online and there's an auth failure */}
+        <IconButton
+          variant={isSyncAuthFailureButtonEnabled ? "danger" : "secondary"}
+          onClick={handleSyncAuthFailureClick}
+          disabled={!isSyncAuthFailureButtonEnabled}
+          title={
+            !isOnline
+              ? t('sync.offline') || 'Offline - sync unavailable'
+              : syncAuthFailure
+              ? t('sync.authFailure') || 'Sync authentication failed. Click to re-authenticate.'
+              : t('sync.online') || 'Sync is online'
+          }
+          className="p-2"
+        >
+          <FaSync />
+        </IconButton>
         {showFailedSyncButton && (
           <IconButton
             variant="danger"
@@ -146,6 +179,14 @@ export function BottomBar() {
       <SyncResultsModal
         isOpen={showSyncResults}
         onClose={() => setShowSyncResults(false)}
+      />
+
+      {/* Credential Dialog for Sync Auth Failure */}
+      <CredentialDialog
+        isOpen={showCredentialDialog}
+        onClose={() => setShowCredentialDialog(false)}
+        onSuccess={handleCredentialSuccess}
+        message={t('sync.reauthMessage') || 'Your session has expired. Please enter your credentials to continue synchronization.'}
       />
     </div>
   )

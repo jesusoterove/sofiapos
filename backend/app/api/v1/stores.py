@@ -14,6 +14,7 @@ from app.schemas.store import (
 )
 from app.api.v1.auth import get_current_user
 from app.services.auth_service import verify_password
+from app.services.store_service import ensure_store_tables
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
@@ -122,6 +123,12 @@ async def create_store(
     db.add(store)
     db.commit()
     db.refresh(store)
+    
+    # Ensure tables exist for the new store
+    ensure_store_tables(db, store.id, store.default_tables_count)
+    db.commit()
+    db.refresh(store)
+    
     return store
 
 
@@ -149,13 +156,26 @@ async def update_store(
                 detail=f"Store with code '{store_data.code}' already exists"
             )
     
+    # Track if default_tables_count is being changed
+    old_default_tables_count = store.default_tables_count
+    default_tables_count_changed = False
+    
     # Update fields
     update_data = store_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(store, field, value)
+        if field == 'default_tables_count' and value != old_default_tables_count:
+            default_tables_count_changed = True
     
     db.commit()
     db.refresh(store)
+    
+    # If default_tables_count changed, ensure tables are updated
+    if default_tables_count_changed:
+        ensure_store_tables(db, store.id, store.default_tables_count)
+        db.commit()
+        db.refresh(store)
+    
     return store
 
 
