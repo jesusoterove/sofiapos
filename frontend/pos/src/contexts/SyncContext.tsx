@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext'
 import { refreshToken } from '../services/tokenRefresh'
 import { CredentialDialog } from '../components/sync/CredentialDialog'
 import { useTranslation } from '../i18n/hooks'
+import { getRegistration } from '../utils/registration'
 
 interface SyncContextType {
   isSyncing: boolean
@@ -70,8 +71,10 @@ export function SyncProvider({ children }: SyncProviderProps) {
       setIsFirstSync(true)
     }
 
-    // Get storeId from user or registration progress
-    const storeId = user?.store_id || null
+    // Get storeId from user, registration, or registration progress
+    // During initial sync (especially during registration), user might not be loaded yet
+    const registration = getRegistration()
+    const storeId = user?.store_id || registration?.storeId || null
 
     try {
       const result = await performInitialSync((progress) => {

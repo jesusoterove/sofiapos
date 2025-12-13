@@ -217,6 +217,7 @@ def create_default_unit_of_measures(db: Session):
         {"name": "CAJAS", "abbreviation": "CAJ", "type": "piece", "is_active": True},
         {"name": "PAQUETES", "abbreviation": "PAQ", "type": "piece", "is_active": True},
         {"name": "BOLSAS", "abbreviation": "BOL", "type": "piece", "is_active": True},
+        {"name": "BLOQUES", "abbreviation": "BLO", "type": "piece", "is_active": True},
     ]
     
     for unit_data in units:

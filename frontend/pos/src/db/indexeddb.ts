@@ -199,7 +199,7 @@ export interface POSDatabase extends DBSchema {
     value: {
       id: number
       type: 'order' | 'order_item' | 'product' | 'category' | 'customer' | 'inventory_entry' | 'inventory_transaction' | 'shift' | 'table'
-      action: 'create' | 'update' | 'delete'
+      action: 'create' | 'update' | 'delete' | 'close'
       data_id: string | number
       data: any
       retry_count: number

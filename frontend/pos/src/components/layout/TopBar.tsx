@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useShiftContext } from '@/contexts/ShiftContext'
 import { IconButton } from '@sofiapos/ui'
 import { FaSignOutAlt, FaBox, FaClock, FaFileInvoice, FaHome } from 'react-icons/fa'
-import { CloseShiftModal } from '@/components/shift/CloseShiftModal'
+import { ChangeShiftModal } from '@/components/shift/ChangeShiftModal'
 
 interface TopBarProps {
   onSalesInvoicesClick?: () => void
@@ -22,7 +22,7 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
   const { hasOpenShift } = useShiftContext()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
-  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false)
+  const [showChangeShiftModal, setShowChangeShiftModal] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -52,14 +52,9 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
     navigate({ to: '/login', replace: true })
   }
 
-  const handleCloseShift = () => {
-    if (hasOpenShift) {
-      // Show confirmation modal to close shift
-      setShowCloseShiftModal(true)
-    } else {
-      // Navigate to open shift page
-      navigate({ to: '/app/open-shift', replace: false })
-    }
+  const handleChangeShift = () => {
+    // Show modal that handles both open and close based on current shift status
+    setShowChangeShiftModal(true)
   }
 
   const handleInventoryEntry = () => {
@@ -143,7 +138,7 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
         </IconButton>
         <IconButton
           variant="secondary"
-          onClick={handleCloseShift}
+          onClick={handleChangeShift}
           title={hasOpenShift ? (t('topBar.closeShift') || 'Close Shift') : (t('topBar.openShift') || 'Open Shift')}
           className={`h-9 flex items-center justify-center ${isWideScreen ? 'px-3 gap-2' : 'w-9'}`}
           style={{
@@ -188,10 +183,10 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
         </IconButton>
       </div>
 
-      {/* Close Shift Confirmation Modal */}
-      <CloseShiftModal
-        isOpen={showCloseShiftModal}
-        onClose={() => setShowCloseShiftModal(false)}
+      {/* Change Shift Modal (handles both open and close) */}
+      <ChangeShiftModal
+        isOpen={showChangeShiftModal}
+        onClose={() => setShowChangeShiftModal(false)}
       />
     </div>
   )

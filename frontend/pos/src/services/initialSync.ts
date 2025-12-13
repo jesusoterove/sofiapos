@@ -144,30 +144,46 @@ async function syncTables(db: IDBPDatabase<POSDatabase>, storeId?: number): Prom
  * Sync inventory control config from API to IndexedDB
  */
 async function syncInventoryControlConfig(db: IDBPDatabase<POSDatabase>, storeId: number): Promise<number> {
-  const configs = await getInventoryControlConfig(storeId)
-  
-  // Transform configs to match IndexedDB schema
-  const dbConfigs = configs.map((c: InventoryControlConfig) => ({
-    id: c.id,
-    item_type: c.item_type,
-    product_id: c.product_id ?? null,
-    material_id: c.material_id ?? null,
-    show_in_inventory: c.show_in_inventory,
-    priority: c.priority,
-    uofm1_id: c.uofm1_id ?? null,
-    uofm2_id: c.uofm2_id ?? null,
-    uofm3_id: c.uofm3_id ?? null,
-    product_name: c.product_name ?? null,
-    material_name: c.material_name ?? null,
-    uofm1_abbreviation: c.uofm1_abbreviation ?? null,
-    uofm2_abbreviation: c.uofm2_abbreviation ?? null,
-    uofm3_abbreviation: c.uofm3_abbreviation ?? null,
-    sync_status: 'synced' as const,
-    updated_at: new Date().toISOString(),
-  }))
-  
-  await saveInventoryControlConfigs(db, dbConfigs)
-  return configs.length
+  try {
+    console.log(`[syncInventoryControlConfig] Starting sync for storeId: ${storeId}`)
+    const configs = await getInventoryControlConfig(storeId)
+    console.log(`[syncInventoryControlConfig] Received ${configs.length} config items from API`)
+    
+    if (!configs || configs.length === 0) {
+      console.warn(`[syncInventoryControlConfig] No inventory control config items found for storeId: ${storeId}`)
+      return 0
+    }
+    
+    // Transform configs to match IndexedDB schema
+    const dbConfigs = configs.map((c: InventoryControlConfig) => ({
+      id: c.id,
+      item_type: c.item_type,
+      product_id: c.product_id ?? null,
+      material_id: c.material_id ?? null,
+      show_in_inventory: c.show_in_inventory,
+      priority: c.priority,
+      uofm1_id: c.uofm1_id ?? null,
+      uofm2_id: c.uofm2_id ?? null,
+      uofm3_id: c.uofm3_id ?? null,
+      product_name: c.product_name ?? null,
+      material_name: c.material_name ?? null,
+      uofm1_abbreviation: c.uofm1_abbreviation ?? null,
+      uofm2_abbreviation: c.uofm2_abbreviation ?? null,
+      uofm3_abbreviation: c.uofm3_abbreviation ?? null,
+      sync_status: 'synced' as const,
+      updated_at: new Date().toISOString(),
+    }))
+    
+    console.log(`[syncInventoryControlConfig] Saving ${dbConfigs.length} config items to IndexedDB`)
+    await saveInventoryControlConfigs(db, dbConfigs)
+    console.log(`[syncInventoryControlConfig] Successfully synced ${configs.length} inventory control config items`)
+    return configs.length
+  } catch (error: any) {
+    console.error('[syncInventoryControlConfig] Error syncing inventory control config:', error)
+    // Re-throw with more context
+    const errorMessage = error?.response?.data?.detail || error?.message || 'Unknown error'
+    throw new Error(`Failed to sync inventory control config: ${errorMessage}`)
+  }
 }
 
 /**
@@ -249,18 +265,32 @@ export async function performInitialSync(
     // Sync Inventory Control Config (85%)
     let inventoryConfigCount = 0
     if (storeId) {
-      onProgress?.({
-        step: 'inventory_config',
-        progress: 70,
-        message: 'Syncing inventory control config...',
-      })
-      inventoryConfigCount = await syncInventoryControlConfig(db, storeId)
-      onProgress?.({
-        step: 'inventory_config',
-        progress: 85,
-        message: `Synced ${inventoryConfigCount} inventory config items`,
-      })
+      try {
+        onProgress?.({
+          step: 'inventory_config',
+          progress: 70,
+          message: 'Syncing inventory control config...',
+        })
+        inventoryConfigCount = await syncInventoryControlConfig(db, storeId)
+        onProgress?.({
+          step: 'inventory_config',
+          progress: 85,
+          message: `Synced ${inventoryConfigCount} inventory config items`,
+        })
+      } catch (error: any) {
+        // Log the error but don't fail the entire sync
+        console.error('[performInitialSync] Error syncing inventory control config:', error)
+        const errorMsg = error?.message || 'Unknown error'
+        onProgress?.({
+          step: 'inventory_config',
+          progress: 85,
+          message: `Warning: Failed to sync inventory config: ${errorMsg}`,
+        })
+        // Continue with sync even if inventory config fails
+        inventoryConfigCount = 0
+      }
     } else {
+      console.warn('[performInitialSync] Skipping inventory config sync - no storeId provided')
       onProgress?.({
         step: 'inventory_config',
         progress: 85,

@@ -181,6 +181,11 @@ const checkShiftRoute = createRoute({
 const openShiftRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/open-shift',
+  validateSearch: (search: Record<string, unknown>): { initialCash?: string } => {
+    return {
+      initialCash: search.initialCash ? String(search.initialCash) : undefined,
+    }
+  },
   component: OpenShiftPage,
 })
 
@@ -195,6 +200,11 @@ const salesInvoicesRoute = createRoute({
 const closeShiftRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/close-shift',
+  validateSearch: (search: Record<string, unknown>): { finalCash?: string } => {
+    return {
+      finalCash: search.finalCash ? String(search.finalCash) : undefined,
+    }
+  },
   component: CloseShiftPage,
 })
 

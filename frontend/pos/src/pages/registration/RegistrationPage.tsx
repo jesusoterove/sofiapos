@@ -288,6 +288,7 @@ export function RegistrationPage() {
         onNext={handleSyncNext}
         onBack={handleBack}
         adminToken={adminToken}
+        storeId={selectedStoreId}
       />
     )
   }

@@ -146,6 +146,18 @@ class SyncManager {
           if (shift) {
             await db.put('shifts', { ...shift, sync_status: 'synced' })
           }
+        } else if (item.action === 'close') {
+          // Close shift with inventory entries
+          const closeData = item.data.close_data
+          await axios.post(`${API_BASE_URL}/api/v1/shifts/${item.data_id}/close-with-inventory`, closeData)
+          // Update shift sync status after successful sync
+          const db = await openDatabase()
+          const shift = await db.get('shifts', item.data_id)
+          if (shift) {
+            await db.put('shifts', { ...shift, sync_status: 'synced' })
+          }
+          // Clear from localStorage since shift is closed
+          localStorage.removeItem('pos_current_shift')
         }
         break
       case 'table':

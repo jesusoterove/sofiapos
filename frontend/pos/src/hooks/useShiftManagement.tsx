@@ -6,7 +6,8 @@ import { useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import apiClient from '@/api/client'
-import { openDatabase, saveShift, getOpenShift } from '@/db'
+import { openDatabase, saveShift, getOpenShift, addToSyncQueue, removeFromSyncQueue, getSyncQueue } from '@/db'
+import type { POSDatabase } from '@/db'
 import { getAllInventoryControlConfig } from '@/db/queries/inventoryControlConfig'
 import type { InventoryControlConfig } from '@/api/inventoryControl'
 import { closeShiftWithInventory, getShiftInventory, type ShiftInventoryEntryResponse } from '@/api/shifts'
@@ -194,16 +195,18 @@ export function useShiftManagement() {
     },
   })
 
-  // Close shift mutation
+  // Close shift mutation - OFFLINE-FIRST: Save locally first, then sync
   const closeShiftMutation = useMutation({
     mutationFn: async (data: ShiftCloseWithInventoryRequest) => {
       if (!currentOpenShift || !currentOpenShift.id) {
         throw new Error('No open shift to close')
       }
+
+      const db = await openDatabase()
+      
       // Handle both string and number IDs
       let shiftId: number
       if (typeof currentOpenShift.id === 'string') {
-        // Try to parse if it's a numeric string, otherwise use a fallback
         const parsed = parseInt(currentOpenShift.id.replace('shift-', ''))
         if (isNaN(parsed)) {
           throw new Error('Invalid shift ID format')
@@ -212,29 +215,90 @@ export function useShiftManagement() {
       } else {
         shiftId = currentOpenShift.id
       }
-      return closeShiftWithInventory(shiftId, data)
-    },
-    onSuccess: async () => {
-      // Clear local shift data immediately
-      localStorage.removeItem('pos_current_shift')
+
+      console.log('closing open shift', currentOpenShift)
+
+      // OFFLINE-FIRST: Save closed shift data locally first
+      const closedShift: POSDatabase['shifts']['value'] = {
+        ...currentOpenShift,
+        id: shiftId,
+        status: 'closed',
+        closed_at: new Date().toISOString(),
+        closed_by_user_id: user?.id,
+        notes: data.notes ? `${currentOpenShift.notes || ''}\n[Closed] ${data.notes}`.trim() : currentOpenShift.notes,
+        sync_status: 'pending',
+        created_at: currentOpenShift.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      console.log('closed open shift B', closedShift);
+      // CRITICAL: Save to IndexedDB and update status BEFORE proceeding
+      await db.put('shifts', closedShift)
       
-      // Also clear from IndexedDB
-      if (currentOpenShift?.id) {
-        try {
-          const db = await openDatabase()
-          const shiftId = typeof currentOpenShift.id === 'string' 
-            ? parseInt(currentOpenShift.id.replace('shift-', '')) 
-            : currentOpenShift.id
-          await db.delete('shifts', shiftId)
-        } catch (error) {
-          console.warn('Failed to delete shift from IndexedDB:', error)
+      console.log('closed open shift A', closedShift);
+
+      // CRITICAL: Remove from localStorage immediately to ensure state is updated
+      localStorage.removeItem('pos_current_shift')
+
+      alert('closed shift:' + currentOpenShift.id)
+      
+      // CRITICAL: Clear the current shift from React Query cache immediately
+      // This ensures currentShift becomes null and hasOpenShift becomes false
+      queryClient.setQueryData(['shift', 'open', user?.store_id], null)
+      queryClient.invalidateQueries({ queryKey: ['shift'] })
+      queryClient.removeQueries({ queryKey: ['shift', 'open'] })
+
+      // Add to sync queue with close data (including inventory entries)
+      await addToSyncQueue(db, {
+        type: 'shift',
+        action: 'close' as const,
+        data_id: shiftId,
+        data: {
+          ...closedShift,
+          close_data: data, // Include inventory entries and other close data
+        },
+      })
+
+      //For Agent: keep this code, do not remove it as it is for reference.
+      // // Try to sync immediately if online (non-blocking)
+      // if (navigator.onLine) {
+      //   try {
+      //     await closeShiftWithInventory(shiftId, data)
+      //     // Update sync status to synced
+      //     await db.put('shifts', { ...closedShift, sync_status: 'synced' })
+      //     // Remove from sync queue
+      //     const queue = await getSyncQueue(db)
+      //     const queueItem = queue.find(item => 
+      //       item.type === 'shift' && 
+      //       item.action === 'close' && 
+      //       item.data_id === shiftId
+      //     )
+      //     if (queueItem) {
+      //       await removeFromSyncQueue(db, queueItem.id)
+      //     }
+      //   } catch (error) {
+      //     // If sync fails, it will be retried by background sync
+      //     console.warn('Failed to sync shift close immediately, will retry:', error)
+      //   }
+      // }
+
+      return { closedShift, shiftId }
+    },
+    onSuccess: async (result) => {
+      const { shiftId } = result
+      
+      // Double-check IndexedDB: Ensure shift is marked as closed
+      const db = await openDatabase()
+      const shift = await db.get('shifts', shiftId)
+      if (shift) {
+        // Ensure status is closed (should already be, but double-check)
+        if (shift.status !== 'closed') {
+          await db.put('shifts', { ...shift, status: 'closed' })
         }
       }
       
-      // Invalidate queries to update hasOpenShift to false
+      // Additional cache invalidation (most updates already done in mutationFn)
       queryClient.invalidateQueries({ queryKey: ['shift'] })
-      // Set query data to null immediately to ensure hasOpenShift becomes false
-      queryClient.setQueryData(['shift', 'open', user?.store_id], null)
     },
   })
 

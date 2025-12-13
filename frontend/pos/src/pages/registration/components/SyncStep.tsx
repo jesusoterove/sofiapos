@@ -13,9 +13,10 @@ interface SyncStepProps {
   onNext: () => void
   onBack: () => void
   adminToken: string
+  storeId?: number | null
 }
 
-export function SyncStep({ onNext, onBack, adminToken }: SyncStepProps) {
+export function SyncStep({ onNext, onBack, adminToken, storeId: propStoreId }: SyncStepProps) {
   const { t } = useTranslation()
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -56,9 +57,16 @@ export function SyncStep({ onNext, onBack, adminToken }: SyncStepProps) {
     setSyncError(null)
     setSyncComplete(false)
 
-    // Get storeId from registration progress
+    // Get storeId from prop first, then fallback to registration progress
     const progress = getRegistrationProgress()
-    const storeId = progress?.selectedStoreId || undefined
+    // Use nullish coalescing to handle null properly, but preserve 0 as valid storeId
+    const storeId = propStoreId ?? progress?.selectedStoreId ?? undefined
+
+    if (!storeId) {
+      console.warn('[SyncStep] No storeId found, inventory config sync will be skipped')
+    } else {
+      console.log(`[SyncStep] Starting sync with storeId: ${storeId}`)
+    }
 
     try {
       const result = await performInitialSync((progress) => {
