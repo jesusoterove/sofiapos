@@ -20,6 +20,7 @@ from .shift import Shift, ShiftUser, ShiftInventory
 from .table import Table
 from .order import Order, OrderItem
 from .setting import Setting
+from .document_prefix import DocumentPrefix, DocumentType
 
 __all__ = [
     "Store",
@@ -39,5 +40,6 @@ __all__ = [
     "Table",
     "Order", "OrderItem",
     "Setting",
+    "DocumentPrefix", "DocumentType",
 ]
 

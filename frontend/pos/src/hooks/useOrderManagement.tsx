@@ -10,6 +10,9 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { openDatabase, saveOrder, saveOrderItem, addToSyncQueue } from '../db'
 import { getAllOrders, getOrderItems, deleteOrder, getOrder } from '../db/queries/orders'
+import { generateOrderNumber } from '../utils/documentNumbers'
+import { getRegistration } from '../utils/registration'
+import { useAuth } from '../contexts/AuthContext'
 
 export type OrderLocation = 'cash_register' | { type: 'table'; tableId: number }
 
@@ -300,8 +303,8 @@ export function useOrderManagement(storeId: number) {
       shouldAutoSaveRef.current = true
       setOrder((currentOrder) => {
         // If no order exists, create one with default location based on current location
-        const orderId = currentOrder?.id || `order-${Date.now()}`
-        const orderNumber = currentOrder?.orderNumber || `ORD-${Date.now()}`
+        const orderId = currentOrder?.id || 0 // Use 0 for unsynced orders
+        const orderNumber = currentOrder?.orderNumber || `ORD-TEMP-${Date.now()}` // Temporary, will be generated on save
         const existingItem = currentOrder?.items.find((item) => item.productId === product.id)
         
         // Determine tableId based on current location
@@ -482,12 +485,49 @@ export function useOrderManagement(storeId: number) {
 
     const db = await openDatabase()
     
+    // Generate order number if not already generated (for new orders)
+    let orderNumber = orderToSave.orderNumber
+    if (!orderNumber || orderNumber.startsWith('ORD-TEMP-')) {
+      // Get cash register code for order number generation
+      const registration = getRegistration()
+      let cashRegisterCode = 'CR-UNKNOWN' // Fallback
+      
+      // Try to get cash register code from registration or fetch from API
+      if (registration?.cashRegisterCode) {
+        cashRegisterCode = registration.cashRegisterCode
+      } else if (registration?.cashRegisterId) {
+        // Fetch cash register code from API
+        try {
+          const { apiClient } = await import('../api/client')
+          const response = await apiClient.get(`/api/v1/cash_registers/${registration.cashRegisterId}`)
+          cashRegisterCode = response.data.code
+          // Store in registration for future use
+          const updatedRegistration = { ...registration, cashRegisterCode }
+          const { saveRegistration } = await import('../utils/registration')
+          saveRegistration(updatedRegistration as any)
+        } catch (error) {
+          console.warn('[useOrderManagement] Failed to fetch cash register code, using fallback:', error)
+        }
+      }
+      
+      // Generate order number
+      try {
+        orderNumber = await generateOrderNumber(cashRegisterCode, storeId)
+        // Update order with generated number
+        setOrder(prev => prev ? { ...prev, orderNumber } : null)
+      } catch (error) {
+        console.error('[useOrderManagement] Failed to generate order number:', error)
+        // Fallback to timestamp-based number
+        orderNumber = `ORD-${Date.now()}`
+      }
+    }
+    
     // Check if this is the first time saving to a table (order was on cash register, now has tableId)
     // We need to check the database to see if there was a previous version with tableId = null
     let wasCashRegisterOrder = false
     if (orderToSave.tableId !== null && orderToSave.tableId !== undefined) {
       try {
-        const existingOrder = await getOrder(db, orderToSave.id)
+        const existingOrder = await getOrder(db, orderToSave.id || 0)
         // If order exists in DB with tableId = null, it was a cash register order
         wasCashRegisterOrder = existingOrder?.table_id === null || existingOrder?.table_id === undefined
       } catch (error) {
@@ -506,8 +546,8 @@ export function useOrderManagement(storeId: number) {
     // ALWAYS save locally first (for performance, even when online)
     console.log('[useOrderManagement] saveDraft - saving order with tableId:', orderToSave.tableId)
     const orderData = {
-      id: orderToSave.id,
-      order_number: orderToSave.orderNumber,
+      id: orderToSave.id || 0, // Use 0 for unsynced orders
+      order_number: orderNumber,
       store_id: orderToSave.storeId,
       customer_id: orderToSave.customerId,
       table_id: orderToSave.tableId ?? null,

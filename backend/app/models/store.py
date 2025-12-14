@@ -14,6 +14,7 @@ class Store(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
     code = Column(String(50), unique=True, nullable=False, index=True)
+    code_digits = Column(Integer, default=2, nullable=False)  # Number of digits for code sequence
     address = Column(Text)
     phone = Column(String(50))
     email = Column(String(255))
@@ -34,6 +35,7 @@ class Store(Base):
     orders = relationship("Order", back_populates="store")
     inventory_entries = relationship("InventoryEntry", back_populates="store")
     settings = relationship("Setting", back_populates="store")
+    document_prefixes = relationship("DocumentPrefix", back_populates="store")
 
     def __repr__(self):
         return f"<Store(id={self.id}, name='{self.name}', code='{self.code}')>"

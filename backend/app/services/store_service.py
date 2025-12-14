@@ -2,7 +2,7 @@
 Store service utilities for managing store-related operations.
 """
 from sqlalchemy.orm import Session
-from app.models import Table, Setting
+from app.models import Table, Setting, DocumentPrefix
 
 
 def get_default_language(db: Session) -> str:
@@ -105,6 +105,47 @@ def ensure_store_tables(db: Session, store_id: int, default_tables_count: int, d
         except (ValueError, TypeError):
             # If table_number is not a valid integer, skip it (might be custom)
             pass
+    
+    db.flush()  # Flush to ensure all changes are applied
+
+
+def ensure_store_document_prefixes(db: Session, store_id: int):
+    """
+    Ensure default document prefixes exist for a store.
+    
+    Creates document prefixes with default values if they don't exist:
+    - shift='T'
+    - invoice='F'
+    - inventory='I'
+    - payment='P'
+    
+    Args:
+        db: Database session
+        store_id: Store ID
+    """
+    default_prefixes = {
+        'shift': 'T',
+        'invoice': 'F',
+        'inventory': 'I',
+        'payment': 'P',
+    }
+    
+    for doc_type, prefix in default_prefixes.items():
+        # Check if prefix already exists for this store
+        existing = db.query(DocumentPrefix).filter(
+            DocumentPrefix.store_id == store_id,
+            DocumentPrefix.doc_type == doc_type
+        ).first()
+        
+        if not existing:
+            # Create new document prefix
+            new_prefix = DocumentPrefix(
+                store_id=store_id,
+                doc_type=doc_type,
+                prefix=prefix,
+                is_active=True
+            )
+            db.add(new_prefix)
     
     db.flush()  # Flush to ensure all changes are applied
 

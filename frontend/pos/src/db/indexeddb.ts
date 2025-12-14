@@ -22,10 +22,10 @@ export interface POSDatabase extends DBSchema {
     indexes: { 'by-code': string; 'by-category': number; 'by-sync-status': string }
   }
   orders: {
-    key: number
+    key: number | string
     value: {
-      id: string
-      order_number: string
+      id: number | string // 0 for unsynced, numeric ID after sync
+      order_number: string // Local identifier, always present
       store_id: number
       customer_id?: number
       table_id?: number | null
@@ -38,7 +38,7 @@ export interface POSDatabase extends DBSchema {
       created_at: string
       updated_at: string
     }
-    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number; 'by-table': number }
+    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number; 'by-table': number; 'by-order-number': string }
   }
   order_items: {
     key: number
@@ -137,10 +137,10 @@ export interface POSDatabase extends DBSchema {
     indexes: { 'by-entry': number; 'by-sync-status': string }
   }
   shifts: {
-    key: number
+    key: string // PRIMARY KEY: shift_number
     value: {
-      id: number | string
-      shift_number: string
+      shift_number: string // PRIMARY KEY: Local identifier, always present
+      id: number | string // 0 for unsynced, numeric ID after sync (used only for remote sync)
       store_id: number
       status: 'open' | 'closed'
       opened_at: string
@@ -154,7 +154,7 @@ export interface POSDatabase extends DBSchema {
       created_at: string
       updated_at: string
     }
-    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number }
+    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number; 'by-id': number }
   }
   tables: {
     key: number
@@ -207,115 +207,118 @@ export interface POSDatabase extends DBSchema {
     }
     indexes: { 'by-type': string; 'by-action': string }
   }
+  document_prefixes: {
+    key: number
+    value: {
+      id: number
+      store_id?: number | null
+      doc_type: 'shift' | 'invoice' | 'inventory' | 'payment'
+      prefix: string
+      is_active: boolean
+      sync_status: 'synced' | 'pending' | 'error'
+      updated_at: string
+    }
+    indexes: { 'by-store': number; 'by-doc-type': string; 'by-sync-status': string }
+  }
+  sequences: {
+    key: string // Composite key: `${cash_register_id}-${doc_type}-${date}`
+    value: {
+      id: string // Composite key: `${cash_register_id}-${doc_type}-${date}`
+      cash_register_id: number
+      doc_type: 'shift' | 'inventory'
+      date: string // YYYY-MM-DD format
+      sequence_number: number
+      updated_at: string
+    }
+    indexes: { 'by-cash-register': number; 'by-date': string; 'by-doc-type': string }
+  }
 }
 
 const DB_NAME = 'sofiapos-db'
-const DB_VERSION = 5
+const DB_VERSION = 1
 
 export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
   return openDB<POSDatabase>(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion, _newVersion, transaction) {
+    upgrade(db) {
       // Products store
-      if (!db.objectStoreNames.contains('products')) {
-        const productStore = db.createObjectStore('products', { keyPath: 'id' })
-        productStore.createIndex('by-code', 'code', { unique: true })
-        productStore.createIndex('by-category', 'category_id')
-        productStore.createIndex('by-sync-status', 'sync_status')
-      }
+      const productStore = db.createObjectStore('products', { keyPath: 'id' })
+      productStore.createIndex('by-code', 'code', { unique: true })
+      productStore.createIndex('by-category', 'category_id')
+      productStore.createIndex('by-sync-status', 'sync_status')
 
       // Orders store
-      if (!db.objectStoreNames.contains('orders')) {
-        const orderStore = db.createObjectStore('orders', { keyPath: 'id' })
-        orderStore.createIndex('by-status', 'status')
-        orderStore.createIndex('by-sync-status', 'sync_status')
-        orderStore.createIndex('by-store', 'store_id')
-        orderStore.createIndex('by-table', 'table_id')
-      } else if (oldVersion < 2) {
-        // Add by-table index if it doesn't exist (for existing databases upgrading to v2)
-        const orderStore = transaction.objectStore('orders')
-        if (!orderStore.indexNames.contains('by-table')) {
-          orderStore.createIndex('by-table', 'table_id')
-        }
-      }
+      const orderStore = db.createObjectStore('orders', { keyPath: 'id' })
+      orderStore.createIndex('by-status', 'status')
+      orderStore.createIndex('by-sync-status', 'sync_status')
+      orderStore.createIndex('by-store', 'store_id')
+      orderStore.createIndex('by-table', 'table_id')
+      orderStore.createIndex('by-order-number', 'order_number')
 
       // Order items store
-      if (!db.objectStoreNames.contains('order_items')) {
-        const orderItemStore = db.createObjectStore('order_items', { keyPath: 'id', autoIncrement: true })
-        orderItemStore.createIndex('by-order', 'order_id')
-        orderItemStore.createIndex('by-sync-status', 'sync_status')
-      }
+      const orderItemStore = db.createObjectStore('order_items', { keyPath: 'id', autoIncrement: true })
+      orderItemStore.createIndex('by-order', 'order_id')
+      orderItemStore.createIndex('by-sync-status', 'sync_status')
 
       // Categories store
-      if (!db.objectStoreNames.contains('categories')) {
-        const categoryStore = db.createObjectStore('categories', { keyPath: 'id' })
-        categoryStore.createIndex('by-sync-status', 'sync_status')
-      }
+      const categoryStore = db.createObjectStore('categories', { keyPath: 'id' })
+      categoryStore.createIndex('by-sync-status', 'sync_status')
 
       // Customers store
-      if (!db.objectStoreNames.contains('customers')) {
-        const customerStore = db.createObjectStore('customers', { keyPath: 'id' })
-        customerStore.createIndex('by-sync-status', 'sync_status')
-      }
+      const customerStore = db.createObjectStore('customers', { keyPath: 'id' })
+      customerStore.createIndex('by-sync-status', 'sync_status')
 
-      // Materials (Vendors) store
-      if (!db.objectStoreNames.contains('materials')) {
-        const materialStore = db.createObjectStore('materials', { keyPath: 'id' })
-        materialStore.createIndex('by-sync-status', 'sync_status')
-      }
+      // Materials store
+      const materialStore = db.createObjectStore('materials', { keyPath: 'id' })
+      materialStore.createIndex('by-sync-status', 'sync_status')
 
       // Settings store
-      if (!db.objectStoreNames.contains('settings')) {
-        db.createObjectStore('settings', { keyPath: 'key' })
-      }
+      db.createObjectStore('settings', { keyPath: 'key' })
 
-      // Inventory entries store (added in version 2)
-      if (oldVersion < 2 && !db.objectStoreNames.contains('inventory_entries')) {
-        const inventoryEntryStore = db.createObjectStore('inventory_entries', { keyPath: 'id', autoIncrement: true })
-        inventoryEntryStore.createIndex('by-sync-status', 'sync_status')
-        inventoryEntryStore.createIndex('by-store', 'store_id')
-        inventoryEntryStore.createIndex('by-entry-type', 'entry_type')
-      }
+      // Inventory entries store
+      const inventoryEntryStore = db.createObjectStore('inventory_entries', { keyPath: 'id', autoIncrement: true })
+      inventoryEntryStore.createIndex('by-sync-status', 'sync_status')
+      inventoryEntryStore.createIndex('by-store', 'store_id')
+      inventoryEntryStore.createIndex('by-entry-type', 'entry_type')
 
-      // Inventory transactions store (added in version 2)
-      if (oldVersion < 2 && !db.objectStoreNames.contains('inventory_transactions')) {
-        const inventoryTransactionStore = db.createObjectStore('inventory_transactions', { keyPath: 'id', autoIncrement: true })
-        inventoryTransactionStore.createIndex('by-entry', 'entry_id')
-        inventoryTransactionStore.createIndex('by-sync-status', 'sync_status')
-      }
+      // Inventory transactions store
+      const inventoryTransactionStore = db.createObjectStore('inventory_transactions', { keyPath: 'id', autoIncrement: true })
+      inventoryTransactionStore.createIndex('by-entry', 'entry_id')
+      inventoryTransactionStore.createIndex('by-sync-status', 'sync_status')
 
-      // Shifts store (added in version 3)
-      // Check if store doesn't exist (for any upgrade scenario)
-      if (!db.objectStoreNames.contains('shifts')) {
-        const shiftStore = db.createObjectStore('shifts', { keyPath: 'id' })
-        shiftStore.createIndex('by-status', 'status')
-        shiftStore.createIndex('by-sync-status', 'sync_status')
-        shiftStore.createIndex('by-store', 'store_id')
-      }
+      // Shifts store - use shift_number as primary key
+      const shiftStore = db.createObjectStore('shifts', { keyPath: 'shift_number' })
+      shiftStore.createIndex('by-status', 'status')
+      shiftStore.createIndex('by-sync-status', 'sync_status')
+      shiftStore.createIndex('by-store', 'store_id')
+      shiftStore.createIndex('by-id', 'id')
 
-      // Tables store (added in version 4)
-      if (!db.objectStoreNames.contains('tables')) {
-        const tableStore = db.createObjectStore('tables', { keyPath: 'id' })
-        tableStore.createIndex('by-store', 'store_id')
-        tableStore.createIndex('by-sync-status', 'sync_status')
-        tableStore.createIndex('by-active', 'is_active')
-      }
+      // Tables store
+      const tableStore = db.createObjectStore('tables', { keyPath: 'id' })
+      tableStore.createIndex('by-store', 'store_id')
+      tableStore.createIndex('by-sync-status', 'sync_status')
+      tableStore.createIndex('by-active', 'is_active')
 
-      // Inventory control config store (added in version 5)
-      if (oldVersion < 5 && !db.objectStoreNames.contains('inventory_control_config')) {
-        const inventoryConfigStore = db.createObjectStore('inventory_control_config', { keyPath: 'id' })
-        inventoryConfigStore.createIndex('by-sync-status', 'sync_status')
-        inventoryConfigStore.createIndex('by-show-in-inventory', 'show_in_inventory')
-      }
+      // Inventory control config store
+      const inventoryConfigStore = db.createObjectStore('inventory_control_config', { keyPath: 'id' })
+      inventoryConfigStore.createIndex('by-sync-status', 'sync_status')
+      inventoryConfigStore.createIndex('by-show-in-inventory', 'show_in_inventory')
+
+      // Document prefixes store
+      const docPrefixStore = db.createObjectStore('document_prefixes', { keyPath: 'id' })
+      docPrefixStore.createIndex('by-store', 'store_id')
+      docPrefixStore.createIndex('by-doc-type', 'doc_type')
+      docPrefixStore.createIndex('by-sync-status', 'sync_status')
+
+      // Sequences store
+      const sequencesStore = db.createObjectStore('sequences', { keyPath: 'id' })
+      sequencesStore.createIndex('by-cash-register', 'cash_register_id')
+      sequencesStore.createIndex('by-date', 'date')
+      sequencesStore.createIndex('by-doc-type', 'doc_type')
 
       // Sync queue store
-      if (!db.objectStoreNames.contains('sync_queue')) {
-        const syncQueueStore = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
-        syncQueueStore.createIndex('by-type', 'type')
-        syncQueueStore.createIndex('by-action', 'action')
-      } else if (oldVersion < 2) {
-        // Update sync_queue type enum to include inventory types (for existing databases)
-        // Note: IndexedDB doesn't support modifying existing stores, but we can ensure the type is correct in code
-      }
+      const syncQueueStore = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
+      syncQueueStore.createIndex('by-type', 'type')
+      syncQueueStore.createIndex('by-action', 'action')
     },
   })
 }
@@ -332,8 +335,10 @@ export async function clearDatabase(): Promise<void> {
   await db.clear('inventory_entries')
   await db.clear('inventory_transactions')
   await db.clear('shifts')
-  await db.clear('tables')
-  await db.clear('inventory_control_config')
-  await db.clear('sync_queue')
+    await db.clear('tables')
+    await db.clear('inventory_control_config')
+    await db.clear('document_prefixes')
+    await db.clear('sequences')
+    await db.clear('sync_queue')
 }
 

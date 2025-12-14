@@ -13,16 +13,18 @@ from app.database import SessionLocal, engine, Base
 from app.scripts.init_db import init_db
 from app.scripts.force_create_admin import force_create_admin_user
 from app.models import Store, StoreProductGroup, Material, UnitOfMeasure
-from app.services.store_service import ensure_store_tables
-
+from app.services.store_service import ensure_store_tables, ensure_store_document_prefixes
+from app.utils.base36 import pad_base36
 
 def create_default_store(db: Session):
     """Create default store."""
-    existing = db.query(Store).filter(Store.code == "ARA-001").first()
+    store_code = 'A' + pad_base36(1, 2)
+    print("Creating default store with code:", store_code)
+    existing = db.query(Store).filter(Store.code == store_code).first()
     if not existing:
         store = Store(
             name="ARA San Cristobal",
-            code="ARA-001",
+            code=store_code,
             email="blocosmanager@gmail.com",
             is_active=True
         )
@@ -33,14 +35,23 @@ def create_default_store(db: Session):
         
         # Ensure tables exist for the default store
         ensure_store_tables(db, store.id, store.default_tables_count)
+        
+        # Ensure default document prefixes exist for the store
+        ensure_store_document_prefixes(db, store.id)
+        
         db.commit()
         print(f"✓ {store.default_tables_count} default tables created for store")
+        print("✓ Default document prefixes created for store")
         
         return store
     else:
         print("✓ Default store already exists")
         # Ensure tables exist even if store already exists (in case tables were deleted)
         ensure_store_tables(db, existing.id, existing.default_tables_count)
+        
+        # Ensure default document prefixes exist even if store already exists
+        ensure_store_document_prefixes(db, existing.id)
+        
         db.commit()
         return existing
 

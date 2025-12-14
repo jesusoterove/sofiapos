@@ -7,11 +7,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import apiClient from '@/api/client'
 import { openDatabase, saveShift, getOpenShift, addToSyncQueue, removeFromSyncQueue, getSyncQueue } from '@/db'
+import { getShiftByNumber } from '@/db/queries/shifts'
 import type { POSDatabase } from '@/db'
 import { getAllInventoryControlConfig } from '@/db/queries/inventoryControlConfig'
 import type { InventoryControlConfig } from '@/api/inventoryControl'
-import { closeShiftWithInventory, getShiftInventory, type ShiftInventoryEntryResponse } from '@/api/shifts'
+import { getShiftInventory, type ShiftInventoryEntryResponse } from '@/api/shifts'
 import type { ShiftCloseWithInventoryRequest } from '@/api/inventoryControl'
+import { generateShiftNumber } from '@/utils/documentNumbers'
+import { getRegistration } from '@/utils/registration'
 
 export interface Shift {
   id: number | string
@@ -104,48 +107,57 @@ export function useShiftManagement() {
       // ALWAYS save locally first (offline-first paradigm)
       const db = await openDatabase()
       
-      // Ensure shifts store exists (should be created by upgrade, but check to be safe)
-      if (!db.objectStoreNames.contains('shifts')) {
-        // Store doesn't exist - this shouldn't happen if upgrade ran correctly
-        // Fall back to localStorage only and show error
-        console.error('Shifts store not found in database. Database may need to be upgraded.')
-        const shiftId = `shift-${Date.now()}`
-        const shiftNumber = `SHIFT-${Date.now()}`
-        const shiftData = {
-          id: shiftId,
-          shift_number: shiftNumber,
-          store_id: user.store_id,
-          status: 'open' as const,
-          opened_at: new Date().toISOString(),
-          initial_cash: data.initialCash,
-          inventory_balance: data.inventoryBalance,
-          opened_by_user_id: user.id,
-        }
-        // Store in localStorage only as fallback
-        localStorage.setItem('pos_current_shift', JSON.stringify(shiftData))
-        return shiftData
+      // Get cash register code and ID for shift number generation
+      const registration = getRegistration()
+      if (!registration?.cashRegisterId) {
+        throw new Error('Cash register not registered. Please complete registration first.')
       }
-
-      const shiftId = `shift-${Date.now()}`
-      const shiftNumber = `SHIFT-${Date.now()}`
       
-      const shiftData = {
-        id: shiftId,
-        shift_number: shiftNumber,
+      let cashRegisterCode = registration.cashRegisterCode
+      const cashRegisterId = registration.cashRegisterId
+      
+      // Fetch cash register code from API if not in registration
+      if (!cashRegisterCode) {
+        try {
+          const response = await apiClient.get(`/api/v1/cash_registers/${cashRegisterId}`)
+          cashRegisterCode = response.data.code
+          // Store in registration for future use
+          const updatedRegistration = { ...registration, cashRegisterCode }
+          const { saveRegistration } = await import('@/utils/registration')
+          saveRegistration(updatedRegistration as any)
+        } catch (error) {
+          console.error('[useShiftManagement] Failed to fetch cash register code:', error)
+          throw new Error('Failed to fetch cash register code. Please ensure you are online and try again.')
+        }
+      }
+      
+      // Generate shift number according to plan: [shift_prefix][cash_register_code]-[base36(MMddyyyyxx)]
+      if (!cashRegisterCode) {
+        throw new Error('Cash register code is required to generate shift number')
+      }
+      const shiftNumber = await generateShiftNumber(cashRegisterId, cashRegisterCode, user.store_id)
+      
+      // Use id = 0 for unsynced records (will be updated after sync)
+      const shiftData: POSDatabase['shifts']['value'] = {
+        id: 0, // Always 0 for unsynced records
+        shift_number: shiftNumber, // Generated locally using sequences table
         store_id: user.store_id,
         status: 'open' as const,
         opened_at: new Date().toISOString(),
         initial_cash: data.initialCash,
         inventory_balance: data.inventoryBalance,
         opened_by_user_id: user.id,
+        sync_status: 'pending' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }
 
-      // Save to IndexedDB (this also queues for sync)
+      // Save to IndexedDB (saveShift already adds to sync queue)
       await saveShift(db, shiftData)
 
       // Also store in localStorage for quick access
       localStorage.setItem('pos_current_shift', JSON.stringify(shiftData))
-
+      
       // Try to sync in background if online (don't wait for it)
       // The sync manager will handle this automatically, but we can also try immediately
       if (navigator.onLine) {
@@ -155,31 +167,35 @@ export function useShiftManagement() {
           store_id: user.store_id,
           initial_cash: data.initialCash,
           inventory_balance: data.inventoryBalance,
+          shift_number: shiftNumber, // Send locally generated shift_number
         }).then(async (response) => {
-          // Update local shift with server ID if different
-          if (response.data && response.data.id !== shiftId) {
-            const updatedShift = {
+          // Update local shift with server ID (should be different from 0)
+          if (response.data && response.data.id && response.data.id !== 0) {
+            // Update existing record (shift_number is primary key, so put() will update)
+            const updatedShift: POSDatabase['shifts']['value'] = {
               ...shiftData,
-              id: response.data.id,
-              shift_number: response.data.shift_number,
+              shift_number: shiftNumber, // PRIMARY KEY - keep local shift_number
+              id: response.data.id, // Server-generated ID (for remote sync)
               sync_status: 'synced' as const,
-            }
-            await db.put('shifts', {
-              ...updatedShift,
-              created_at: shiftData.opened_at,
               updated_at: new Date().toISOString(),
-            })
+            }
+            
+            // Update using shift_number as key (primary key)
+            await db.put('shifts', updatedShift)
             localStorage.setItem('pos_current_shift', JSON.stringify(updatedShift))
-          } else if (response.data) {
-            // Update sync status even if ID matches
-            // shiftId might be a string, so we need to handle it
-            const existingShift = await db.get('shifts', shiftId as any)
-            if (existingShift) {
-              await db.put('shifts', {
-                ...existingShift,
-                sync_status: 'synced',
-                updated_at: new Date().toISOString(),
-              })
+            
+            // CRITICAL: Update currentOpenShift query data with the synced shift (with server ID)
+            queryClient.setQueryData(['shift', 'open', user?.store_id], updatedShift as any)
+            
+            // Remove from sync queue (using shift_number as identifier)
+            const queue = await getSyncQueue(db)
+            const queueItem = queue.find(item => 
+              item.type === 'shift' && 
+              item.action === 'create' && 
+              item.data_id === shiftNumber
+            )
+            if (queueItem) {
+              await removeFromSyncQueue(db, queueItem.id)
             }
           }
         }).catch((error) => {
@@ -190,7 +206,12 @@ export function useShiftManagement() {
 
       return shiftData
     },
-    onSuccess: () => {
+    onSuccess: async (shiftData) => {
+      // CRITICAL: Immediately update currentOpenShift query data with the newly created shift
+      // This ensures currentOpenShift is available immediately without waiting for query refetch
+      queryClient.setQueryData(['shift', 'open', user?.store_id], shiftData as any)
+      
+      // Also invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['shift'] })
     },
   })
@@ -198,41 +219,44 @@ export function useShiftManagement() {
   // Close shift mutation - OFFLINE-FIRST: Save locally first, then sync
   const closeShiftMutation = useMutation({
     mutationFn: async (data: ShiftCloseWithInventoryRequest) => {
-      if (!currentOpenShift || !currentOpenShift.id) {
+      if (!currentOpenShift || !currentOpenShift.shift_number) {
         throw new Error('No open shift to close')
       }
 
       const db = await openDatabase()
       
-      // Handle both string and number IDs
-      let shiftId: number
-      if (typeof currentOpenShift.id === 'string') {
-        const parsed = parseInt(currentOpenShift.id.replace('shift-', ''))
-        if (isNaN(parsed)) {
-          throw new Error('Invalid shift ID format')
-        }
-        shiftId = parsed
-      } else {
-        shiftId = currentOpenShift.id
+      // LOCAL OPERATION: Always find shift by shift_number (not by id)
+      // This ensures we find the shift even if id is 0 (unsynced)
+      const shiftToClose = await getShiftByNumber(db, currentOpenShift.shift_number)
+      
+      if (!shiftToClose) {
+        throw new Error(`Shift with number '${currentOpenShift.shift_number}' not found in local database`)
+      }
+      
+      if (shiftToClose.status !== 'open') {
+        throw new Error(`Shift '${currentOpenShift.shift_number}' is not open`)
       }
 
-      console.log('closing open shift', currentOpenShift)
+      console.log('closing open shift', shiftToClose)
 
       // OFFLINE-FIRST: Save closed shift data locally first
+      // Keep the existing id (may be 0 if unsynced, or a number if synced)
       const closedShift: POSDatabase['shifts']['value'] = {
-        ...currentOpenShift,
-        id: shiftId,
+        ...shiftToClose,
+        id: shiftToClose.id, // Keep existing id (0 or synced id)
         status: 'closed',
         closed_at: new Date().toISOString(),
         closed_by_user_id: user?.id,
-        notes: data.notes ? `${currentOpenShift.notes || ''}\n[Closed] ${data.notes}`.trim() : currentOpenShift.notes,
+        notes: data.notes ? `${shiftToClose.notes || ''}\n[Closed] ${data.notes}`.trim() : shiftToClose.notes,
         sync_status: 'pending',
-        created_at: currentOpenShift.created_at || new Date().toISOString(),
+        created_at: shiftToClose.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
 
       console.log('closed open shift B', closedShift);
-      // CRITICAL: Save to IndexedDB and update status BEFORE proceeding
+      
+      // CRITICAL: Save to IndexedDB using shift_number as primary key
+      // put() will automatically update the existing record with the same shift_number
       await db.put('shifts', closedShift)
       
       console.log('closed open shift A', closedShift);
@@ -240,8 +264,6 @@ export function useShiftManagement() {
       // CRITICAL: Remove from localStorage immediately to ensure state is updated
       localStorage.removeItem('pos_current_shift')
 
-      alert('closed shift:' + currentOpenShift.id)
-      
       // CRITICAL: Clear the current shift from React Query cache immediately
       // This ensures currentShift becomes null and hasOpenShift becomes false
       queryClient.setQueryData(['shift', 'open', user?.store_id], null)
@@ -249,10 +271,12 @@ export function useShiftManagement() {
       queryClient.removeQueries({ queryKey: ['shift', 'open'] })
 
       // Add to sync queue with close data (including inventory entries)
+      // Use shift_number for local queue identification (primary key)
+      // The sync process will use the id when syncing to remote (id=0 means create, id!=0 means update)
       await addToSyncQueue(db, {
         type: 'shift',
         action: 'close' as const,
-        data_id: shiftId,
+        data_id: closedShift.shift_number, // Use shift_number for local queue identification
         data: {
           ...closedShift,
           close_data: data, // Include inventory entries and other close data
@@ -282,14 +306,16 @@ export function useShiftManagement() {
       //   }
       // }
 
-      return { closedShift, shiftId }
+      return { closedShift }
     },
     onSuccess: async (result) => {
-      const { shiftId } = result
+      const { closedShift } = result
       
       // Double-check IndexedDB: Ensure shift is marked as closed
       const db = await openDatabase()
-      const shift = await db.get('shifts', shiftId)
+      // Use shift_number as primary key (string key)
+      const shift = await db.get('shifts', closedShift.shift_number as any)
+      
       if (shift) {
         // Ensure status is closed (should already be, but double-check)
         if (shift.status !== 'closed') {

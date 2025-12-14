@@ -1,7 +1,7 @@
 /**
  * Payment screen component with two-panel layout.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal, Button, formatPrice } from '@sofiapos/ui'
 import { PaymentMethodSelector } from './PaymentMethodSelector'
 import { AmountPaidInput } from './AmountPaidInput'
@@ -39,6 +39,11 @@ export function PaymentScreen({
   const [amountPaid, setAmountPaid] = useState('')
 
   const change = parseFloat(amountPaid || '0') - orderTotal
+
+  useEffect(() => {
+    setAmountPaid('')
+    setPaymentMethod('cash')
+  }, [orderTotal])
 
   const handleNumberClick = (num: string) => {
     const newValue = amountPaid + num
@@ -79,8 +84,8 @@ export function PaymentScreen({
     const paid = parseFloat(amountPaid || '0')
     if (paid >= orderTotal) {
       onProcessPayment(paymentMethod, paid)
-      setAmountPaid('')
-      setPaymentMethod('cash')
+      // setAmountPaid('')
+      // setPaymentMethod('cash')
     }
   }
 
@@ -91,8 +96,8 @@ export function PaymentScreen({
   }
 
   const handleClose = () => {
-    setAmountPaid('')
-    setPaymentMethod('cash')
+    // setAmountPaid('')
+    // setPaymentMethod('cash')
     onClose()
   }
 

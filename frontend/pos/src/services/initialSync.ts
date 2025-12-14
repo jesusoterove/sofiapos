@@ -8,20 +8,24 @@ import { saveProducts } from '../db/queries/products'
 import { saveCategories } from '../db/queries/categories'
 import { saveTables } from '../db/queries/tables'
 import { saveInventoryControlConfigs } from '../db/queries/inventoryControlConfig'
+import { saveDocumentPrefixes } from '../db/queries/documentPrefixes'
+import { initializeSequences } from '../db/queries/sequences'
 import { listProducts } from '../api/products'
 import { listProductCategories } from '../api/categories'
 import { listMaterials } from '../api/materials'
 import { getGlobalSettings } from '../api/settings'
 import { listTables } from '../api/tables'
 import { getInventoryControlConfig } from '../api/inventoryControl'
+import { listDocumentPrefixes } from '../api/documentPrefixes'
 import type { Product } from '../api/products'
 import type { ProductCategory } from '../api/categories'
 import type { Material } from '../api/materials'
 import type { Setting } from '../api/settings'
 import type { InventoryControlConfig } from '../api/inventoryControl'
+import type { DocumentPrefix } from '../api/documentPrefixes'
 
 export interface SyncProgress {
-  step: 'products' | 'categories' | 'materials' | 'settings' | 'tables' | 'inventory_config' | 'complete'
+  step: 'products' | 'categories' | 'materials' | 'settings' | 'tables' | 'inventory_config' | 'document_prefixes' | 'sequences' | 'complete'
   progress: number // 0-100
   message: string
 }
@@ -35,6 +39,7 @@ export interface SyncResult {
   settingsCount?: number
   tablesCount?: number
   inventoryConfigCount?: number
+  documentPrefixesCount?: number
 }
 
 /**
@@ -138,6 +143,27 @@ async function syncTables(db: IDBPDatabase<POSDatabase>, storeId?: number): Prom
   
   await saveTables(db, tables)
   return tables.length
+}
+
+/**
+ * Sync document prefixes from API to IndexedDB
+ */
+async function syncDocumentPrefixes(db: IDBPDatabase<POSDatabase>, storeId?: number): Promise<number> {
+  const prefixes = await listDocumentPrefixes(storeId)
+  
+  // Transform prefixes to match IndexedDB schema
+  const dbPrefixes = prefixes.map((p: DocumentPrefix) => ({
+    id: p.id,
+    store_id: p.store_id ?? null,
+    doc_type: p.doc_type,
+    prefix: p.prefix,
+    is_active: p.is_active,
+    sync_status: 'synced' as const,
+    updated_at: p.updated_at || new Date().toISOString(),
+  }))
+  
+  await saveDocumentPrefixes(db, dbPrefixes)
+  return prefixes.length
 }
 
 /**
@@ -268,13 +294,13 @@ export async function performInitialSync(
       try {
         onProgress?.({
           step: 'inventory_config',
-          progress: 70,
+          progress: 60,
           message: 'Syncing inventory control config...',
         })
         inventoryConfigCount = await syncInventoryControlConfig(db, storeId)
         onProgress?.({
           step: 'inventory_config',
-          progress: 85,
+          progress: 75,
           message: `Synced ${inventoryConfigCount} inventory config items`,
         })
       } catch (error: any) {
@@ -283,7 +309,7 @@ export async function performInitialSync(
         const errorMsg = error?.message || 'Unknown error'
         onProgress?.({
           step: 'inventory_config',
-          progress: 85,
+          progress: 75,
           message: `Warning: Failed to sync inventory config: ${errorMsg}`,
         })
         // Continue with sync even if inventory config fails
@@ -293,10 +319,51 @@ export async function performInitialSync(
       console.warn('[performInitialSync] Skipping inventory config sync - no storeId provided')
       onProgress?.({
         step: 'inventory_config',
-        progress: 85,
+        progress: 75,
         message: 'Skipping inventory config (no store ID)',
       })
     }
+    
+    // Sync Document Prefixes (85%)
+    let documentPrefixesCount = 0
+    try {
+      onProgress?.({
+        step: 'document_prefixes',
+        progress: 75,
+        message: 'Syncing document prefixes...',
+      })
+      documentPrefixesCount = await syncDocumentPrefixes(db, storeId)
+      onProgress?.({
+        step: 'document_prefixes',
+        progress: 85,
+        message: `Synced ${documentPrefixesCount} document prefixes`,
+      })
+    } catch (error: any) {
+      console.error('[performInitialSync] Error syncing document prefixes:', error)
+      const errorMsg = error?.message || 'Unknown error'
+      onProgress?.({
+        step: 'document_prefixes',
+        progress: 85,
+        message: `Warning: Failed to sync document prefixes: ${errorMsg}`,
+      })
+      documentPrefixesCount = 0
+    }
+    
+    // Initialize Sequences (90%)
+    // Note: Sequences are initialized from max sequences returned by backend during sync
+    // This will be handled when we implement the sync endpoint that returns max sequences
+    onProgress?.({
+      step: 'sequences',
+      progress: 85,
+      message: 'Initializing sequences...',
+    })
+    // TODO: Initialize sequences from backend max sequences per cash register per current date
+    // This will be implemented when we add the sync endpoint that returns max sequences
+    onProgress?.({
+      step: 'sequences',
+      progress: 90,
+      message: 'Sequences initialized',
+    })
     
     // Complete (100%)
     onProgress?.({
@@ -313,6 +380,7 @@ export async function performInitialSync(
       settingsCount,
       tablesCount,
       inventoryConfigCount: storeId ? inventoryConfigCount : undefined,
+      documentPrefixesCount,
     }
   } catch (error: any) {
     // Extract more detailed error message

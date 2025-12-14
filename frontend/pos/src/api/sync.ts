@@ -2,9 +2,7 @@
  * Sync manager for offline-first functionality.
  */
 import { openDatabase, getSyncQueue, removeFromSyncQueue, saveOrder } from '../db'
-import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+import apiClient from './client'
 
 export interface SyncStatus {
   isOnline: boolean
@@ -60,18 +58,30 @@ class SyncManager {
         if (item.action === 'create') {
           // Only sync paid orders (not draft orders)
           if (item.data?.status === 'paid') {
-            await axios.post(`${API_BASE_URL}/api/v1/orders`, item.data)
-            // Update order sync status after successful sync
+            const response = await apiClient.post('/api/v1/orders', item.data)
+            // Update order sync status and ID after successful sync
             const db = await openDatabase()
             const order = await db.get('orders', item.data_id)
             if (order) {
-              await saveOrder(db, { ...order, sync_status: 'synced' })
+              // Update with server ID if different (should be different if local id was 0)
+              const updatedOrder = {
+                ...order,
+                id: response.data.id || order.id, // Use server ID if provided
+                sync_status: 'synced' as const,
+              }
+              // If ID changed, delete old record and create new one
+              if (order.id !== updatedOrder.id && order.id === 0) {
+                await db.delete('orders', order.id)
+                await db.put('orders', updatedOrder)
+              } else {
+                await saveOrder(db, updatedOrder)
+              }
             }
           }
         } else if (item.action === 'update') {
           // Only sync paid orders
           if (item.data?.status === 'paid') {
-            await axios.put(`${API_BASE_URL}/api/v1/orders/${item.data_id}`, item.data)
+            await apiClient.put(`/api/v1/orders/${item.data_id}`, item.data)
             // Update order sync status after successful sync
             const db = await openDatabase()
             const order = await db.get('orders', item.data_id)
@@ -83,12 +93,12 @@ class SyncManager {
         break
       case 'order_item':
         if (item.action === 'create') {
-          await axios.post(`${API_BASE_URL}/api/v1/order-items`, item.data)
+          await apiClient.post('/api/v1/order-items', item.data)
         }
         break
       case 'inventory_entry':
         if (item.action === 'create') {
-          await axios.post(`${API_BASE_URL}/api/v1/inventory-entries`, item.data)
+          await apiClient.post('/api/v1/inventory-entries', item.data)
           // Update inventory entry sync status after successful sync
           const db = await openDatabase()
           const entry = await db.get('inventory_entries', item.data_id)
@@ -96,7 +106,7 @@ class SyncManager {
             await db.put('inventory_entries', { ...entry, sync_status: 'synced' })
           }
         } else if (item.action === 'update') {
-          await axios.put(`${API_BASE_URL}/api/v1/inventory-entries/${item.data_id}`, item.data)
+          await apiClient.put(`/api/v1/inventory-entries/${item.data_id}`, item.data)
           // Update inventory entry sync status after successful sync
           const db = await openDatabase()
           const entry = await db.get('inventory_entries', item.data_id)
@@ -107,7 +117,7 @@ class SyncManager {
         break
       case 'inventory_transaction':
         if (item.action === 'create') {
-          await axios.post(`${API_BASE_URL}/api/v1/inventory-transactions`, item.data)
+          await apiClient.post('/api/v1/inventory-transactions', item.data)
           // Update inventory transaction sync status after successful sync
           const db = await openDatabase()
           const transaction = await db.get('inventory_transactions', item.data_id)
@@ -118,51 +128,167 @@ class SyncManager {
         break
       case 'shift':
         if (item.action === 'create') {
-          const response = await axios.post(`${API_BASE_URL}/api/v1/shifts/open`, {
-            store_id: item.data.store_id,
+          // Get cash_register_id from registration (required for shift creation)
+          const { getRegistration } = await import('../utils/registration')
+          const registration = getRegistration()
+          
+          if (!registration?.cashRegisterId) {
+            throw new Error('Cash register not registered. Cannot sync shift without cash register ID.')
+          }
+          
+          const response = await apiClient.post('/api/v1/shifts/open', {
+            cash_register_id: registration.cashRegisterId, // Use cash_register_id instead of store_id
             initial_cash: item.data.initial_cash,
             inventory_balance: item.data.inventory_balance,
+            shift_number: item.data.shift_number, // Send locally generated shift_number
           })
-          // Update shift sync status after successful sync
+          // Update shift sync status and ID after successful sync
           const db = await openDatabase()
-          const shift = await db.get('shifts', item.data_id)
+          // Find shift by shift_number (primary key)
+          const shift = await db.get('shifts', item.data.shift_number as any)
+          
           if (shift) {
-            // Update with server ID if different
+            // Update with server ID (shift_number remains the primary key)
             const updatedShift = {
               ...shift,
-              id: response.data.id,
-              shift_number: response.data.shift_number,
+              shift_number: shift.shift_number, // PRIMARY KEY - keep local shift_number
+              id: response.data.id, // Server-generated ID (for remote sync)
               sync_status: 'synced' as const,
+              updated_at: new Date().toISOString(),
             }
             await db.put('shifts', updatedShift)
             // Also update localStorage
             localStorage.setItem('pos_current_shift', JSON.stringify(updatedShift))
           }
-        } else if (item.action === 'update') {
-          await axios.put(`${API_BASE_URL}/api/v1/shifts/${item.data_id}`, item.data)
-          // Update shift sync status after successful sync
-          const db = await openDatabase()
-          const shift = await db.get('shifts', item.data_id)
-          if (shift) {
-            await db.put('shifts', { ...shift, sync_status: 'synced' })
-          }
         } else if (item.action === 'close') {
-          // Close shift with inventory entries
-          const closeData = item.data.close_data
-          await axios.post(`${API_BASE_URL}/api/v1/shifts/${item.data_id}/close-with-inventory`, closeData)
-          // Update shift sync status after successful sync
+          // REMOTE SYNC: Find shift by shift_number (local operation), then use id for remote API call
           const db = await openDatabase()
-          const shift = await db.get('shifts', item.data_id)
-          if (shift) {
-            await db.put('shifts', { ...shift, sync_status: 'synced' })
+          
+          // data_id is shift_number (primary key)
+          const shiftNumber = item.data_id as string
+          if (!shiftNumber) {
+            throw new Error(`Shift number not found in sync data: ${item.data_id}`)
           }
-          // Clear from localStorage since shift is closed
-          localStorage.removeItem('pos_current_shift')
+          
+          // Find by shift_number (primary key)
+          const shift = await db.get('shifts', shiftNumber as any)
+          
+          if (!shift) {
+            throw new Error(`Shift with number '${shiftNumber}' not found for sync`)
+          }
+          
+          // REMOTE SYNC: Use id when calling remote API
+          // If id is 0, use create endpoint; if id != 0, use update endpoint
+          const closeData = item.data.close_data
+          
+          if (shift.id === 0 || shift.id === '0') {
+            // Shift hasn't been synced yet - create and close in one operation
+            // First create the shift, then close it
+            // Get cash_register_id from registration
+            const { getRegistration } = await import('../utils/registration')
+            const registration = getRegistration()
+            
+            if (!registration?.cashRegisterId) {
+              throw new Error('Cash register not registered. Cannot sync shift without cash register ID.')
+            }
+            
+            const createResponse = await apiClient.post('/api/v1/shifts/open', {
+              cash_register_id: registration.cashRegisterId,
+              initial_cash: shift.initial_cash,
+              inventory_balance: shift.inventory_balance,
+              shift_number: shift.shift_number,
+            })
+            
+            // Now close it
+            await apiClient.post(`/api/v1/shifts/${createResponse.data.id}/close-with-inventory`, {
+              ...closeData,
+              shift_number: shift.shift_number,
+            })
+            
+            // Update local shift with server ID
+            const updatedShift = {
+              ...shift,
+              shift_number: shift.shift_number, // PRIMARY KEY
+              id: createResponse.data.id, // Server-generated ID
+              status: 'closed' as const,
+              sync_status: 'synced' as const,
+              updated_at: new Date().toISOString(),
+            }
+            await db.put('shifts', updatedShift)
+          } else {
+            // Shift already synced - just close it
+            await apiClient.post(`/api/v1/shifts/${shift.id}/close-with-inventory`, {
+              ...closeData,
+              shift_number: shift.shift_number,
+            })
+            
+            // Update shift sync status after successful sync
+            const updatedShift = {
+              ...shift,
+              shift_number: shift.shift_number, // PRIMARY KEY
+              id: shift.id, // Keep existing ID
+              status: 'closed' as const,
+              sync_status: 'synced' as const,
+              updated_at: new Date().toISOString(),
+            }
+            await db.put('shifts', updatedShift)
+          }
+          
+          //For Agent: No need to remove local storage. Sync is a background job and should not affect local storage, since local storage should have been updated during the local operation before enqueuing the sync item.
+        } else if (item.action === 'update') {
+          // REMOTE SYNC: Update shift on server
+          const db = await openDatabase()
+          const shift = await db.get('shifts', item.data_id as string as any) // data_id is shift_number
+          
+          if (!shift) {
+            throw new Error(`Shift with number '${item.data_id}' not found for update`)
+          }
+          
+          // Use id for remote API call
+          if (shift.id === 0 || shift.id === '0') {
+            // Shift not synced yet - create it first
+            // Get cash_register_id from registration
+            const { getRegistration } = await import('../utils/registration')
+            const registration = getRegistration()
+            
+            if (!registration?.cashRegisterId) {
+              throw new Error('Cash register not registered. Cannot sync shift without cash register ID.')
+            }
+            
+            const response = await apiClient.post('/api/v1/shifts/open', {
+              cash_register_id: registration.cashRegisterId,
+              initial_cash: shift.initial_cash,
+              inventory_balance: shift.inventory_balance,
+              shift_number: shift.shift_number,
+            })
+            
+            // Update local shift with server ID
+            const updatedShift = {
+              ...shift,
+              shift_number: shift.shift_number, // PRIMARY KEY
+              id: response.data.id, // Server-generated ID
+              sync_status: 'synced' as const,
+              updated_at: new Date().toISOString(),
+            }
+            await db.put('shifts', updatedShift)
+          } else {
+            // Update existing shift
+            await apiClient.put(`/api/v1/shifts/${shift.id}`, item.data)
+            
+            // Update sync status
+            const updatedShift = {
+              ...shift,
+              shift_number: shift.shift_number, // PRIMARY KEY
+              sync_status: 'synced' as const,
+              updated_at: new Date().toISOString(),
+            }
+            await db.put('shifts', updatedShift)
+          }
         }
         break
       case 'table':
         if (item.action === 'create') {
-          const response = await axios.post(`${API_BASE_URL}/api/v1/tables`, {
+          const response = await apiClient.post('/api/v1/tables', {
             store_id: item.data.store_id,
             table_number: item.data.table_number,
             name: item.data.name,
@@ -184,7 +310,7 @@ class SyncManager {
             await db.put('tables', updatedTable)
           }
         } else if (item.action === 'update') {
-          await axios.put(`${API_BASE_URL}/api/v1/tables/${item.data_id}`, {
+          await apiClient.put(`/api/v1/tables/${item.data_id}`, {
             table_number: item.data.table_number,
             name: item.data.name,
             capacity: item.data.capacity,

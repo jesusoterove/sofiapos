@@ -14,7 +14,8 @@ from app.schemas.store import (
 )
 from app.api.v1.auth import get_current_user
 from app.services.auth_service import verify_password
-from app.services.store_service import ensure_store_tables
+from app.services.store_service import ensure_store_tables, ensure_store_document_prefixes
+from app.utils.base36 import pad_base36
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
@@ -110,22 +111,45 @@ async def create_store(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new store."""
-    # Check if code already exists
-    existing = db.query(Store).filter(Store.code == store_data.code).first()
-    if existing:
+    """Create a new store with auto-generated code."""
+    # Auto-generate store code from first letter of name + base-36 padded sequence
+    first_letter = store_data.name[0].upper() if store_data.name else 'S'
+    code_digits = store_data.code_digits or 2
+    
+    # Find the next available sequence
+    sequence = 0
+    max_attempts = 36 ** code_digits  # Maximum possible combinations
+    store_code = None
+    
+    for seq in range(max_attempts):
+        code_suffix = pad_base36(seq, code_digits)
+        candidate_code = f"{first_letter}{code_suffix}"
+        
+        existing = db.query(Store).filter(Store.code == candidate_code).first()
+        if not existing:
+            store_code = candidate_code
+            break
+    
+    if store_code is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Store with code '{store_data.code}' already exists"
+            detail=f"Could not generate unique store code. Too many stores with name starting with '{first_letter}'"
         )
     
-    store = Store(**store_data.model_dump())
+    # Create store with auto-generated code
+    store_dict = store_data.model_dump()
+    store_dict['code'] = store_code
+    store = Store(**store_dict)
     db.add(store)
     db.commit()
     db.refresh(store)
     
     # Ensure tables exist for the new store
     ensure_store_tables(db, store.id, store.default_tables_count)
+    
+    # Ensure default document prefixes exist for the store
+    ensure_store_document_prefixes(db, store.id)
+    
     db.commit()
     db.refresh(store)
     
@@ -147,14 +171,12 @@ async def update_store(
             detail="Store not found"
         )
     
-    # Check if code is being changed and if new code already exists
+    # Code is read-only, cannot be updated
     if store_data.code and store_data.code != store.code:
-        existing = db.query(Store).filter(Store.code == store_data.code).first()
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Store with code '{store_data.code}' already exists"
-            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Store code cannot be changed after creation"
+        )
     
     # Track if default_tables_count is being changed
     old_default_tables_count = store.default_tables_count

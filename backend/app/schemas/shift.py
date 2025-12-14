@@ -15,9 +15,11 @@ class ShiftBase(BaseModel):
 
 class ShiftOpenRequest(BaseModel):
     """Schema for opening a new shift."""
-    store_id: int = Field(..., description="Store ID")
     initial_cash: float = Field(..., ge=0, description="Initial cash amount")
     inventory_balance: Optional[float] = Field(None, ge=0, description="Inventory beginning balance (if required)")
+    shift_number: Optional[str] = Field(None, description="Shift number (if provided, will be used instead of generating one)")
+    cash_register_id: Optional[int] = Field(None, description="Cash register ID (required to identify which cash register the shift belongs to)")
+    cash_register_code: Optional[str] = Field(None, description="Cash register code (alternative to cash_register_id)")
 
 
 class ShiftResponse(BaseModel):
@@ -44,6 +46,7 @@ class ShiftUpdate(BaseModel):
 class ShiftCloseRequest(BaseModel):
     """Schema for closing a shift."""
     notes: Optional[str] = None
+    final_cash: Optional[float] = Field(None, ge=0, description="Final cash amount")
 
 
 class ShiftInventoryEntryResponse(BaseModel):

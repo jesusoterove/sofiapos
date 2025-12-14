@@ -71,11 +71,9 @@ apiClient.interceptors.response.use(
     
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
-      // Check if this is a sync request (by checking config metadata)
-      const isSyncRequest = (originalRequest as any)?.metadata?.isSyncRequest === true;
-      
-      // If we haven't tried refreshing yet and this isn't a refresh token request itself
-      if (!originalRequest._retry && !isSyncRequest) {
+      // If we haven't tried refreshing yet, try to refresh the token
+      // This applies to both sync and non-sync requests
+      if (!originalRequest._retry) {
         originalRequest._retry = true;
         
         // Try to refresh the token
@@ -94,21 +92,22 @@ apiClient.interceptors.response.use(
             // Retry the original request with the new token
             return apiClient(originalRequest);
           } else {
-            // Refresh failed - clear tokens and redirect to login
+            // Refresh failed
+            // For sync requests, trigger auth failure notification (no redirect)
+            // For non-sync requests, also trigger notification (handled by handleAuthFailure)
             await handleAuthFailure();
             return Promise.reject(error);
           }
         } catch (refreshError) {
-          // Refresh token failed - clear tokens and redirect to login
+          // Refresh token failed
           console.error('Token refresh failed:', refreshError);
+          // For sync requests, trigger auth failure notification (no redirect)
+          // For non-sync requests, also trigger notification
           await handleAuthFailure();
           return Promise.reject(error);
         }
       } else {
-        // Already tried refreshing or this is a sync request
-        // For sync requests, trigger auth failure notification (no redirect)
-        // For non-sync requests that already tried refresh, also trigger notification
-        // (All 401s in background operations should be handled via sync notification)
+        // Already tried refreshing - trigger auth failure notification
         await handleAuthFailure();
         return Promise.reject(error);
       }

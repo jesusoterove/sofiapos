@@ -16,6 +16,7 @@ export interface RegistrationData {
   registeredAt: string
   registrationToken?: string
   cashRegisterId?: number
+  cashRegisterCode?: string // Cash register code (e.g., "SAA-AAA")
 }
 
 export interface RegistrationProgress {
