@@ -5,6 +5,8 @@ import { RegistrationPage } from '@/pages/registration/RegistrationPage'
 import { CheckShiftPage } from '@/pages/shift/CheckShiftPage'
 import { OpenShiftPage } from '@/pages/shift/OpenShiftPage'
 import { CloseShiftPage } from '@/pages/shift/CloseShiftPage'
+import { ShiftSummaryPage } from '@/pages/shift/ShiftSummaryPage'
+import { InventoryEntryPage } from '@/pages/inventory/InventoryEntryPage'
 import { SalesInvoicesPage } from '@/pages/sales/SalesInvoicesPage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { RootRoute } from '@/components/RootRoute'
@@ -208,6 +210,28 @@ const closeShiftRoute = createRoute({
   component: CloseShiftPage,
 })
 
+// Shift summary route (protected)
+const shiftSummaryRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/shift-summary',
+  validateSearch: (search: Record<string, unknown>): { shift_number: string } => {
+    if (!search.shift_number || typeof search.shift_number !== 'string') {
+      throw new Error('shift_number is required')
+    }
+    return {
+      shift_number: String(search.shift_number),
+    }
+  },
+  component: ShiftSummaryPage,
+})
+
+// Inventory entry route (protected)
+const inventoryEntryRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/inventory-entry',
+  component: InventoryEntryPage,
+})
+
 // ============================================================================
 // ROUTE TREE
 // ============================================================================
@@ -222,6 +246,8 @@ const routeTree = rootRoute.addChildren([
     checkShiftRoute,
     openShiftRoute,
     closeShiftRoute,
+    shiftSummaryRoute,
+    inventoryEntryRoute,
     salesInvoicesRoute,
   ]),
 ])

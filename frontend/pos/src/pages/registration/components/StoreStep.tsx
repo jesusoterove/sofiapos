@@ -86,10 +86,14 @@ export function StoreStep({
     if (cashRegisterId) {
       setIsValidatingToken(true)
       try {
-        // Fetch cash register information by ID
+        // Fetch cash register information by ID with admin token - skip default auth token handling
         const response = await apiClient.get(`/api/v1/cash_registers/${cashRegisterId}`, {
           headers: { Authorization: `Bearer ${adminToken}` },
-        })
+          metadata: {
+            skipAuthToken: true, // Skip default token handling, use custom Authorization header
+            skipTokenRefresh: true, // Don't try to refresh token on 401
+          },
+        } as any)
         
         const cashRegister = response.data
         
@@ -180,7 +184,11 @@ export function StoreStep({
 
       const cashRegisterResponse = await apiClient.post('/api/v1/cash_registers/register', cashierData, {
         headers: { Authorization: `Bearer ${adminToken}` },
-      })
+        metadata: {
+          skipAuthToken: true, // Skip default token handling, use custom Authorization header
+          skipTokenRefresh: true, // Don't try to refresh token on 401
+        },
+      } as any)
 
       const cashRegister = cashRegisterResponse.data
 

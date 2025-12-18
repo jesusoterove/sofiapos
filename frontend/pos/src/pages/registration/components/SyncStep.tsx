@@ -28,6 +28,8 @@ export function SyncStep({ onNext, onBack, adminToken, storeId: propStoreId }: S
     // Set admin token for API calls during sync
     if (adminToken) {
       localStorage.setItem('pos_auth_token', adminToken)
+      // Set flag to indicate we're using admin token (skip token refresh)
+      localStorage.setItem('pos_using_admin_token', 'true')
       // Also set in apiClient if needed
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`
     }
@@ -36,8 +38,10 @@ export function SyncStep({ onNext, onBack, adminToken, storeId: propStoreId }: S
     checkIfAlreadySynced()
 
     return () => {
-      // Clean up token after sync (security)
-      // But keep it until sync completes
+      // Clean up flag on unmount (security)
+      // Note: Token cleanup happens after successful sync in startSync
+      // This cleanup is a safety net in case component unmounts before sync completes
+      localStorage.removeItem('pos_using_admin_token')
     }
   }, [adminToken])
 
@@ -75,8 +79,9 @@ export function SyncStep({ onNext, onBack, adminToken, storeId: propStoreId }: S
 
       if (result.success) {
         setSyncComplete(true)
-        // Clear admin token after successful sync (security)
+        // Clear admin token and flag after successful sync (security)
         localStorage.removeItem('pos_auth_token')
+        localStorage.removeItem('pos_using_admin_token')
         delete apiClient.defaults.headers.common['Authorization']
       } else {
         setSyncError(result.error || 'Sync failed')
@@ -85,6 +90,8 @@ export function SyncStep({ onNext, onBack, adminToken, storeId: propStoreId }: S
       console.error('Sync error:', error)
       const errorMessage = error?.response?.data?.detail || error?.message || 'Unknown error'
       setSyncError(errorMessage)
+      // Clear admin token flag on error (but keep token in case user wants to retry)
+      // The token will be cleared when sync succeeds or component unmounts
     } finally {
       setIsSyncing(false)
     }

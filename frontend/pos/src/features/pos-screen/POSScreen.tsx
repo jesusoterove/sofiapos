@@ -14,9 +14,11 @@ import { OrderDetailsPanel } from '@/components/order/OrderDetailsPanel'
 import { PaymentScreen } from '@/components/payment/PaymentScreen'
 import { useOrderManagementContext } from '@/contexts/OrderManagementContext'
 import { useShiftContext } from '@/contexts/ShiftContext'
+import { useProductSelection } from '@/hooks/useProductSelection'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { getRegistration } from '@/utils/registration'
+import { openCashDrawer } from '@/services/cashDrawer'
 
 export function POSScreen() {
   // Get store ID from registration
@@ -25,6 +27,7 @@ export function POSScreen() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [showPaymentScreen, setShowPaymentScreen] = useState(false)
+  const { clearSearch } = useProductSelection()
   
   const { hasOpenShift, isLoading: shiftLoading } = useShiftContext()
   
@@ -74,9 +77,15 @@ export function POSScreen() {
       // ALWAYS save locally first (for performance, even when online)
       await markAsPaid(paymentMethod, amountPaid)
       
-      toast.success(t('payment.processPayment') || 'Payment processed successfully')
+      // Open cash drawer if payment is cash
+      if (paymentMethod === 'cash') {
+        await openCashDrawer()
+      }
+      
+      // toast.success(t('payment.processPayment') || 'Payment processed successfully')
       setShowPaymentScreen(false)
       clearOrder()
+      clearSearch() // Clear product selection search
       // Refresh orders list
       refetchOrders()
       // Switch to cash register if order was from a table
@@ -97,6 +106,7 @@ export function POSScreen() {
 
   const handleCancelOrder = async () => {
     await clearOrder()
+    clearSearch() // Clear product selection search
     // Switch to cash register when order is cancelled
     switchToCashRegister()
     // Refresh orders list (clearOrder already calls refetchOrders, but keep this for safety)

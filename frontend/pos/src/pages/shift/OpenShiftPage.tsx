@@ -152,14 +152,21 @@ export function OpenShiftPage() {
     }
 
     try {
-      // For now, we'll just open the shift without inventory entries
-      // Inventory entries can be added later if needed
+      // Convert beginning balance rows to the format expected by shift summary
+      const beginningBalances = beginningBalanceRows.map((row) => ({
+        item_id: row.item_type === 'Product' ? row.product_id! : row.material_id!,
+        item_type: row.item_type,
+        uofm_id: row.uofm_id,
+        quantity: row.balance_beginning,
+      }))
+
       await openShift({
         initialCash: parseFloat(initialCash),
         inventoryBalance: undefined, // Can be calculated from beginning balances if needed
+        beginningBalances, // Pass beginning balances for shift summary initialization
       })
 
-      toast.success(t('shift.openShiftSuccess') || 'Shift opened successfully!')
+      // toast.success(t('shift.openShiftSuccess') || 'Shift opened successfully!')
       navigate({ to: '/app', replace: true })
     } catch (error: any) {
       toast.error(error.message || t('shift.openShiftFailed') || 'Failed to open shift')

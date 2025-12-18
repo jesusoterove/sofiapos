@@ -163,6 +163,7 @@
   },
   "shift": {
     "title": "Shift",
+    "shift": "Shift",
     "openShift": "Open Shift",
     "closeShift": "Close Shift",
     "closeShiftWarning": "Warning: This action cannot be reversed. Please ensure all data is correct before proceeding.",
@@ -205,7 +206,27 @@
     "ingredientProduct": "Ingredient / Product",
     "unitOfMeasure": "U.M.",
     "balanceInitial": "Balance Initial",
-    "balanceFinal": "Balance Final"
+    "balanceFinal": "Balance Final",
+    "shiftSummary": "Shift Summary",
+    "summaryNotFound": "Shift summary not found",
+    "shiftNumberRequired": "Shift number is required",
+    "financialSummary": "Financial Summary",
+    "inventorySummary": "Inventory Summary",
+    "shiftStartDate": "Shift Start Date:",
+    "shiftEndDate": "Shift End Date:",
+    "endCash": "End Cash:",
+    "expectedCash": "Expected Cash:",
+    "difference": "Difference:",
+    "bankTransferBalance": "Bank Transfer Balance:",
+    "invInicial": "Initial Inv.",
+    "invFinal": "Final Inv.",
+    "diff": "Diff.",
+    "refill1": "Refill 1",
+    "refill2": "Refill 2",
+    "refill3": "Refill 3",
+    "refill4": "Refill 4",
+    "refill5": "Refill 5",
+    "refill6": "Refill 6"
   },
   "cashRegister": {
     "title": "Cash Register",
@@ -218,6 +239,7 @@
   },
   "inventory": {
     "title": "Inventory Entry",
+    "inventoryEntry": "Inventory Entry",
     "createEntry": "Create Entry",
     "entryType": "Entry Type",
     "purchase": "Purchase",
@@ -227,7 +249,17 @@
     "return": "Return",
     "material": "Material",
     "quantity": "Quantity",
-    "unitCost": "Unit Cost"
+    "unitCost": "Unit Cost",
+    "existingEntries": "Existing Entries",
+    "noEntries": "No entries yet",
+    "item": "Item",
+    "date": "Date",
+    "newEntry": "New Entry",
+    "selectItem": "Select an item...",
+    "notes": "Notes",
+    "saveEntry": "SAVE ENTRY",
+    "enterValidQuantity": "Please enter a valid quantity",
+    "entrySaved": "Inventory entry saved successfully"
   },
   "sync": {
     "online": "Online",

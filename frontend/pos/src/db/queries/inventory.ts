@@ -79,3 +79,23 @@ export async function getInventoryEntry(
   return db.get('inventory_entries', id)
 }
 
+export async function getAllInventoryEntries(
+  db: IDBPDatabase<POSDatabase>
+): Promise<POSDatabase['inventory_entries']['value'][]> {
+  return db.getAll('inventory_entries')
+}
+
+export async function getInventoryEntriesByShift(
+  db: IDBPDatabase<POSDatabase>,
+  shiftNumber: string
+): Promise<POSDatabase['inventory_entries']['value'][]> {
+  try {
+    const index = db.transaction('inventory_entries', 'readonly').store.index('by-shift-number')
+    return index.getAll(shiftNumber)
+  } catch (error) {
+    // Fallback: get all and filter
+    const allEntries = await db.getAll('inventory_entries')
+    return allEntries.filter((e) => e.shift_number === shiftNumber)
+  }
+}
+

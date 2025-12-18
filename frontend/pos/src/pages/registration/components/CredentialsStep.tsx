@@ -47,6 +47,7 @@ export function CredentialsStep({ onNext, onBack, initialUsername = '' }: Creden
       formData.append('username', adminUsername)
       formData.append('password', adminPassword)
 
+      console.log('About to request auth/login', formData)
       const authResponse = await apiClient.post('/api/v1/auth/login', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -60,10 +61,14 @@ export function CredentialsStep({ onNext, onBack, initialUsername = '' }: Creden
         // Allow any authenticated user for now
       }
 
-      // Load stores
+      // Load stores with admin token - skip default auth token handling
       const response = await apiClient.get('/api/v1/stores?active_only=true', {
         headers: { Authorization: `Bearer ${access_token}` },
-      })
+        metadata: {
+          skipAuthToken: true, // Skip default token handling, use custom Authorization header
+          skipTokenRefresh: true, // Don't try to refresh token on 401
+        },
+      } as any)
       const storesList = response.data || []
 
       // Move to next step with token and stores

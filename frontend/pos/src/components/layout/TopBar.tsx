@@ -58,8 +58,7 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
   }
 
   const handleInventoryEntry = () => {
-    // TODO: Navigate to inventory entry
-    console.log('Inventory entry clicked')
+    navigate({ to: '/app/inventory-entry', replace: false })
   }
 
   const handleSalesInvoices = () => {

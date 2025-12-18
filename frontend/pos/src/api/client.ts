@@ -36,10 +36,21 @@ window.addEventListener('offline', () => {
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available (check both possible keys)
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('pos_auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    console.log('INTERCEPTOR REQUEST', config)
+    
+    // Check if request should skip default auth token handling
+    const skipAuthToken = (config as any).metadata?.skipAuthToken === true;
+    
+    // If Authorization header is already explicitly set, respect it (don't override)
+    // OR if skipAuthToken flag is set, don't add default token
+    const hasExplicitAuth = !!config.headers?.Authorization;
+    
+    if (!skipAuthToken && !hasExplicitAuth) {
+      // Only add default auth token if no explicit auth header and skipAuthToken is not set
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('pos_auth_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     
     // Check if offline
@@ -71,6 +82,17 @@ apiClient.interceptors.response.use(
     
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
+      // Check if this request should skip token refresh (e.g., uses custom admin token)
+      const skipTokenRefresh = (originalRequest as any).metadata?.skipAuthToken === true || 
+                               (originalRequest as any).metadata?.skipTokenRefresh === true ||
+                               localStorage.getItem('pos_using_admin_token') === 'true'; // Using admin token during registration sync
+      
+      // If request has skipTokenRefresh flag or we're using admin token, don't try to refresh
+      if (skipTokenRefresh) {
+        console.log('[apiClient] Skipping token refresh - request uses custom/admin auth token');
+        return Promise.reject(error);
+      }
+      
       // If we haven't tried refreshing yet, try to refresh the token
       // This applies to both sync and non-sync requests
       if (!originalRequest._retry) {
@@ -84,8 +106,8 @@ apiClient.interceptors.response.use(
             // Update the token in localStorage
             localStorage.setItem('pos_auth_token', newToken);
             
-            // Update the authorization header for the failed request
-            if (originalRequest.headers) {
+            // Only update authorization header if it wasn't a custom token
+            if (originalRequest.headers && !skipTokenRefresh) {
               originalRequest.headers.Authorization = `Bearer ${newToken}`;
             }
             

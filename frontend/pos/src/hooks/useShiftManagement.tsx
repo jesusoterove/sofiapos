@@ -15,6 +15,7 @@ import { getShiftInventory, type ShiftInventoryEntryResponse } from '@/api/shift
 import type { ShiftCloseWithInventoryRequest } from '@/api/inventoryControl'
 import { generateShiftNumber } from '@/utils/documentNumbers'
 import { getRegistration } from '@/utils/registration'
+import { initializeShiftSummary } from '@/services/shiftSummary'
 
 export interface Shift {
   id: number | string
@@ -30,6 +31,7 @@ export interface Shift {
 export interface OpenShiftData {
   initialCash: number
   inventoryBalance?: number
+  beginningBalances?: Array<{ item_id: number; item_type: 'Product' | 'Material'; uofm_id: number; quantity: number }>
 }
 
 export function useShiftManagement() {
@@ -37,18 +39,25 @@ export function useShiftManagement() {
   const queryClient = useQueryClient()
 
   // Check for open shift - offline-first: check local first, then API
+  // Get cash register ID from registration
+  const registration = getRegistration()
+  const cashRegisterId = registration?.cashRegisterId
+  
   const { data: currentOpenShift, isLoading: isLoadingShift } = useQuery({
-    queryKey: ['shift', 'open', user?.store_id],
+    queryKey: ['shift', 'open', cashRegisterId],
     queryFn: async () => {
-      if (!user?.store_id) return null
+      if (!cashRegisterId) {
+        console.warn('[useShiftManagement] No cash register ID found in registration')
+        return null
+      }
 
       // ALWAYS check local storage first (offline-first)
       const localShift = localStorage.getItem('pos_current_shift')
       if (localShift) {
         try {
           const parsed = JSON.parse(localShift)
-          // Verify it's for the current store and is open
-          if (parsed.store_id === user.store_id && parsed.status === 'open') {
+          // Verify it's open
+          if (parsed.status === 'open') {
             return parsed
           }
         } catch (e) {
@@ -57,18 +66,25 @@ export function useShiftManagement() {
       }
 
       // Also check IndexedDB
+      // Note: Local getOpenShift uses store_id since IndexedDB schema stores store_id
+      // For now, we'll use store_id from user (shifts are associated with stores, cash registers belong to stores)
       const db = await openDatabase()
-      const dbShift = await getOpenShift(db, user.store_id)
-      if (dbShift) {
-        // Update localStorage for quick access
+      const dbShift = user?.store_id ? await getOpenShift(db, user.store_id) : null
+      if (dbShift && dbShift.status === 'open') {
+        // Update localStorage for quick access (only if shift is open)
         localStorage.setItem('pos_current_shift', JSON.stringify(dbShift))
         return dbShift
+      } else if (dbShift && dbShift.status !== 'open') {
+        // If shift exists but is closed, ensure localStorage is cleared
+        localStorage.removeItem('pos_current_shift')
       }
 
       // If no local shift, try API (only if online)
       if (navigator.onLine) {
         try {
-          const response = await apiClient.get(`/api/v1/shifts/open?store_id=${user.store_id}`)
+          const response = await apiClient.get(`/api/v1/shifts/open`, {
+            params: { cash_register_id: cashRegisterId },
+          })
           if (response.data) {
             // Store locally for offline access
             localStorage.setItem('pos_current_shift', JSON.stringify(response.data))
@@ -87,7 +103,7 @@ export function useShiftManagement() {
 
       return null
     },
-    enabled: !!user?.store_id,
+    enabled: !!cashRegisterId,
     staleTime: 30 * 1000, // 30 seconds
     // Preserve previous data during refetch to prevent hasOpenShift from becoming false temporarily
     placeholderData: (previousData) => previousData,
@@ -158,58 +174,94 @@ export function useShiftManagement() {
       // Also store in localStorage for quick access
       localStorage.setItem('pos_current_shift', JSON.stringify(shiftData))
       
+      // Initialize shift summary - CRITICAL: Must be created when shift opens
+      // This MUST succeed for the shift to function properly
+      try {
+        // Get beginning balances from data if available (from OpenShiftPage)
+        const beginningBalances = data.beginningBalances || []
+        console.log('[useShiftManagement] Initializing shift summary for shift:', shiftNumber, 'with beginningBalances:', beginningBalances.length)
+        
+        await initializeShiftSummary(shiftNumber, {
+          opened_at: shiftData.opened_at,
+          initial_cash: data.initialCash,
+        }, beginningBalances)
+        
+        // Verify the summary was created
+        const db = await openDatabase()
+        const { getShiftSummary } = await import('../db/queries/shiftSummaries')
+        const verifySummary = await getShiftSummary(db, shiftNumber)
+        
+        if (!verifySummary) {
+          throw new Error(`Shift summary was not created for shift ${shiftNumber}`)
+        }
+        
+        console.log('[useShiftManagement] Shift summary initialized and verified successfully')
+      } catch (error) {
+        console.error('[useShiftManagement] CRITICAL: Failed to initialize shift summary:', error)
+        // Log the full error for debugging
+        if (error instanceof Error) {
+          console.error('[useShiftManagement] Error details:', error.message, error.stack)
+        }
+        // This is a critical error - the shift summary is required for proper operation
+        // We'll still allow the shift to open, but log a severe warning
+        console.error('[useShiftManagement] SEVERE WARNING: Shift opened but summary initialization failed - shift summary will not be available!')
+        // Re-throw to make it more visible, but don't fail the shift open
+        // The safeguard in updateShiftSummaryOnPayment will try to create it later
+      }
+      
       // Try to sync in background if online (don't wait for it)
       // The sync manager will handle this automatically, but we can also try immediately
-      if (navigator.onLine) {
-        // Fire and forget - sync will happen in background via sync manager
-        // But we can also try immediately for better UX
-        apiClient.post('/api/v1/shifts/open', {
-          store_id: user.store_id,
-          initial_cash: data.initialCash,
-          inventory_balance: data.inventoryBalance,
-          shift_number: shiftNumber, // Send locally generated shift_number
-        }).then(async (response) => {
-          // Update local shift with server ID (should be different from 0)
-          if (response.data && response.data.id && response.data.id !== 0) {
-            // Update existing record (shift_number is primary key, so put() will update)
-            const updatedShift: POSDatabase['shifts']['value'] = {
-              ...shiftData,
-              shift_number: shiftNumber, // PRIMARY KEY - keep local shift_number
-              id: response.data.id, // Server-generated ID (for remote sync)
-              sync_status: 'synced' as const,
-              updated_at: new Date().toISOString(),
-            }
+      //For Agent: keep this code, do not remove it as it is for reference.
+      // if (navigator.onLine) {
+      //   // Fire and forget - sync will happen in background via sync manager
+      //   // But we can also try immediately for better UX
+      //   apiClient.post('/api/v1/shifts/open', {
+      //     cash_register_id: cashRegisterId, // Use cash_register_id instead of store_id
+      //     initial_cash: data.initialCash,
+      //     inventory_balance: data.inventoryBalance,
+      //     shift_number: shiftNumber, // Send locally generated shift_number
+      //   }).then(async (response) => {
+      //     // Update local shift with server ID (should be different from 0)
+      //     if (response.data && response.data.id && response.data.id !== 0) {
+      //       // Update existing record (shift_number is primary key, so put() will update)
+      //       const updatedShift: POSDatabase['shifts']['value'] = {
+      //         ...shiftData,
+      //         shift_number: shiftNumber, // PRIMARY KEY - keep local shift_number
+      //         id: response.data.id, // Server-generated ID (for remote sync)
+      //         sync_status: 'synced' as const,
+      //         updated_at: new Date().toISOString(),
+      //       }
             
-            // Update using shift_number as key (primary key)
-            await db.put('shifts', updatedShift)
-            localStorage.setItem('pos_current_shift', JSON.stringify(updatedShift))
+      //       // Update using shift_number as key (primary key)
+      //       await db.put('shifts', updatedShift)
+      //       localStorage.setItem('pos_current_shift', JSON.stringify(updatedShift))
             
-            // CRITICAL: Update currentOpenShift query data with the synced shift (with server ID)
-            queryClient.setQueryData(['shift', 'open', user?.store_id], updatedShift as any)
+      //       // CRITICAL: Update currentOpenShift query data with the synced shift (with server ID)
+      //       queryClient.setQueryData(['shift', 'open', user?.store_id], updatedShift as any)
             
-            // Remove from sync queue (using shift_number as identifier)
-            const queue = await getSyncQueue(db)
-            const queueItem = queue.find(item => 
-              item.type === 'shift' && 
-              item.action === 'create' && 
-              item.data_id === shiftNumber
-            )
-            if (queueItem) {
-              await removeFromSyncQueue(db, queueItem.id)
-            }
-          }
-        }).catch((error) => {
-          console.warn('Background sync failed, will retry later:', error)
-          // Shift is already queued for sync, so it will retry automatically
-        })
-      }
+      //       // Remove from sync queue (using shift_number as identifier)
+      //       const queue = await getSyncQueue(db)
+      //       const queueItem = queue.find(item => 
+      //         item.type === 'shift' && 
+      //         item.action === 'create' && 
+      //         item.data_id === shiftNumber
+      //       )
+      //       if (queueItem) {
+      //         await removeFromSyncQueue(db, queueItem.id)
+      //       }
+      //     }
+      //   }).catch((error) => {
+      //     console.warn('Background sync failed, will retry later:', error)
+      //     // Shift is already queued for sync, so it will retry automatically
+      //   })
+      // }
 
       return shiftData
     },
     onSuccess: async (shiftData) => {
       // CRITICAL: Immediately update currentOpenShift query data with the newly created shift
       // This ensures currentOpenShift is available immediately without waiting for query refetch
-      queryClient.setQueryData(['shift', 'open', user?.store_id], shiftData as any)
+      queryClient.setQueryData(['shift', 'open', cashRegisterId], shiftData as any)
       
       // Also invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['shift'] })
@@ -266,7 +318,7 @@ export function useShiftManagement() {
 
       // CRITICAL: Clear the current shift from React Query cache immediately
       // This ensures currentShift becomes null and hasOpenShift becomes false
-      queryClient.setQueryData(['shift', 'open', user?.store_id], null)
+      queryClient.setQueryData(['shift', 'open', cashRegisterId], null)
       queryClient.invalidateQueries({ queryKey: ['shift'] })
       queryClient.removeQueries({ queryKey: ['shift', 'open'] })
 
@@ -320,6 +372,24 @@ export function useShiftManagement() {
         // Ensure status is closed (should already be, but double-check)
         if (shift.status !== 'closed') {
           await db.put('shifts', { ...shift, status: 'closed' })
+        }
+      }
+      
+      // CRITICAL: Ensure localStorage is cleared (backup check)
+      // This ensures that even if something went wrong in mutationFn, we clear it here
+      const currentShiftInStorage = localStorage.getItem('pos_current_shift')
+      if (currentShiftInStorage) {
+        try {
+          const parsed = JSON.parse(currentShiftInStorage)
+          // If the stored shift matches the closed shift, remove it
+          if (parsed.shift_number === closedShift.shift_number || parsed.status === 'closed') {
+            localStorage.removeItem('pos_current_shift')
+            console.log('[closeShiftMutation.onSuccess] Removed closed shift from localStorage')
+          }
+        } catch (e) {
+          // If parsing fails, remove it anyway to be safe
+          localStorage.removeItem('pos_current_shift')
+          console.log('[closeShiftMutation.onSuccess] Removed invalid shift data from localStorage')
         }
       }
       
@@ -383,8 +453,8 @@ export function useShiftManagement() {
 
   // Refresh shift data manually
   const refreshShift = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['shift', 'open', user?.store_id] })
-  }, [queryClient, user?.store_id])
+    await queryClient.invalidateQueries({ queryKey: ['shift', 'open', cashRegisterId] })
+  }, [queryClient, cashRegisterId])
 
   const hasOpenShift = !!currentOpenShift
   const isLoading = isLoadingShift || openShiftMutation.isPending || closeShiftMutation.isPending

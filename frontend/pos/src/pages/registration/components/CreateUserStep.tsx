@@ -55,7 +55,11 @@ export function CreateUserStep({
 
       const userResponse = await apiClient.post(`/api/v1/cash_registers/${cashRegisterId}/user`, userData, {
         headers: { Authorization: `Bearer ${adminToken}` },
-      })
+        metadata: {
+          skipAuthToken: true, // Skip default token handling, use custom Authorization header
+          skipTokenRefresh: true, // Don't try to refresh token on 401
+        },
+      } as any)
 
       const cashierUser = userResponse.data
 

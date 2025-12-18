@@ -13,6 +13,7 @@ import { getAllOrders, getOrderItems, deleteOrder, getOrder } from '../db/querie
 import { generateOrderNumber } from '../utils/documentNumbers'
 import { getRegistration } from '../utils/registration'
 import { useAuth } from '../contexts/AuthContext'
+import { updateShiftSummaryOnPayment } from '../services/shiftSummary'
 
 export type OrderLocation = 'cash_register' | { type: 'table'; tableId: number }
 
@@ -695,6 +696,41 @@ export function useOrderManagement(storeId: number) {
     })
 
     console.log('[useOrderManagement] markAsPaid - payment processed, order saved with paid status')
+
+    // Update shift summary incrementally - CRITICAL: Must update when payment is made
+    try {
+      const currentShift = localStorage.getItem('pos_current_shift')
+      if (currentShift) {
+        const shiftData = JSON.parse(currentShift)
+        if (shiftData.shift_number) {
+          console.log('[useOrderManagement] Updating shift summary for shift:', shiftData.shift_number, 'payment method:', paymentMethod, 'total:', totals.total)
+          await updateShiftSummaryOnPayment(
+            shiftData.shift_number,
+            {
+              total: totals.total,
+              items: currentOrder.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+              })),
+            },
+            paymentMethod
+          )
+          console.log('[useOrderManagement] Shift summary updated successfully')
+        } else {
+          console.warn('[useOrderManagement] No shift_number found in current shift data')
+        }
+      } else {
+        console.warn('[useOrderManagement] No current shift found in localStorage - cannot update shift summary')
+      }
+    } catch (error) {
+      console.error('[useOrderManagement] Failed to update shift summary:', error)
+      // Log the full error for debugging
+      if (error instanceof Error) {
+        console.error('[useOrderManagement] Error details:', error.message, error.stack)
+      }
+      // Don't fail the payment if summary update fails, but log warning
+      console.warn('[useOrderManagement] Payment processed but shift summary update failed')
+    }
 
     // Refetch open orders list to update the UI
     refetchOrders()

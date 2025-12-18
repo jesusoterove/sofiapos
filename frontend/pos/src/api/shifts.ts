@@ -31,11 +31,11 @@ export interface ShiftInventoryEntryResponse {
 }
 
 /**
- * Get open shift for a store.
+ * Get open shift for a cash register.
  */
-export async function getOpenShift(storeId: number): Promise<Shift | null> {
+export async function getOpenShift(cashRegisterId: number): Promise<Shift | null> {
   const response = await apiClient.get(`/api/v1/shifts/open`, {
-    params: { store_id: storeId },
+    params: { cash_register_id: cashRegisterId },
   })
   return response.data
 }

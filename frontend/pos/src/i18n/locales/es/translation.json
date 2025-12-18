@@ -163,6 +163,7 @@
   },
   "shift": {
     "title": "Turno",
+    "shift": "Turno",
     "openShift": "Abrir Turno",
     "closeShift": "Cerrar Turno",
     "closeShiftWarning": "Advertencia: Esta acción no se puede revertir. Por favor asegúrese de que todos los datos sean correctos antes de continuar.",
@@ -205,7 +206,27 @@
     "ingredientProduct": "Ingrediente / Producto",
     "unitOfMeasure": "U.M.",
     "balanceInitial": "Balance Inicial",
-    "balanceFinal": "Balance Final"
+    "balanceFinal": "Balance Final",
+    "shiftSummary": "Resumen del Turno",
+    "summaryNotFound": "Resumen del turno no encontrado",
+    "shiftNumberRequired": "El número de turno es requerido",
+    "financialSummary": "Resumen Financiero",
+    "inventorySummary": "Resumen de Inventario",
+    "shiftStartDate": "Fecha de Inicio:",
+    "shiftEndDate": "Fecha de Cierre:",
+    "endCash": "Efectivo Final:",
+    "expectedCash": "Efectivo Esperado:",
+    "difference": "Diferencia:",
+    "bankTransferBalance": "Balance de Transferencias Bancarias:",
+    "invInicial": "Inv. Inicial",
+    "invFinal": "Inv. Final",
+    "diff": "Diferencia",
+    "refill1": "Recarga 1",
+    "refill2": "Recarga 2",
+    "refill3": "Recarga 3",
+    "refill4": "Recarga 4",
+    "refill5": "Recarga 5",
+    "refill6": "Recarga 6"
   },
   "cashRegister": {
     "title": "Caja Registradora",
@@ -218,6 +239,7 @@
   },
   "inventory": {
     "title": "Entrada de Inventario",
+    "inventoryEntry": "Entrada de Inventario",
     "createEntry": "Crear Entrada",
     "entryType": "Tipo de Entrada",
     "purchase": "Compra",
@@ -227,7 +249,17 @@
     "return": "Devolución",
     "material": "Material",
     "quantity": "Cantidad",
-    "unitCost": "Costo Unitario"
+    "unitCost": "Costo Unitario",
+    "existingEntries": "Entradas Existentes",
+    "noEntries": "Aún no hay entradas",
+    "item": "Item",
+    "date": "Fecha",
+    "newEntry": "Nueva Entrada",
+    "selectItem": "Seleccionar un item...",
+    "notes": "Notas",
+    "saveEntry": "GUARDAR ENTRADA",
+    "enterValidQuantity": "Por favor ingrese una cantidad válida",
+    "entrySaved": "Entrada de inventario guardada exitosamente"
   },
   "sync": {
     "online": "En Línea",

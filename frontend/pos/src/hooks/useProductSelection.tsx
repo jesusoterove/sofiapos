@@ -97,6 +97,10 @@ export function useProductSelection() {
     setSearchQuery(query)
   }, [])
 
+  const clearSearch = useCallback(() => {
+    setSearchQuery('')
+  }, [])
+
   return {
     products: filteredProducts,
     categories,
@@ -105,6 +109,7 @@ export function useProductSelection() {
     isLoading,
     selectCategory,
     setSearch,
+    clearSearch,
   }
 }
 

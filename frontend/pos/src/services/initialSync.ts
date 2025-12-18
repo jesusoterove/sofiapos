@@ -10,6 +10,7 @@ import { saveTables } from '../db/queries/tables'
 import { saveInventoryControlConfigs } from '../db/queries/inventoryControlConfig'
 import { saveDocumentPrefixes } from '../db/queries/documentPrefixes'
 import { initializeSequences } from '../db/queries/sequences'
+import { saveRecipes, saveRecipeMaterials } from '../db/queries/recipes'
 import { listProducts } from '../api/products'
 import { listProductCategories } from '../api/categories'
 import { listMaterials } from '../api/materials'
@@ -17,6 +18,8 @@ import { getGlobalSettings } from '../api/settings'
 import { listTables } from '../api/tables'
 import { getInventoryControlConfig } from '../api/inventoryControl'
 import { listDocumentPrefixes } from '../api/documentPrefixes'
+import { listRecipes, getRecipeMaterials } from '../api/recipes'
+import type { Recipe, RecipeMaterial } from '../api/recipes'
 import type { Product } from '../api/products'
 import type { ProductCategory } from '../api/categories'
 import type { Material } from '../api/materials'
@@ -25,7 +28,7 @@ import type { InventoryControlConfig } from '../api/inventoryControl'
 import type { DocumentPrefix } from '../api/documentPrefixes'
 
 export interface SyncProgress {
-  step: 'products' | 'categories' | 'materials' | 'settings' | 'tables' | 'inventory_config' | 'document_prefixes' | 'sequences' | 'complete'
+  step: 'products' | 'categories' | 'materials' | 'recipes' | 'recipe_materials' | 'settings' | 'tables' | 'inventory_config' | 'document_prefixes' | 'sequences' | 'complete'
   progress: number // 0-100
   message: string
 }
@@ -36,6 +39,8 @@ export interface SyncResult {
   productsCount?: number
   categoriesCount?: number
   materialsCount?: number
+  recipesCount?: number
+  recipeMaterialsCount?: number
   settingsCount?: number
   tablesCount?: number
   inventoryConfigCount?: number
@@ -111,6 +116,61 @@ async function syncMaterials(db: IDBPDatabase<POSDatabase>): Promise<number> {
   await tx.done
   
   return materials.length
+}
+
+/**
+ * Sync recipes from API to IndexedDB
+ */
+async function syncRecipes(db: IDBPDatabase<POSDatabase>): Promise<number> {
+  const recipes = await listRecipes() // Recipes are global, no store_id needed
+  
+  const dbRecipes: POSDatabase['recipes']['value'][] = recipes.map((r: Recipe) => ({
+    id: r.id,
+    product_id: r.product_id,
+    name: r.name,
+    description: r.description,
+    yield_quantity: r.yield_quantity,
+    yield_unit_of_measure_id: r.yield_unit_of_measure_id,
+    is_active: r.is_active,
+    sync_status: 'synced' as const,
+    updated_at: r.updated_at || new Date().toISOString(),
+  }))
+  
+  await saveRecipes(db, dbRecipes)
+  return recipes.length
+}
+
+/**
+ * Sync recipe materials from API to IndexedDB
+ */
+async function syncRecipeMaterials(db: IDBPDatabase<POSDatabase>, recipes: Recipe[]): Promise<number> {
+  let totalMaterials = 0
+  
+  // Fetch materials for each recipe
+  for (const recipe of recipes) {
+    try {
+      const materials = await getRecipeMaterials(recipe.id)
+      
+      const dbMaterials: POSDatabase['recipe_materials']['value'][] = materials.map((m: RecipeMaterial) => ({
+        id: m.id,
+        recipe_id: m.recipe_id,
+        material_id: m.material_id,
+        quantity: m.quantity,
+        unit_of_measure_id: m.unit_of_measure_id,
+        display_order: m.display_order,
+        sync_status: 'synced' as const,
+        updated_at: m.updated_at || new Date().toISOString(),
+      }))
+      
+      await saveRecipeMaterials(db, dbMaterials)
+      totalMaterials += materials.length
+    } catch (error) {
+      console.error(`[syncRecipeMaterials] Error syncing materials for recipe ${recipe.id}:`, error)
+      // Continue with other recipes
+    }
+  }
+  
+  return totalMaterials
 }
 
 /**
@@ -249,7 +309,7 @@ export async function performInitialSync(
       message: `Synced ${categoriesCount} categories`,
     })
     
-    // Sync Materials/Vendors (45%)
+    // Sync Materials/Vendors (40%)
     onProgress?.({
       step: 'materials',
       progress: 30,
@@ -258,43 +318,70 @@ export async function performInitialSync(
     const materialsCount = await syncMaterials(db)
     onProgress?.({
       step: 'materials',
-      progress: 45,
+      progress: 40,
       message: `Synced ${materialsCount} materials`,
+    })
+    
+    // Sync Recipes (50%)
+    onProgress?.({
+      step: 'recipes',
+      progress: 40,
+      message: 'Syncing recipes...',
+    })
+    const recipes = await listRecipes() // Recipes are global, no store_id needed
+    const recipesCount = await syncRecipes(db)
+    onProgress?.({
+      step: 'recipes',
+      progress: 45,
+      message: `Synced ${recipesCount} recipes`,
+    })
+    
+    // Sync Recipe Materials (55%)
+    onProgress?.({
+      step: 'recipe_materials',
+      progress: 45,
+      message: 'Syncing recipe materials...',
+    })
+    const recipeMaterialsCount = await syncRecipeMaterials(db, recipes)
+    onProgress?.({
+      step: 'recipe_materials',
+      progress: 50,
+      message: `Synced ${recipeMaterialsCount} recipe materials`,
     })
     
     // Sync Settings (60%)
     onProgress?.({
       step: 'settings',
-      progress: 45,
+      progress: 50,
       message: 'Syncing settings...',
     })
     const settingsCount = await syncSettings(db)
     onProgress?.({
       step: 'settings',
-      progress: 60,
+      progress: 55,
       message: `Synced ${settingsCount} settings`,
     })
     
-    // Sync Tables (70%)
+    // Sync Tables (65%)
     onProgress?.({
       step: 'tables',
-      progress: 60,
+      progress: 55,
       message: 'Syncing tables...',
     })
     const tablesCount = await syncTables(db, storeId)
     onProgress?.({
       step: 'tables',
-      progress: 70,
+      progress: 65,
       message: `Synced ${tablesCount} tables`,
     })
     
-    // Sync Inventory Control Config (85%)
+    // Sync Inventory Control Config (75%)
     let inventoryConfigCount = 0
     if (storeId) {
       try {
         onProgress?.({
           step: 'inventory_config',
-          progress: 60,
+          progress: 65,
           message: 'Syncing inventory control config...',
         })
         inventoryConfigCount = await syncInventoryControlConfig(db, storeId)
@@ -324,7 +411,7 @@ export async function performInitialSync(
       })
     }
     
-    // Sync Document Prefixes (85%)
+    // Sync Document Prefixes (80%)
     let documentPrefixesCount = 0
     try {
       onProgress?.({
@@ -335,7 +422,7 @@ export async function performInitialSync(
       documentPrefixesCount = await syncDocumentPrefixes(db, storeId)
       onProgress?.({
         step: 'document_prefixes',
-        progress: 85,
+        progress: 80,
         message: `Synced ${documentPrefixesCount} document prefixes`,
       })
     } catch (error: any) {
@@ -343,7 +430,7 @@ export async function performInitialSync(
       const errorMsg = error?.message || 'Unknown error'
       onProgress?.({
         step: 'document_prefixes',
-        progress: 85,
+        progress: 80,
         message: `Warning: Failed to sync document prefixes: ${errorMsg}`,
       })
       documentPrefixesCount = 0
@@ -377,6 +464,8 @@ export async function performInitialSync(
       productsCount,
       categoriesCount,
       materialsCount,
+      recipesCount,
+      recipeMaterialsCount,
       settingsCount,
       tablesCount,
       inventoryConfigCount: storeId ? inventoryConfigCount : undefined,

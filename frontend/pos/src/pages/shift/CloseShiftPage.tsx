@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useShiftContext } from '@/contexts/ShiftContext'
 import { getRegistration } from '@/utils/registration'
 import { POSLayout } from '@/components/layout/POSLayout'
+import { updateShiftSummaryOnClose } from '@/services/shiftSummary'
 
 interface InventoryBalanceRow {
   id: string
@@ -161,8 +162,24 @@ export function CloseShiftPage() {
         quantity: row.balance_final,
       }))
 
+      const finalCashValue = finalCash ? parseFloat(finalCash) : undefined
+
+      // Update shift summary before closing
+      try {
+        const endBalances = endBalanceRows.map((row) => ({
+          item_id: row.item_type === 'Product' ? row.product_id! : row.material_id!,
+          item_type: row.item_type,
+          uofm_id: row.uofm_id,
+          quantity: row.balance_final,
+        }))
+        await updateShiftSummaryOnClose(currentShift.shift_number, finalCashValue || 0, endBalances)
+      } catch (error) {
+        console.error('Failed to update shift summary:', error)
+        // Don't fail shift close if summary update fails
+      }
+
       await closeShift({
-        final_cash: finalCash ? parseFloat(finalCash) : undefined,
+        final_cash: finalCashValue,
         notes: closingNotes,
         inventory_entries: inventoryEntries,
       })
@@ -173,7 +190,8 @@ export function CloseShiftPage() {
       await new Promise(resolve => setTimeout(resolve, 100))
 
       toast.success(t('shift.closeShiftSuccess') || 'Shift closed successfully!')
-      navigate({ to: '/app', replace: true })
+      // Navigate to shift summary page instead of POS screen
+      navigate({ to: '/app/shift-summary', search: { shift_number: currentShift.shift_number }, replace: true })
     } catch (error: any) {
       toast.error(error.message || t('shift.closeShiftFailed') || 'Failed to close shift')
     }

@@ -114,11 +114,13 @@ export interface POSDatabase extends DBSchema {
       entry_date: string
       notes?: string
       created_by_user_id?: number
+      shift_id?: number
+      shift_number?: string
       sync_status: 'synced' | 'pending' | 'error'
       created_at: string
       updated_at: string
     }
-    indexes: { 'by-sync-status': string; 'by-store': number; 'by-entry-type': string }
+    indexes: { 'by-sync-status': string; 'by-store': number; 'by-entry-type': string; 'by-shift': number; 'by-shift-number': string }
   }
   inventory_transactions: {
     key: number
@@ -232,6 +234,76 @@ export interface POSDatabase extends DBSchema {
     }
     indexes: { 'by-cash-register': number; 'by-date': string; 'by-doc-type': string }
   }
+  cash_drawer_config: {
+    key: number
+    value: {
+      id: number
+      device_name: string
+      port_path: string
+      baud_rate: number
+      is_active: boolean
+      created_at: string
+      updated_at: string
+    }
+    indexes: { 'by-active': boolean }
+  }
+  recipes: {
+    key: number
+    value: {
+      id: number
+      product_id: number
+      name: string
+      description?: string
+      yield_quantity: number
+      yield_unit_of_measure_id?: number
+      is_active: boolean
+      sync_status: 'synced' | 'pending' | 'error'
+      updated_at: string
+    }
+    indexes: { 'by-product': number; 'by-sync-status': string; 'by-active': boolean }
+  }
+  recipe_materials: {
+    key: number
+    value: {
+      id: number
+      recipe_id: number
+      material_id: number
+      quantity: number
+      unit_of_measure_id?: number
+      display_order: number
+      sync_status: 'synced' | 'pending' | 'error'
+      updated_at: string
+    }
+    indexes: { 'by-recipe': number; 'by-material': number; 'by-sync-status': string }
+  }
+  shift_summaries: {
+    key: string // PRIMARY KEY: shift_number
+    value: {
+      shift_number: string
+      shift_id?: number
+      opened_at: string
+      closed_at?: string
+      initial_cash: number
+      final_cash?: number
+      expected_cash: number
+      difference?: number
+      bank_transfer_balance: number
+      inventory_summary: Array<{
+        item_id: number
+        item_type: 'Product' | 'Material'
+        item_name: string
+        uofm_id: number
+        uofm_abbreviation: string
+        beg_balance: number
+        refills: number[]
+        material_usage?: number
+        end_balance?: number
+        diff?: number
+      }>
+      updated_at: string
+    }
+    indexes: { 'by-shift-id': number }
+  }
 }
 
 const DB_NAME = 'sofiapos-db'
@@ -279,6 +351,8 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
       inventoryEntryStore.createIndex('by-sync-status', 'sync_status')
       inventoryEntryStore.createIndex('by-store', 'store_id')
       inventoryEntryStore.createIndex('by-entry-type', 'entry_type')
+      inventoryEntryStore.createIndex('by-shift', 'shift_id')
+      inventoryEntryStore.createIndex('by-shift-number', 'shift_number')
 
       // Inventory transactions store
       const inventoryTransactionStore = db.createObjectStore('inventory_transactions', { keyPath: 'id', autoIncrement: true })
@@ -315,6 +389,26 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
       sequencesStore.createIndex('by-date', 'date')
       sequencesStore.createIndex('by-doc-type', 'doc_type')
 
+      // Cash drawer config store
+      const cashDrawerStore = db.createObjectStore('cash_drawer_config', { keyPath: 'id', autoIncrement: true })
+      cashDrawerStore.createIndex('by-active', 'is_active')
+
+      // Recipes store
+      const recipeStore = db.createObjectStore('recipes', { keyPath: 'id' })
+      recipeStore.createIndex('by-product', 'product_id')
+      recipeStore.createIndex('by-sync-status', 'sync_status')
+      recipeStore.createIndex('by-active', 'is_active')
+
+      // Recipe materials store
+      const recipeMaterialStore = db.createObjectStore('recipe_materials', { keyPath: 'id' })
+      recipeMaterialStore.createIndex('by-recipe', 'recipe_id')
+      recipeMaterialStore.createIndex('by-material', 'material_id')
+      recipeMaterialStore.createIndex('by-sync-status', 'sync_status')
+
+      // Shift summaries store
+      const shiftSummaryStore = db.createObjectStore('shift_summaries', { keyPath: 'shift_number' })
+      shiftSummaryStore.createIndex('by-shift-id', 'shift_id')
+
       // Sync queue store
       const syncQueueStore = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
       syncQueueStore.createIndex('by-type', 'type')
@@ -339,6 +433,10 @@ export async function clearDatabase(): Promise<void> {
     await db.clear('inventory_control_config')
     await db.clear('document_prefixes')
     await db.clear('sequences')
+    await db.clear('cash_drawer_config')
+    await db.clear('recipes')
+    await db.clear('recipe_materials')
+    await db.clear('shift_summaries')
     await db.clear('sync_queue')
 }
 
