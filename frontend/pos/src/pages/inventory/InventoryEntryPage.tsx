@@ -212,8 +212,8 @@ export function InventoryEntryPage() {
 
   return (
     <POSLayout onHomeClick={handleBack}>
-      <div className="p-2 flex flex-col overflow-hidden h-full">
-        <div className="max-w-7xl mx-auto flex flex-col flex-1 min-h-0 w-full">
+      <div className="p-2 flex flex-col overflow-hidden h-full w-full">
+        <div className="mx-auto flex flex-col flex-1 min-h-0 w-full">
           {/* Header */}
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
@@ -222,9 +222,9 @@ export function InventoryEntryPage() {
           </div>
 
           {/* Two Sections: Existing Entries and Form */}
-          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0 h-full">
+          <div className="grid grid-cols-3 gap-4 flex-1 min-h-0 h-full">
             {/* Left: Existing Entries */}
-            <Card padding="md" className="flex flex-col h-full overflow-hidden">
+            <Card padding="md" className="flex flex-col h-full overflow-hidden col-span-2">
               <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
                 {t('inventory.existingEntries') || 'Entradas Existentes'}
               </h2>
@@ -262,7 +262,7 @@ export function InventoryEntryPage() {
                           className="hover:bg-gray-50"
                         >
                           <td className="py-0.5 px-3" style={{ color: 'var(--color-text-primary)' }}>
-                            {entry.entry_number}
+                            {entry.entry_number}{JSON.stringify(entry)}
                           </td>
                           <td className="py-0.5 px-3" style={{ color: 'var(--color-text-primary)' }}>
                             {entry.entry_type}

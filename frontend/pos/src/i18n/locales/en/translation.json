@@ -284,7 +284,25 @@
   "settings": {
     "title": "Settings",
     "language": "Language",
-    "changeLanguage": "Change Language"
+    "changeLanguage": "Change Language",
+    "loadConfigError": "Failed to load configuration",
+    "loadPortsError": "Failed to load available ports",
+    "deviceNameRequired": "Device name is required",
+    "portPathRequired": "Port path is required",
+    "baudRateRequired": "Baud rate must be greater than 0",
+    "saveSuccess": "Settings saved successfully",
+    "saveError": "Failed to save settings",
+    "cashDrawer": {
+      "title": "Cash Drawer Configuration",
+      "deviceName": "Device Name",
+      "deviceNamePlaceholder": "e.g., Epson TM-T20",
+      "portPath": "Port Path",
+      "selectPort": "Select a port...",
+      "refreshPorts": "Refresh",
+      "noPortsAvailable": "No serial ports available. Make sure your device is connected.",
+      "baudRate": "Baud Rate",
+      "isActive": "Active"
+    }
   },
   "registration": {
     "title": "Cashier Registration",

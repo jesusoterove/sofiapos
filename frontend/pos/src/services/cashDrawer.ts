@@ -3,7 +3,6 @@
  */
 import { openDatabase } from '../db'
 import { toast } from 'react-toastify'
-import { useTranslation } from '../i18n/hooks'
 
 export interface CashDrawerConfig {
   id?: number
@@ -20,9 +19,12 @@ export interface CashDrawerConfig {
  */
 export async function getCashDrawerConfig(): Promise<CashDrawerConfig | null> {
   const db = await openDatabase()
-  const index = db.transaction('cash_drawer_config', 'readonly').store.index('by-active')
-  const configs = await index.getAll(true) // Get all active configs
-  return configs.length > 0 ? configs[0] : null
+  
+  // Get all configs and filter in memory since IndexedDB boolean indexes may not work reliably with getAll
+  const allConfigs = await db.getAll('cash_drawer_config')
+  const activeConfigs = allConfigs.filter((config) => config.is_active === true)
+  
+  return activeConfigs.length > 0 ? activeConfigs[0] : null
 }
 
 /**
@@ -43,12 +45,13 @@ export async function saveCashDrawerConfig(config: CashDrawerConfig): Promise<vo
       })
     }
   } else {
-    // Create new
+    // Create new - exclude id as it will be auto-generated
+    const { id, ...configWithoutId } = config
     await db.add('cash_drawer_config', {
-      ...config,
+      ...configWithoutId,
       created_at: now,
       updated_at: now,
-    })
+    } as any) // Type assertion needed because id is required in the type but will be auto-generated
   }
 }
 

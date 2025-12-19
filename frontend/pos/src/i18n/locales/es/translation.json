@@ -284,7 +284,25 @@
   "settings": {
     "title": "Configuración",
     "language": "Idioma",
-    "changeLanguage": "Cambiar Idioma"
+    "changeLanguage": "Cambiar Idioma",
+    "loadConfigError": "Error al cargar la configuración",
+    "loadPortsError": "Error al cargar los puertos disponibles",
+    "deviceNameRequired": "El nombre del dispositivo es requerido",
+    "portPathRequired": "La ruta del puerto es requerida",
+    "baudRateRequired": "La velocidad de transmisión debe ser mayor que 0",
+    "saveSuccess": "Configuración guardada exitosamente",
+    "saveError": "Error al guardar la configuración",
+    "cashDrawer": {
+      "title": "Configuración de Cajón de Efectivo",
+      "deviceName": "Nombre del Dispositivo",
+      "deviceNamePlaceholder": "ej., Epson TM-T20",
+      "portPath": "Ruta del Puerto",
+      "selectPort": "Seleccione un puerto...",
+      "refreshPorts": "Actualizar",
+      "noPortsAvailable": "No hay puertos seriales disponibles. Asegúrese de que su dispositivo esté conectado.",
+      "baudRate": "Velocidad de Transmisión",
+      "isActive": "Activo"
+    }
   },
   "registration": {
     "title": "Registro de Cajero",

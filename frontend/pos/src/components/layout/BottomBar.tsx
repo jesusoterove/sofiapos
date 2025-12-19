@@ -11,6 +11,7 @@ import { FaCog, FaExclamationTriangle, FaSync } from 'react-icons/fa'
 import { getTables, type Table } from '@/db/queries/tables'
 import { SyncResultsModal } from '@/components/sync/SyncResultsModal'
 import { CredentialDialog } from '@/components/sync/CredentialDialog'
+import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { getRegistration } from '@/utils/registration'
 import { TableOrdersList } from './TableOrdersList'
 
@@ -23,6 +24,7 @@ export function BottomBar() {
   const [tables, setTables] = useState<Table[]>([])
   const [showSyncResults, setShowSyncResults] = useState(false)
   const [showCredentialDialog, setShowCredentialDialog] = useState(false)
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false)
 
   useEffect(() => {
     loadTables()
@@ -44,8 +46,7 @@ export function BottomBar() {
   }
 
   const handleSettings = () => {
-    // TODO: Open settings
-    console.log('Settings clicked')
+    setShowSettingsDialog(true)
   }
 
   const handleSyncAuthFailureClick = () => {
@@ -84,7 +85,7 @@ export function BottomBar() {
     >
       {/* Left: Status Indicators */}
       <div className="flex items-center gap-4 text-sm">
-        <div>
+        {/* <div>
           <span className="opacity-75">Shift: </span>
           <Badge variant="success" size="sm">
             {t('common.open') || 'Open'}
@@ -95,7 +96,7 @@ export function BottomBar() {
           <Badge variant="success" size="sm">
             {t('common.open') || 'Open'}
           </Badge>
-        </div>
+        </div> */}
         <div>
           <span className="opacity-75">Sync: </span>
           <Badge variant={isOnline ? 'success' : 'danger'} size="sm">
@@ -187,6 +188,12 @@ export function BottomBar() {
         onClose={() => setShowCredentialDialog(false)}
         onSuccess={handleCredentialSuccess}
         message={t('sync.reauthMessage') || 'Your session has expired. Please enter your credentials to continue synchronization.'}
+      />
+
+      {/* Settings Dialog */}
+      <SettingsDialog
+        isOpen={showSettingsDialog}
+        onClose={() => setShowSettingsDialog(false)}
       />
     </div>
   )
