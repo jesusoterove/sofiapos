@@ -250,6 +250,7 @@
     "material": "Material",
     "quantity": "Quantity",
     "unitCost": "Unit Cost",
+    "totalCost": "Total Cost",
     "existingEntries": "Existing Entries",
     "noEntries": "No entries yet",
     "item": "Item",

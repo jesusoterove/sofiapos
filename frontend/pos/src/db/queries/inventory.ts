@@ -4,14 +4,31 @@
 import { IDBPDatabase } from 'idb'
 import { POSDatabase } from '../indexeddb'
 import { addToSyncQueue } from './sync'
+import { generateInventoryNumber } from '../../utils/documentNumbers'
+import { getRegistration } from '../../utils/registration'
 
 export async function saveInventoryEntry(
   db: IDBPDatabase<POSDatabase>,
-  entry: Omit<POSDatabase['inventory_entries']['value'], 'id' | 'sync_status' | 'created_at' | 'updated_at'>
+  entry: Omit<POSDatabase['inventory_entries']['value'], 'id' | 'entry_number' | 'sync_status' | 'created_at' | 'updated_at'>
 ) {
+  // Generate entry_number if not provided
+  let entryNumber = entry.entry_number
+  if (!entryNumber) {
+    const registration = getRegistration()
+    if (!registration?.cashRegisterId || !registration?.cashRegisterCode) {
+      throw new Error('Cash register not registered. Cannot generate inventory entry number.')
+    }
+    entryNumber = await generateInventoryNumber(
+      registration.cashRegisterId,
+      registration.cashRegisterCode,
+      registration.storeId
+    )
+  }
+
   // ALWAYS save locally first (for performance, even when online)
   const entryData: POSDatabase['inventory_entries']['value'] = {
     ...entry,
+    entry_number: entryNumber,
     id: entry.id || Date.now(), // Use timestamp as ID if not provided
     sync_status: 'pending',
     created_at: new Date().toISOString(),
@@ -31,28 +48,28 @@ export async function saveInventoryEntry(
   return entryId
 }
 
-export async function saveInventoryTransaction(
+export async function saveInventoryEntryDetail(
   db: IDBPDatabase<POSDatabase>,
-  transaction: Omit<POSDatabase['inventory_transactions']['value'], 'id' | 'sync_status'>
+  detail: Omit<POSDatabase['inventory_entry_details']['value'], 'id' | 'sync_status'>
 ) {
   // ALWAYS save locally first (for performance, even when online)
-  const transactionData: POSDatabase['inventory_transactions']['value'] = {
-    ...transaction,
-    id: transaction.id || Date.now(), // Use timestamp as ID if not provided
+  const detailData: POSDatabase['inventory_entry_details']['value'] = {
+    ...detail,
+    id: detail.id || Date.now(), // Use timestamp as ID if not provided
     sync_status: 'pending',
   }
 
-  const transactionId = await db.put('inventory_transactions', transactionData)
+  const detailId = await db.put('inventory_entry_details', detailData)
 
   // Add to sync queue
   await addToSyncQueue(db, {
-    type: 'inventory_transaction',
+    type: 'inventory_entry_detail',
     action: 'create',
-    data_id: transactionId,
-    data: transactionData,
+    data_id: detailId,
+    data: detailData,
   })
 
-  return transactionId
+  return detailId
 }
 
 export async function getInventoryEntries(
@@ -65,11 +82,25 @@ export async function getInventoryEntries(
   return db.getAll('inventory_entries')
 }
 
-export async function getInventoryTransactions(
+export async function getInventoryEntryDetails(
   db: IDBPDatabase<POSDatabase>,
   entryId: number
-): Promise<POSDatabase['inventory_transactions']['value'][]> {
-  return db.getAllFromIndex('inventory_transactions', 'by-entry', entryId)
+): Promise<POSDatabase['inventory_entry_details']['value'][]> {
+  return db.getAllFromIndex('inventory_entry_details', 'by-entry', entryId)
+}
+
+export async function getInventoryEntryDetailsByEntryNumber(
+  db: IDBPDatabase<POSDatabase>,
+  entryNumber: string
+): Promise<POSDatabase['inventory_entry_details']['value'][]> {
+  try {
+    const index = db.transaction('inventory_entry_details', 'readonly').store.index('by-entry-number')
+    return index.getAll(entryNumber)
+  } catch (error) {
+    // Fallback: get all and filter
+    const allDetails = await db.getAll('inventory_entry_details')
+    return allDetails.filter((d) => d.entry_number === entryNumber)
+  }
 }
 
 export async function getInventoryEntry(

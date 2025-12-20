@@ -11,8 +11,8 @@ import { useTranslation } from '@/i18n/hooks'
 import { useShiftContext } from '@/contexts/ShiftContext'
 import { openDatabase } from '@/db'
 import { getAllInventoryControlConfig } from '@/db/queries/inventoryControlConfig'
-import { getInventoryEntriesByShift } from '@/db/queries/inventory'
-import { saveInventoryEntry, saveInventoryTransaction } from '@/db/queries/inventory'
+import { getInventoryEntriesByShift, getInventoryEntryDetailsByEntryNumber } from '@/db/queries/inventory'
+import { saveInventoryEntry, saveInventoryEntryDetail } from '@/db/queries/inventory'
 import { updateShiftSummaryOnInventoryEntry } from '@/services/shiftSummary'
 import { toast } from 'react-toastify'
 import { getRegistration } from '@/utils/registration'
@@ -26,6 +26,7 @@ interface InventoryEntryRow {
   uofm_id: number
   uofm_abbreviation: string
   quantity: number
+  unitCost: number // Pre-calculated unit cost in the selected UoM
 }
 
 export function InventoryEntryPage() {
@@ -37,9 +38,16 @@ export function InventoryEntryPage() {
 
   const [loading, setLoading] = useState(true)
   const [availableItems, setAvailableItems] = useState<InventoryEntryRow[]>([])
-  const [existingEntries, setExistingEntries] = useState<any[]>([])
+  const [existingEntries, setExistingEntries] = useState<Array<{
+    entry: any
+    detail: any
+    itemName: string
+    uofmAbbreviation: string
+  }>>([])
   const [selectedItemId, setSelectedItemId] = useState<string>('')
   const [quantity, setQuantity] = useState('')
+  const [unitCost, setUnitCost] = useState('')
+  const [totalCost, setTotalCost] = useState('')
   const [notes, setNotes] = useState('')
 
   useEffect(() => {
@@ -54,18 +62,69 @@ export function InventoryEntryPage() {
         setLoading(true)
         const db = await openDatabase()
 
-        // Get inventory control config
-        const config = await getAllInventoryControlConfig(db, true) // Only show_in_inventory=true
+        // Load all data upfront to avoid multiple queries
+        const [config, allMaterials, allMaterialUofms] = await Promise.all([
+          getAllInventoryControlConfig(db, true), // Only show_in_inventory=true
+          db.getAll('materials'),
+          db.getAll('material_unit_of_measures'),
+        ])
 
-        // Build available items list
+        // Build available items list with pre-calculated unit costs
         const items: InventoryEntryRow[] = []
+
+        console.log('allMaterialUofms', allMaterialUofms)
+
+        // Helper function to calculate unit cost for a UoM
+        const calculateUnitCost = (baseUnitCost: number | undefined, item: any, uofmId: number): number => {
+          if (baseUnitCost === undefined || baseUnitCost === 0) {
+            return 0
+          }
+
+          console.log('Calculating unit cost for', item, 'baseUnitCost', baseUnitCost, 'uofmId', uofmId)
+
+          if (item.item_type === 'Material' && item.material_id) {
+            // Find material UoM conversion factor
+            const materialUofms = allMaterialUofms.filter((muom) => muom.material_id === item.material_id)
+            const baseUofm = materialUofms.find((muom) => muom.is_base_unit)
+
+            console.log('baseUofm', baseUofm)
+            
+            // Check if selected UoM is the base unit
+            if (baseUofm && baseUofm.unit_of_measure_id === uofmId) {
+              return baseUnitCost // No conversion needed
+            }
+            
+            // Find conversion factor for the selected UoM
+            const matchingUofm = materialUofms.find((muom) => muom.unit_of_measure_id === uofmId)
+            console.log('matchingUofm', matchingUofm)
+            if (matchingUofm) {
+              // conversion_factor converts FROM selected UoM TO base UoM
+              // To convert cost FROM base TO selected: multiply by conversion_factor
+              return baseUnitCost * matchingUofm.conversion_factor
+            }
+          } else if (item.item_type === 'Product' && item.product_id) {
+            // Products don't have unit_cost, but we could add conversion factor logic here in the future
+            return 0
+          }
+          
+          return baseUnitCost // Fallback: use base unit cost
+        }
+
         config.forEach((item) => {
           const itemName = item.item_type === 'Product' ? item.product_name : item.material_name
           if (!itemName) return
 
-          const itemId = item.item_type === 'Product' ? item.product_id! : item.material_id!
+          // Get base unit cost (only for materials, products don't have unit_cost)
+          let baseUnitCost: number | undefined
+          if (item.item_type === 'Material' && item.material_id) {
+            const material = allMaterials.find((m) => m.id === item.material_id)
+            baseUnitCost = material?.unit_cost
+          } else {
+            baseUnitCost = 0 // Products don't have unit_cost
+          }
 
-          // Add each UoM as a separate selectable item
+
+          // Add each UoM as a separate selectable item with pre-calculated unit cost
           if (item.uofm1_id && item.uofm1_abbreviation) {
             items.push({
               id: `${item.id}-uofm1`,
@@ -76,6 +135,7 @@ export function InventoryEntryPage() {
               uofm_id: item.uofm1_id,
               uofm_abbreviation: item.uofm1_abbreviation,
               quantity: 0,
+              unitCost: calculateUnitCost(baseUnitCost, item, item.uofm1_id),
             })
           }
           if (item.uofm2_id && item.uofm2_abbreviation) {
@@ -88,6 +148,7 @@ export function InventoryEntryPage() {
               uofm_id: item.uofm2_id,
               uofm_abbreviation: item.uofm2_abbreviation,
               quantity: 0,
+              unitCost: calculateUnitCost(baseUnitCost, item, item.uofm2_id),
             })
           }
           if (item.uofm3_id && item.uofm3_abbreviation) {
@@ -100,15 +161,65 @@ export function InventoryEntryPage() {
               uofm_id: item.uofm3_id,
               uofm_abbreviation: item.uofm3_abbreviation,
               quantity: 0,
+              unitCost: calculateUnitCost(baseUnitCost, item, item.uofm3_id),
             })
           }
         })
 
         setAvailableItems(items)
 
-        // Get existing entries for this shift
+        // Get existing entries for this shift with their details
         const entries = await getInventoryEntriesByShift(db, currentShift.shift_number)
-        setExistingEntries(entries)
+        
+        // Load all products, materials, and unit of measures for lookup
+        const [allProducts, allMaterialsForLookup, allUnitOfMeasures] = await Promise.all([
+          db.getAll('products'),
+          db.getAll('materials'),
+          db.getAll('unit_of_measures'),
+        ])
+
+        // Load entry details for each entry and build display data
+        // Each detail becomes a separate row in the grid
+        const entriesWithDetails: Array<{
+          entry: any
+          detail: any
+          itemName: string
+          uofmAbbreviation: string
+        }> = []
+
+        for (const entry of entries) {
+          // Get entry details for this entry
+          const details = await getInventoryEntryDetailsByEntryNumber(db, entry.entry_number)
+          
+          // Create a row for each detail
+          for (const detail of details) {
+            // Get item name
+            let itemName = ''
+            if (detail.product_id) {
+              const product = allProducts.find((p) => p.id === detail.product_id)
+              itemName = product?.name || `Product ${detail.product_id}`
+            } else if (detail.material_id) {
+              const material = allMaterialsForLookup.find((m) => m.id === detail.material_id)
+              itemName = material?.name || `Material ${detail.material_id}`
+            }
+
+            // Get unit of measure abbreviation
+            let uofmAbbreviation = ''
+            if (detail.unit_of_measure_id) {
+              const uofm = allUnitOfMeasures.find((u) => u.id === detail.unit_of_measure_id)
+              uofmAbbreviation = uofm?.abbreviation || ''
+            }
+
+            entriesWithDetails.push({
+              entry,
+              detail,
+              itemName,
+              uofmAbbreviation,
+            })
+          }
+        }
+
+        setExistingEntries(entriesWithDetails)
       } catch (error: any) {
         console.error('Failed to load data:', error)
         toast.error(error.message || t('common.error') || 'Failed to load data')
@@ -119,6 +230,68 @@ export function InventoryEntryPage() {
 
     loadData()
   }, [currentShift, navigate, t])
+
+  // Update unit cost and total cost when item is selected
+  useEffect(() => {
+    if (!selectedItemId) {
+      setUnitCost('')
+      setTotalCost('')
+      return
+    }
+
+    const selectedItem = availableItems.find((item) => item.id === selectedItemId)
+    if (!selectedItem) {
+      setUnitCost('')
+      setTotalCost('')
+      return
+    }
+
+    // Use pre-calculated unit cost from availableItems
+    const preCalculatedUnitCost = selectedItem.unitCost
+    
+    if (preCalculatedUnitCost !== undefined && preCalculatedUnitCost > 0) {
+      setUnitCost(preCalculatedUnitCost.toFixed(4))
+      // Calculate total cost if quantity is set
+      if (quantity && parseFloat(quantity) > 0) {
+        setTotalCost((preCalculatedUnitCost * parseFloat(quantity)).toFixed(2))
+      } else {
+        setTotalCost('')
+      }
+    } else {
+      setUnitCost('')
+      setTotalCost('')
+    }
+  }, [selectedItemId, availableItems, quantity])
+
+  // Auto-calculate total cost when unit cost or quantity changes
+  useEffect(() => {
+    if (unitCost && quantity && parseFloat(quantity) > 0) {
+      const calculatedTotal = (parseFloat(unitCost) * parseFloat(quantity)).toFixed(2)
+      setTotalCost(calculatedTotal)
+    } else if (!unitCost || !quantity) {
+      setTotalCost('')
+    }
+  }, [unitCost, quantity])
+
+  // Auto-calculate unit cost when total cost changes
+  const handleTotalCostChange = (value: string) => {
+    setTotalCost(value)
+    if (value && quantity && parseFloat(quantity) > 0) {
+      const calculatedUnitCost = (parseFloat(value) / parseFloat(quantity)).toFixed(4)
+      setUnitCost(calculatedUnitCost)
+    }
+  }
+
+  // Auto-calculate total cost when unit cost changes
+  const handleUnitCostChange = (value: string) => {
+    setUnitCost(value)
+    if (value && quantity && parseFloat(quantity) > 0) {
+      const calculatedTotal = (parseFloat(value) * parseFloat(quantity)).toFixed(2)
+      setTotalCost(calculatedTotal)
+    } else {
+      setTotalCost('')
+    }
+  }
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,14 +315,12 @@ export function InventoryEntryPage() {
     try {
       const db = await openDatabase()
       const quantityValue = parseFloat(quantity)
+      const unitCostValue = unitCost ? parseFloat(unitCost) : undefined
+      const totalCostValue = totalCost ? parseFloat(totalCost) : undefined
 
-      // Generate entry number (local)
-      const entryNumber = `ENT-${Date.now()}`
-
-      // Save inventory entry
+      // Save inventory entry (entry_number will be auto-generated)
       const entryId = await saveInventoryEntry(db, {
         store_id: storeId,
-        entry_number: entryNumber,
         entry_type: 'purchase', // Use 'purchase' for shift refills
         entry_date: new Date().toISOString(),
         notes: notes || undefined,
@@ -157,13 +328,22 @@ export function InventoryEntryPage() {
         shift_number: currentShift.shift_number,
       })
 
-      // Save inventory transaction
-      await saveInventoryTransaction(db, {
+      // Get the entry to get the generated entry_number
+      const entry = await db.get('inventory_entries', entryId)
+      if (!entry) {
+        throw new Error('Failed to retrieve created inventory entry')
+      }
+
+      // Save inventory entry detail
+      await saveInventoryEntryDetail(db, {
+        entry_number: entry.entry_number, // Local link using entry_number
         entry_id: entryId,
         product_id: selectedItem.product_id,
         material_id: selectedItem.material_id,
         quantity: quantityValue,
         unit_of_measure_id: selectedItem.uofm_id,
+        unit_cost: unitCostValue,
+        total_cost: totalCostValue,
       })
 
       // Update shift summary
@@ -179,16 +359,67 @@ export function InventoryEntryPage() {
       // Reset form
       setSelectedItemId('')
       setQuantity('')
+      setUnitCost('')
+      setTotalCost('')
       setNotes('')
 
-      // Reload existing entries
+      // Reload existing entries with details
       const entries = await getInventoryEntriesByShift(db, currentShift.shift_number)
-      setExistingEntries(entries)
+      
+      // Load all products, materials, and unit of measures for lookup
+      const [allProducts, allMaterialsForLookup, allUnitOfMeasures] = await Promise.all([
+        db.getAll('products'),
+        db.getAll('materials'),
+        db.getAll('unit_of_measures'),
+      ])
+
+      // Load entry details for each entry and build display data
+      // Each detail becomes a separate row in the grid
+      const entriesWithDetails: Array<{
+        entry: any
+        detail: any
+        itemName: string
+        uofmAbbreviation: string
+      }> = []
+
+      for (const entry of entries) {
+        // Get entry details for this entry
+        const details = await getInventoryEntryDetailsByEntryNumber(db, entry.entry_number)
+        
+        // Create a row for each detail
+        for (const detail of details) {
+          // Get item name
+          let itemName = ''
+          if (detail.product_id) {
+            const product = allProducts.find((p) => p.id === detail.product_id)
+            itemName = product?.name || `Product ${detail.product_id}`
+          } else if (detail.material_id) {
+            const material = allMaterialsForLookup.find((m) => m.id === detail.material_id)
+            itemName = material?.name || `Material ${detail.material_id}`
+          }
+
+          // Get unit of measure abbreviation
+          let uofmAbbreviation = ''
+          if (detail.unit_of_measure_id) {
+            const uofm = allUnitOfMeasures.find((u) => u.id === detail.unit_of_measure_id)
+            uofmAbbreviation = uofm?.abbreviation || ''
+          }
+
+          entriesWithDetails.push({
+            entry,
+            detail,
+            itemName,
+            uofmAbbreviation,
+          })
+        }
+      }
+
+      setExistingEntries(entriesWithDetails)
     } catch (error: any) {
       console.error('Failed to save inventory entry:', error)
       toast.error(error.message || t('common.error') || 'Failed to save inventory entry')
     }
-  }, [currentShift, selectedItemId, quantity, notes, availableItems, storeId, t])
+  }, [currentShift, selectedItemId, quantity, unitCost, totalCost, notes, availableItems, storeId, t])
 
   const handleBack = () => {
     navigate({ to: '/app', replace: false })
@@ -255,20 +486,20 @@ export function InventoryEntryPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {existingEntries.map((entry) => (
+                      {existingEntries.map((entryData, index) => (
                         <tr
-                          key={entry.id}
+                          key={`${entryData.entry.id}-${entryData.detail.id}-${index}`}
                           style={{ borderBottom: '1px solid var(--color-border-default)' }}
                           className="hover:bg-gray-50"
                         >
                           <td className="py-0.5 px-3" style={{ color: 'var(--color-text-primary)' }}>
-                            {entry.entry_number}{JSON.stringify(entry)}
+                            {entryData.itemName}
                           </td>
                           <td className="py-0.5 px-3" style={{ color: 'var(--color-text-primary)' }}>
-                            {entry.entry_type}
+                            {entryData.detail.quantity} {entryData.uofmAbbreviation}
                           </td>
                           <td className="py-0.5 px-3" style={{ color: 'var(--color-text-primary)' }}>
-                            {new Date(entry.entry_date).toLocaleDateString()}
+                            {new Date(entryData.entry.entry_date).toLocaleDateString()}
                           </td>
                         </tr>
                       ))}
@@ -311,6 +542,24 @@ export function InventoryEntryPage() {
                   label={t('inventory.quantity') || 'Cantidad'}
                   value={quantity}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuantity(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  fullWidth
+                />
+                <Input
+                  type="number"
+                  label={t('inventory.unitCost') || 'Costo Unitario'}
+                  value={unitCost}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUnitCostChange(e.target.value)}
+                  step="0.0001"
+                  min="0"
+                  fullWidth
+                />
+                <Input
+                  type="number"
+                  label={t('inventory.totalCost') || 'Costo Total'}
+                  value={totalCost}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTotalCostChange(e.target.value)}
                   step="0.01"
                   min="0"
                   fullWidth

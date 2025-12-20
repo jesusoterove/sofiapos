@@ -11,6 +11,7 @@ import { saveInventoryControlConfigs } from '../db/queries/inventoryControlConfi
 import { saveDocumentPrefixes } from '../db/queries/documentPrefixes'
 import { initializeSequences } from '../db/queries/sequences'
 import { saveRecipes, saveRecipeMaterials } from '../db/queries/recipes'
+import { saveUnitOfMeasures, saveProductUnitOfMeasures, saveMaterialUnitOfMeasures } from '../db/queries/unitOfMeasures'
 import { listProducts } from '../api/products'
 import { listProductCategories } from '../api/categories'
 import { listMaterials } from '../api/materials'
@@ -19,6 +20,9 @@ import { listTables } from '../api/tables'
 import { getInventoryControlConfig } from '../api/inventoryControl'
 import { listDocumentPrefixes } from '../api/documentPrefixes'
 import { listRecipes, getRecipeMaterials } from '../api/recipes'
+import { listUnitOfMeasures } from '../api/unitOfMeasures'
+import { listProductUnitOfMeasures } from '../api/productUnitOfMeasures'
+import { listMaterialUnitOfMeasures } from '../api/materialUnitOfMeasures'
 import type { Recipe, RecipeMaterial } from '../api/recipes'
 import type { Product } from '../api/products'
 import type { ProductCategory } from '../api/categories'
@@ -28,7 +32,7 @@ import type { InventoryControlConfig } from '../api/inventoryControl'
 import type { DocumentPrefix } from '../api/documentPrefixes'
 
 export interface SyncProgress {
-  step: 'products' | 'categories' | 'materials' | 'recipes' | 'recipe_materials' | 'settings' | 'tables' | 'inventory_config' | 'document_prefixes' | 'sequences' | 'complete'
+  step: 'products' | 'categories' | 'materials' | 'unit_of_measures' | 'product_unit_of_measures' | 'material_unit_of_measures' | 'recipes' | 'recipe_materials' | 'settings' | 'tables' | 'inventory_config' | 'document_prefixes' | 'sequences' | 'complete'
   progress: number // 0-100
   message: string
 }
@@ -39,6 +43,9 @@ export interface SyncResult {
   productsCount?: number
   categoriesCount?: number
   materialsCount?: number
+  unitOfMeasuresCount?: number
+  productUnitOfMeasuresCount?: number
+  materialUnitOfMeasuresCount?: number
   recipesCount?: number
   recipeMaterialsCount?: number
   settingsCount?: number
@@ -116,6 +123,68 @@ async function syncMaterials(db: IDBPDatabase<POSDatabase>): Promise<number> {
   await tx.done
   
   return materials.length
+}
+
+/**
+ * Sync unit of measures from API to IndexedDB
+ */
+async function syncUnitOfMeasures(db: IDBPDatabase<POSDatabase>): Promise<number> {
+  const units = await listUnitOfMeasures(true) // Only active units
+  
+  const dbUnits: POSDatabase['unit_of_measures']['value'][] = units.map((u) => ({
+    id: u.id,
+    name: u.name,
+    abbreviation: u.abbreviation,
+    type: u.type,
+    is_active: u.is_active,
+    sync_status: 'synced' as const,
+    updated_at: new Date().toISOString(),
+  }))
+  
+  await saveUnitOfMeasures(db, dbUnits)
+  return units.length
+}
+
+/**
+ * Sync product unit of measures from API to IndexedDB
+ */
+async function syncProductUnitOfMeasures(db: IDBPDatabase<POSDatabase>): Promise<number> {
+  const units = await listProductUnitOfMeasures() // Get all
+  
+  const dbUnits: POSDatabase['product_unit_of_measures']['value'][] = units.map((u) => ({
+    id: u.id,
+    product_id: u.product_id,
+    unit_of_measure_id: u.unit_of_measure_id,
+    conversion_factor: u.conversion_factor,
+    is_base_unit: u.is_base_unit,
+    display_order: u.display_order,
+    sync_status: 'synced' as const,
+    updated_at: new Date().toISOString(),
+  }))
+  
+  await saveProductUnitOfMeasures(db, dbUnits)
+  return units.length
+}
+
+/**
+ * Sync material unit of measures from API to IndexedDB
+ */
+async function syncMaterialUnitOfMeasures(db: IDBPDatabase<POSDatabase>): Promise<number> {
+  const units = await listMaterialUnitOfMeasures() // Get all
+  
+  const dbUnits: POSDatabase['material_unit_of_measures']['value'][] = units.map((u) => ({
+    id: u.id,
+    material_id: u.material_id,
+    unit_of_measure_id: u.unit_of_measure_id,
+    conversion_factor: u.conversion_factor,
+    is_base_unit: u.is_base_unit,
+    display_order: u.display_order,
+    sync_status: 'synced' as const,
+    updated_at: new Date().toISOString(),
+  }))
+  
+  await saveMaterialUnitOfMeasures(db, dbUnits)
+  return units.length
 }
 
 /**
@@ -309,7 +378,7 @@ export async function performInitialSync(
       message: `Synced ${categoriesCount} categories`,
     })
     
-    // Sync Materials/Vendors (40%)
+    // Sync Materials/Vendors (35%)
     onProgress?.({
       step: 'materials',
       progress: 30,
@@ -318,41 +387,80 @@ export async function performInitialSync(
     const materialsCount = await syncMaterials(db)
     onProgress?.({
       step: 'materials',
-      progress: 40,
+      progress: 35,
       message: `Synced ${materialsCount} materials`,
+    })
+    
+    // Sync Unit of Measures (40%)
+    onProgress?.({
+      step: 'unit_of_measures',
+      progress: 35,
+      message: 'Syncing unit of measures...',
+    })
+    const unitOfMeasuresCount = await syncUnitOfMeasures(db)
+    onProgress?.({
+      step: 'unit_of_measures',
+      progress: 40,
+      message: `Synced ${unitOfMeasuresCount} unit of measures`,
+    })
+    
+    // Sync Product Unit of Measures (42%)
+    onProgress?.({
+      step: 'product_unit_of_measures',
+      progress: 40,
+      message: 'Syncing product unit of measures...',
+    })
+    const productUnitOfMeasuresCount = await syncProductUnitOfMeasures(db)
+    onProgress?.({
+      step: 'product_unit_of_measures',
+      progress: 42,
+      message: `Synced ${productUnitOfMeasuresCount} product unit of measures`,
+    })
+    
+    // Sync Material Unit of Measures (44%)
+    onProgress?.({
+      step: 'material_unit_of_measures',
+      progress: 42,
+      message: 'Syncing material unit of measures...',
+    })
+    const materialUnitOfMeasuresCount = await syncMaterialUnitOfMeasures(db)
+    onProgress?.({
+      step: 'material_unit_of_measures',
+      progress: 44,
+      message: `Synced ${materialUnitOfMeasuresCount} material unit of measures`,
     })
     
     // Sync Recipes (50%)
     onProgress?.({
       step: 'recipes',
-      progress: 40,
+      progress: 44,
       message: 'Syncing recipes...',
     })
     const recipes = await listRecipes() // Recipes are global, no store_id needed
     const recipesCount = await syncRecipes(db)
     onProgress?.({
       step: 'recipes',
-      progress: 45,
+      progress: 48,
       message: `Synced ${recipesCount} recipes`,
     })
     
-    // Sync Recipe Materials (55%)
+    // Sync Recipe Materials (52%)
     onProgress?.({
       step: 'recipe_materials',
-      progress: 45,
+      progress: 48,
       message: 'Syncing recipe materials...',
     })
     const recipeMaterialsCount = await syncRecipeMaterials(db, recipes)
     onProgress?.({
       step: 'recipe_materials',
-      progress: 50,
+      progress: 52,
       message: `Synced ${recipeMaterialsCount} recipe materials`,
     })
     
-    // Sync Settings (60%)
+    // Sync Settings (55%)
     onProgress?.({
       step: 'settings',
-      progress: 50,
+      progress: 52,
       message: 'Syncing settings...',
     })
     const settingsCount = await syncSettings(db)
@@ -362,7 +470,7 @@ export async function performInitialSync(
       message: `Synced ${settingsCount} settings`,
     })
     
-    // Sync Tables (65%)
+    // Sync Tables (60%)
     onProgress?.({
       step: 'tables',
       progress: 55,
@@ -371,23 +479,23 @@ export async function performInitialSync(
     const tablesCount = await syncTables(db, storeId)
     onProgress?.({
       step: 'tables',
-      progress: 65,
+      progress: 60,
       message: `Synced ${tablesCount} tables`,
     })
     
-    // Sync Inventory Control Config (75%)
+    // Sync Inventory Control Config (70%)
     let inventoryConfigCount = 0
     if (storeId) {
       try {
         onProgress?.({
           step: 'inventory_config',
-          progress: 65,
+          progress: 60,
           message: 'Syncing inventory control config...',
         })
         inventoryConfigCount = await syncInventoryControlConfig(db, storeId)
         onProgress?.({
           step: 'inventory_config',
-          progress: 75,
+          progress: 70,
           message: `Synced ${inventoryConfigCount} inventory config items`,
         })
       } catch (error: any) {
@@ -396,7 +504,7 @@ export async function performInitialSync(
         const errorMsg = error?.message || 'Unknown error'
         onProgress?.({
           step: 'inventory_config',
-          progress: 75,
+          progress: 70,
           message: `Warning: Failed to sync inventory config: ${errorMsg}`,
         })
         // Continue with sync even if inventory config fails
@@ -406,23 +514,23 @@ export async function performInitialSync(
       console.warn('[performInitialSync] Skipping inventory config sync - no storeId provided')
       onProgress?.({
         step: 'inventory_config',
-        progress: 75,
+        progress: 70,
         message: 'Skipping inventory config (no store ID)',
       })
     }
     
-    // Sync Document Prefixes (80%)
+    // Sync Document Prefixes (75%)
     let documentPrefixesCount = 0
     try {
       onProgress?.({
         step: 'document_prefixes',
-        progress: 75,
+        progress: 70,
         message: 'Syncing document prefixes...',
       })
       documentPrefixesCount = await syncDocumentPrefixes(db, storeId)
       onProgress?.({
         step: 'document_prefixes',
-        progress: 80,
+        progress: 75,
         message: `Synced ${documentPrefixesCount} document prefixes`,
       })
     } catch (error: any) {
@@ -430,7 +538,7 @@ export async function performInitialSync(
       const errorMsg = error?.message || 'Unknown error'
       onProgress?.({
         step: 'document_prefixes',
-        progress: 80,
+        progress: 75,
         message: `Warning: Failed to sync document prefixes: ${errorMsg}`,
       })
       documentPrefixesCount = 0
@@ -464,6 +572,9 @@ export async function performInitialSync(
       productsCount,
       categoriesCount,
       materialsCount,
+      unitOfMeasuresCount,
+      productUnitOfMeasuresCount,
+      materialUnitOfMeasuresCount,
       recipesCount,
       recipeMaterialsCount,
       settingsCount,

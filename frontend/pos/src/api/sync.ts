@@ -115,14 +115,14 @@ class SyncManager {
           }
         }
         break
-      case 'inventory_transaction':
+      case 'inventory_entry_detail':
         if (item.action === 'create') {
           await apiClient.post('/api/v1/inventory-transactions', item.data)
-          // Update inventory transaction sync status after successful sync
+          // Update inventory entry detail sync status after successful sync
           const db = await openDatabase()
-          const transaction = await db.get('inventory_transactions', item.data_id)
-          if (transaction) {
-            await db.put('inventory_transactions', { ...transaction, sync_status: 'synced' })
+          const detail = await db.get('inventory_entry_details', item.data_id)
+          if (detail) {
+            await db.put('inventory_entry_details', { ...detail, sync_status: 'synced' })
           }
         }
         break

@@ -94,6 +94,47 @@ export interface POSDatabase extends DBSchema {
     }
     indexes: { 'by-sync-status': string }
   }
+  unit_of_measures: {
+    key: number
+    value: {
+      id: number
+      name: string
+      abbreviation: string
+      type: string
+      is_active: boolean
+      sync_status: 'synced' | 'pending' | 'error'
+      updated_at: string
+    }
+    indexes: { 'by-sync-status': string }
+  }
+  product_unit_of_measures: {
+    key: number
+    value: {
+      id: number
+      product_id: number
+      unit_of_measure_id: number
+      conversion_factor: number
+      is_base_unit: boolean
+      display_order: number
+      sync_status: 'synced' | 'pending' | 'error'
+      updated_at: string
+    }
+    indexes: { 'by-product': number; 'by-uofm': number; 'by-sync-status': string }
+  }
+  material_unit_of_measures: {
+    key: number
+    value: {
+      id: number
+      material_id: number
+      unit_of_measure_id: number
+      conversion_factor: number
+      is_base_unit: boolean
+      display_order: number
+      sync_status: 'synced' | 'pending' | 'error'
+      updated_at: string
+    }
+    indexes: { 'by-material': number; 'by-uofm': number; 'by-sync-status': string }
+  }
   settings: {
     key: string
     value: {
@@ -122,10 +163,11 @@ export interface POSDatabase extends DBSchema {
     }
     indexes: { 'by-sync-status': string; 'by-store': number; 'by-entry-type': string; 'by-shift': number; 'by-shift-number': string }
   }
-  inventory_transactions: {
+  inventory_entry_details: {
     key: number
     value: {
       id: number
+      entry_number: string // Local link to inventory_entries table (offline-first)
       entry_id: number
       material_id?: number
       product_id?: number
@@ -133,10 +175,9 @@ export interface POSDatabase extends DBSchema {
       unit_of_measure_id?: number
       unit_cost?: number
       total_cost?: number
-      notes?: string
       sync_status: 'synced' | 'pending' | 'error'
     }
-    indexes: { 'by-entry': number; 'by-sync-status': string }
+    indexes: { 'by-entry': number; 'by-entry-number': string; 'by-sync-status': string }
   }
   shifts: {
     key: string // PRIMARY KEY: shift_number
@@ -200,7 +241,7 @@ export interface POSDatabase extends DBSchema {
     key: number
     value: {
       id: number
-      type: 'order' | 'order_item' | 'product' | 'category' | 'customer' | 'inventory_entry' | 'inventory_transaction' | 'shift' | 'table'
+      type: 'order' | 'order_item' | 'product' | 'category' | 'customer' | 'inventory_entry' | 'inventory_entry_detail' | 'shift' | 'table'
       action: 'create' | 'update' | 'delete' | 'close'
       data_id: string | number
       data: any
@@ -343,6 +384,22 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
       const materialStore = db.createObjectStore('materials', { keyPath: 'id' })
       materialStore.createIndex('by-sync-status', 'sync_status')
 
+      // Unit of measures store
+      const unitOfMeasureStore = db.createObjectStore('unit_of_measures', { keyPath: 'id' })
+      unitOfMeasureStore.createIndex('by-sync-status', 'sync_status')
+
+      // Product unit of measures store
+      const productUofmStore = db.createObjectStore('product_unit_of_measures', { keyPath: 'id' })
+      productUofmStore.createIndex('by-product', 'product_id')
+      productUofmStore.createIndex('by-uofm', 'unit_of_measure_id')
+      productUofmStore.createIndex('by-sync-status', 'sync_status')
+
+      // Material unit of measures store
+      const materialUofmStore = db.createObjectStore('material_unit_of_measures', { keyPath: 'id' })
+      materialUofmStore.createIndex('by-material', 'material_id')
+      materialUofmStore.createIndex('by-uofm', 'unit_of_measure_id')
+      materialUofmStore.createIndex('by-sync-status', 'sync_status')
+
       // Settings store
       db.createObjectStore('settings', { keyPath: 'key' })
 
@@ -354,10 +411,11 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
       inventoryEntryStore.createIndex('by-shift', 'shift_id')
       inventoryEntryStore.createIndex('by-shift-number', 'shift_number')
 
-      // Inventory transactions store
-      const inventoryTransactionStore = db.createObjectStore('inventory_transactions', { keyPath: 'id', autoIncrement: true })
-      inventoryTransactionStore.createIndex('by-entry', 'entry_id')
-      inventoryTransactionStore.createIndex('by-sync-status', 'sync_status')
+      // Inventory entry details store
+      const inventoryEntryDetailStore = db.createObjectStore('inventory_entry_details', { keyPath: 'id', autoIncrement: true })
+      inventoryEntryDetailStore.createIndex('by-entry', 'entry_id')
+      inventoryEntryDetailStore.createIndex('by-entry-number', 'entry_number')
+      inventoryEntryDetailStore.createIndex('by-sync-status', 'sync_status')
 
       // Shifts store - use shift_number as primary key
       const shiftStore = db.createObjectStore('shifts', { keyPath: 'shift_number' })
@@ -425,9 +483,12 @@ export async function clearDatabase(): Promise<void> {
   await db.clear('categories')
   await db.clear('customers')
   await db.clear('materials')
+  await db.clear('unit_of_measures')
+  await db.clear('product_unit_of_measures')
+  await db.clear('material_unit_of_measures')
   await db.clear('settings')
   await db.clear('inventory_entries')
-  await db.clear('inventory_transactions')
+  await db.clear('inventory_entry_details')
   await db.clear('shifts')
     await db.clear('tables')
     await db.clear('inventory_control_config')
