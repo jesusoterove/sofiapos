@@ -60,31 +60,31 @@ class SyncManager {
           if (item.data?.status === 'paid') {
             const response = await apiClient.post('/api/v1/orders', item.data)
             // Update order sync status and ID after successful sync
+            // data_id is order_number (primary key for local operations)
             const db = await openDatabase()
-            const order = await db.get('orders', item.data_id)
+            const order = await db.get('orders', item.data_id as string)
             if (order) {
-              // Update with server ID if different (should be different if local id was 0)
+              // Update with server ID (order_number remains the primary key)
               const updatedOrder = {
                 ...order,
-                id: response.data.id || order.id, // Use server ID if provided
+                order_number: order.order_number, // PRIMARY KEY - keep local order_number
+                id: response.data.id || order.id, // Use server ID if provided (for reference only)
                 sync_status: 'synced' as const,
               }
-              // If ID changed, delete old record and create new one
-              if (order.id !== updatedOrder.id && order.id === 0) {
-                await db.delete('orders', order.id)
-                await db.put('orders', updatedOrder)
-              } else {
-                await saveOrder(db, updatedOrder)
-              }
+              // Save using order_number as key (put will update existing record)
+              await saveOrder(db, updatedOrder)
             }
           }
         } else if (item.action === 'update') {
           // Only sync paid orders
+          // Note: Orders are never updated locally, only created and paid
+          // This case should not occur, but kept for safety
           if (item.data?.status === 'paid') {
             await apiClient.put(`/api/v1/orders/${item.data_id}`, item.data)
             // Update order sync status after successful sync
+            // data_id is order_number (primary key for local operations)
             const db = await openDatabase()
-            const order = await db.get('orders', item.data_id)
+            const order = await db.get('orders', item.data_id as string)
             if (order) {
               await saveOrder(db, { ...order, sync_status: 'synced' })
             }
@@ -156,9 +156,8 @@ class SyncManager {
               sync_status: 'synced' as const,
               updated_at: new Date().toISOString(),
             }
+            // Update IndexedDB (source of truth) - no localStorage needed
             await db.put('shifts', updatedShift)
-            // Also update localStorage
-            localStorage.setItem('pos_current_shift', JSON.stringify(updatedShift))
           }
         } else if (item.action === 'close') {
           // REMOTE SYNC: Find shift by shift_number (local operation), then use id for remote API call

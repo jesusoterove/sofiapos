@@ -51,44 +51,30 @@ export function useShiftManagement() {
         return null
       }
 
-      // ALWAYS check local storage first (offline-first)
-      const localShift = localStorage.getItem('pos_current_shift')
-      if (localShift) {
-        try {
-          const parsed = JSON.parse(localShift)
-          // Verify it's open
-          if (parsed.status === 'open') {
-            return parsed
-          }
-        } catch (e) {
-          console.error('Failed to parse local shift:', e)
-        }
-      }
-
-      // Also check IndexedDB
-      // Note: Local getOpenShift uses store_id since IndexedDB schema stores store_id
-      // For now, we'll use store_id from user (shifts are associated with stores, cash registers belong to stores)
+      // INDEXEDDB IS THE SOURCE OF TRUTH - Always check IndexedDB first
+      // Note: getOpenShift uses store_id since IndexedDB schema stores store_id
+      // Shifts are associated with stores, cash registers belong to stores
       const db = await openDatabase()
       const dbShift = user?.store_id ? await getOpenShift(db, user.store_id) : null
+      
+      // Verify shift is actually open (status check is critical)
       if (dbShift && dbShift.status === 'open') {
-        // Update localStorage for quick access (only if shift is open)
-        localStorage.setItem('pos_current_shift', JSON.stringify(dbShift))
         return dbShift
-      } else if (dbShift && dbShift.status !== 'open') {
-        // If shift exists but is closed, ensure localStorage is cleared
-        localStorage.removeItem('pos_current_shift')
+      }
+      
+      // If shift exists but is closed, return null (no open shift)
+      if (dbShift && dbShift.status !== 'open') {
+        return null
       }
 
-      // If no local shift, try API (only if online)
+      // If no local shift found, try API (only if online) to sync from remote
       if (navigator.onLine) {
         try {
           const response = await apiClient.get(`/api/v1/shifts/open`, {
             params: { cash_register_id: cashRegisterId },
           })
-          if (response.data) {
-            // Store locally for offline access
-            localStorage.setItem('pos_current_shift', JSON.stringify(response.data))
-            // Also save to IndexedDB
+          if (response.data && response.data.status === 'open') {
+            // Save to IndexedDB (source of truth)
             await saveShift(db, {
               ...response.data,
               sync_status: 'synced',
@@ -169,10 +155,8 @@ export function useShiftManagement() {
       }
 
       // Save to IndexedDB (saveShift already adds to sync queue)
+      // IndexedDB is the source of truth - no localStorage needed
       await saveShift(db, shiftData)
-
-      // Also store in localStorage for quick access
-      localStorage.setItem('pos_current_shift', JSON.stringify(shiftData))
       
       // Initialize shift summary - CRITICAL: Must be created when shift opens
       // This MUST succeed for the shift to function properly
@@ -313,11 +297,9 @@ export function useShiftManagement() {
       
       console.log('closed open shift A', closedShift);
 
-      // CRITICAL: Remove from localStorage immediately to ensure state is updated
-      localStorage.removeItem('pos_current_shift')
-
       // CRITICAL: Clear the current shift from React Query cache immediately
       // This ensures currentShift becomes null and hasOpenShift becomes false
+      // IndexedDB is already updated above, so the source of truth is correct
       queryClient.setQueryData(['shift', 'open', cashRegisterId], null)
       queryClient.invalidateQueries({ queryKey: ['shift'] })
       queryClient.removeQueries({ queryKey: ['shift', 'open'] })
@@ -363,7 +345,7 @@ export function useShiftManagement() {
     onSuccess: async (result) => {
       const { closedShift } = result
       
-      // Double-check IndexedDB: Ensure shift is marked as closed
+      // Double-check IndexedDB: Ensure shift is marked as closed (source of truth)
       const db = await openDatabase()
       // Use shift_number as primary key (string key)
       const shift = await db.get('shifts', closedShift.shift_number as any)
@@ -371,29 +353,14 @@ export function useShiftManagement() {
       if (shift) {
         // Ensure status is closed (should already be, but double-check)
         if (shift.status !== 'closed') {
+          console.warn('[closeShiftMutation.onSuccess] Shift status was not closed, fixing...')
           await db.put('shifts', { ...shift, status: 'closed' })
         }
+      } else {
+        console.error('[closeShiftMutation.onSuccess] Shift not found in IndexedDB after close!')
       }
       
-      // CRITICAL: Ensure localStorage is cleared (backup check)
-      // This ensures that even if something went wrong in mutationFn, we clear it here
-      const currentShiftInStorage = localStorage.getItem('pos_current_shift')
-      if (currentShiftInStorage) {
-        try {
-          const parsed = JSON.parse(currentShiftInStorage)
-          // If the stored shift matches the closed shift, remove it
-          if (parsed.shift_number === closedShift.shift_number || parsed.status === 'closed') {
-            localStorage.removeItem('pos_current_shift')
-            console.log('[closeShiftMutation.onSuccess] Removed closed shift from localStorage')
-          }
-        } catch (e) {
-          // If parsing fails, remove it anyway to be safe
-          localStorage.removeItem('pos_current_shift')
-          console.log('[closeShiftMutation.onSuccess] Removed invalid shift data from localStorage')
-        }
-      }
-      
-      // Additional cache invalidation (most updates already done in mutationFn)
+      // Additional cache invalidation to ensure all components see the updated state
       queryClient.invalidateQueries({ queryKey: ['shift'] })
     },
   })

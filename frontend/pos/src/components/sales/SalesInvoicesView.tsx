@@ -3,7 +3,7 @@
  */
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { openDatabase } from '@/db/indexeddb'
-import { getAllOrders, getOrderItems } from '@/db/queries/orders'
+import { getAllOrders, getOrderItemsByOrderNumber } from '@/db/queries/orders'
 import { useTranslation } from '@/i18n/hooks'
 import { AdvancedDataGrid, AdvancedDataGridColumn, formatPrice } from '@sofiapos/ui'
 
@@ -47,7 +47,7 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
       // Load items for each order
       const invoicesWithItems = await Promise.all(
         paidOrders.map(async (order) => {
-          const items = await getOrderItems(db, order.id)
+          const items = await getOrderItemsByOrderNumber(db, order.order_number)
           return {
             ...order,
             items: items.map((item) => ({

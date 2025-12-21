@@ -22,10 +22,10 @@ export interface POSDatabase extends DBSchema {
     indexes: { 'by-code': string; 'by-category': number; 'by-sync-status': string }
   }
   orders: {
-    key: number | string
+    key: string // PRIMARY KEY: order_number (local identifier, always present)
     value: {
-      id: number | string // 0 for unsynced, numeric ID after sync
-      order_number: string // Local identifier, always present
+      order_number: string // PRIMARY KEY: Local identifier, always present
+      id: number | string // 0 for unsynced, numeric ID after sync (reference only, not used for local operations)
       store_id: number
       customer_id?: number
       table_id?: number | null
@@ -38,13 +38,14 @@ export interface POSDatabase extends DBSchema {
       created_at: string
       updated_at: string
     }
-    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number; 'by-table': number; 'by-order-number': string }
+    indexes: { 'by-status': string; 'by-sync-status': string; 'by-store': number; 'by-table': number; 'by-id': number | string; 'by-order-number': string }
   }
   order_items: {
     key: number
     value: {
       id: string
-      order_id: string
+      order_id?: string | number // Only present after sync (remote ID)
+      order_number?: string // Local relationship key (optional for backward compatibility, but should always be set)
       product_id: number
       product_name: string
       quantity: number
@@ -54,7 +55,7 @@ export interface POSDatabase extends DBSchema {
       tax_amount: number
       sync_status: 'synced' | 'pending' | 'error'
     }
-    indexes: { 'by-order': string; 'by-sync-status': string }
+    indexes: { 'by-order': string; 'by-order-number': string; 'by-sync-status': string }
   }
   categories: {
     key: number
@@ -359,17 +360,19 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
       productStore.createIndex('by-category', 'category_id')
       productStore.createIndex('by-sync-status', 'sync_status')
 
-      // Orders store
-      const orderStore = db.createObjectStore('orders', { keyPath: 'id' })
+      // Orders store - use order_number as primary key
+      const orderStore = db.createObjectStore('orders', { keyPath: 'order_number' })
       orderStore.createIndex('by-status', 'status')
       orderStore.createIndex('by-sync-status', 'sync_status')
       orderStore.createIndex('by-store', 'store_id')
       orderStore.createIndex('by-table', 'table_id')
-      orderStore.createIndex('by-order-number', 'order_number')
+      orderStore.createIndex('by-id', 'id') // Index for sync purposes only
+      orderStore.createIndex('by-order-number', 'order_number') // Redundant but kept for compatibility
 
       // Order items store
       const orderItemStore = db.createObjectStore('order_items', { keyPath: 'id', autoIncrement: true })
-      orderItemStore.createIndex('by-order', 'order_id')
+      orderItemStore.createIndex('by-order', 'order_id') // For sync purposes (remote ID)
+      orderItemStore.createIndex('by-order-number', 'order_number') // For local relationships
       orderItemStore.createIndex('by-sync-status', 'sync_status')
 
       // Categories store

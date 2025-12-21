@@ -9,7 +9,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { openDatabase, saveOrder, saveOrderItem, addToSyncQueue } from '../db'
-import { getAllOrders, getOrderItems, deleteOrder, getOrder } from '../db/queries/orders'
+import { getAllOrders, getOrderItemsByOrderNumber, deleteOrderByOrderNumber, getOrderByOrderNumber } from '../db/queries/orders'
 import { generateOrderNumber } from '../utils/documentNumbers'
 import { getRegistration } from '../utils/registration'
 import { useAuth } from '../contexts/AuthContext'
@@ -52,6 +52,7 @@ export interface OpenOrder {
 }
 
 export function useOrderManagement(storeId: number) {
+  const { user } = useAuth()
   const [order, setOrder] = useState<Order | null>(null)
   const [currentLocation, setCurrentLocation] = useState<OrderLocation>('cash_register')
   const orderRef = useRef<Order | null>(null)
@@ -93,7 +94,7 @@ export function useOrderManagement(storeId: number) {
       
       for (const order of orders) {
         try {
-          const items = await getOrderItems(db, order.id)
+          const items = await getOrderItemsByOrderNumber(db, order.order_number)
           const location: OrderLocation = order.table_id
             ? { type: 'table', tableId: order.table_id }
             : 'cash_register'
@@ -125,7 +126,7 @@ export function useOrderManagement(storeId: number) {
   }, [currentLocation])
 
   // Helper function to transform database items to OrderItem format
-  const transformItems = useCallback((items: Awaited<ReturnType<typeof getOrderItems>>): OrderItem[] => {
+  const transformItems = useCallback((items: Awaited<ReturnType<typeof getOrderItemsByOrderNumber>>): OrderItem[] => {
     return items.map((item) => ({
       id: item.id,
       productId: item.product_id,
@@ -197,7 +198,7 @@ export function useOrderManagement(storeId: number) {
       if (loadCancelledRef.current) return
       
       if (foundOrder) {
-        const items = await getOrderItems(db, foundOrder.id)
+        const items = await getOrderItemsByOrderNumber(db, foundOrder.order_number)
         if (loadCancelledRef.current) return
         
         console.log('[useOrderManagement] Order items:', items.length)
@@ -442,16 +443,16 @@ export function useOrderManagement(storeId: number) {
     setOrder(null)
     
     // Check database status before deleting (in-memory state might be stale after markAsPaid)
-    if (orderToDelete?.id) {
+    if (orderToDelete?.orderNumber) {
       try {
         const db = await openDatabase()
-        const dbOrder = await getOrder(db, orderToDelete.id)
+        const dbOrder = await getOrderByOrderNumber(db, orderToDelete.orderNumber)
         
         // Only delete if order exists in DB and is still a draft
         // If order was marked as paid, it should remain in the database
         if (dbOrder && dbOrder.status === 'draft') {
-          console.log('[useOrderManagement] clearOrder - deleting draft order from database:', orderToDelete.id)
-          await deleteOrder(db, orderToDelete.id)
+          console.log('[useOrderManagement] clearOrder - deleting draft order from database:', orderToDelete.orderNumber)
+          await deleteOrderByOrderNumber(db, orderToDelete.orderNumber)
           console.log('[useOrderManagement] clearOrder - draft order deleted successfully')
         } else if (dbOrder) {
           // Order exists but is not a draft (e.g., paid) - just clear state, don't delete
@@ -528,7 +529,7 @@ export function useOrderManagement(storeId: number) {
     let wasCashRegisterOrder = false
     if (orderToSave.tableId !== null && orderToSave.tableId !== undefined) {
       try {
-        const existingOrder = await getOrder(db, orderToSave.id || 0)
+        const existingOrder = await getOrderByOrderNumber(db, orderToSave.orderNumber)
         // If order exists in DB with tableId = null, it was a cash register order
         wasCashRegisterOrder = existingOrder?.table_id === null || existingOrder?.table_id === undefined
       } catch (error) {
@@ -566,11 +567,12 @@ export function useOrderManagement(storeId: number) {
 
     await saveOrder(db, orderData)
 
-    // Save order items
+    // Save order items - use order_number for local relationship
     for (const item of orderToSave.items) {
       await saveOrderItem(db, {
         id: item.id,
-        order_id: orderToSave.id,
+        order_number: orderToSave.orderNumber, // Local relationship key
+        order_id: orderToSave.id && String(orderToSave.id) !== '0' ? String(orderToSave.id) : undefined, // Only set if synced
         product_id: item.productId,
         product_name: item.productName,
         quantity: item.quantity,
@@ -587,7 +589,7 @@ export function useOrderManagement(storeId: number) {
       await addToSyncQueue(db, {
         type: 'order',
         action: 'create',
-        data_id: orderToSave.id,
+        data_id: orderToSave.orderNumber, // Use order_number as identifier (primary key)
         data: orderData,
       })
     }
@@ -667,11 +669,12 @@ export function useOrderManagement(storeId: number) {
     await saveOrder(db, orderData)
     console.log('[useOrderManagement] markAsPaid - order saved successfully')
 
-    // Save order items
+    // Save order items - use order_number for local relationship
     for (const item of currentOrder.items) {
       await saveOrderItem(db, {
         id: item.id,
-        order_id: currentOrder.id,
+        order_number: currentOrder.orderNumber, // Local relationship key
+        order_id: currentOrder.id && String(currentOrder.id) !== '0' ? String(currentOrder.id) : undefined, // Only set if synced
         product_id: item.productId,
         product_name: item.productName,
         quantity: item.quantity,
@@ -687,7 +690,7 @@ export function useOrderManagement(storeId: number) {
     await addToSyncQueue(db, {
       type: 'order',
       action: 'create',
-      data_id: currentOrder.id,
+      data_id: currentOrder.orderNumber, // Use order_number as identifier (primary key)
       data: {
         ...orderData,
         payment_method: paymentMethod,
@@ -698,29 +701,28 @@ export function useOrderManagement(storeId: number) {
     console.log('[useOrderManagement] markAsPaid - payment processed, order saved with paid status')
 
     // Update shift summary incrementally - CRITICAL: Must update when payment is made
+    // Get shift from IndexedDB (source of truth) instead of localStorage
     try {
-      const currentShift = localStorage.getItem('pos_current_shift')
-      if (currentShift) {
-        const shiftData = JSON.parse(currentShift)
-        if (shiftData.shift_number) {
-          console.log('[useOrderManagement] Updating shift summary for shift:', shiftData.shift_number, 'payment method:', paymentMethod, 'total:', totals.total)
-          await updateShiftSummaryOnPayment(
-            shiftData.shift_number,
-            {
-              total: totals.total,
-              items: currentOrder.items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-              })),
-            },
-            paymentMethod
-          )
-          console.log('[useOrderManagement] Shift summary updated successfully')
-        } else {
-          console.warn('[useOrderManagement] No shift_number found in current shift data')
-        }
+      const db = await openDatabase()
+      // Get open shift for this store (shifts are associated with stores)
+      const { getOpenShift } = await import('@/db/queries/shifts')
+      const shiftData = user?.store_id ? await getOpenShift(db, user.store_id) : null
+      if (shiftData && shiftData.shift_number && shiftData.status === 'open') {
+        console.log('[useOrderManagement] Updating shift summary for shift:', shiftData.shift_number, 'payment method:', paymentMethod, 'total:', totals.total)
+        await updateShiftSummaryOnPayment(
+          shiftData.shift_number,
+          {
+            total: totals.total,
+            items: currentOrder.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+            })),
+          },
+          paymentMethod
+        )
+        console.log('[useOrderManagement] Shift summary updated successfully')
       } else {
-        console.warn('[useOrderManagement] No current shift found in localStorage - cannot update shift summary')
+        console.warn('[useOrderManagement] No open shift found for store - cannot update shift summary')
       }
     } catch (error) {
       console.error('[useOrderManagement] Failed to update shift summary:', error)
