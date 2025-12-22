@@ -29,6 +29,9 @@ interface InventoryEntryRow {
   unitCost: number // Pre-calculated unit cost in the selected UoM
 }
 
+// Decimal places constant for formatting numbers
+const DECIMAL_PLACES = 2
+
 export function InventoryEntryPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -250,10 +253,10 @@ export function InventoryEntryPage() {
     const preCalculatedUnitCost = selectedItem.unitCost
     
     if (preCalculatedUnitCost !== undefined && preCalculatedUnitCost > 0) {
-      setUnitCost(preCalculatedUnitCost.toFixed(4))
+      setUnitCost(preCalculatedUnitCost.toFixed(DECIMAL_PLACES))
       // Calculate total cost if quantity is set
       if (quantity && parseFloat(quantity) > 0) {
-        setTotalCost((preCalculatedUnitCost * parseFloat(quantity)).toFixed(2))
+        setTotalCost((preCalculatedUnitCost * parseFloat(quantity)).toFixed(DECIMAL_PLACES))
       } else {
         setTotalCost('')
       }
@@ -261,23 +264,23 @@ export function InventoryEntryPage() {
       setUnitCost('')
       setTotalCost('')
     }
-  }, [selectedItemId, availableItems, quantity])
+  }, [selectedItemId, availableItems])
 
   // Auto-calculate total cost when unit cost or quantity changes
   useEffect(() => {
     if (unitCost && quantity && parseFloat(quantity) > 0) {
-      const calculatedTotal = (parseFloat(unitCost) * parseFloat(quantity)).toFixed(2)
+      const calculatedTotal = (parseFloat(unitCost) * parseFloat(quantity)).toFixed(DECIMAL_PLACES)
       setTotalCost(calculatedTotal)
     } else if (!unitCost || !quantity) {
       setTotalCost('')
     }
-  }, [unitCost, quantity])
+  }, [quantity])
 
   // Auto-calculate unit cost when total cost changes
   const handleTotalCostChange = (value: string) => {
     setTotalCost(value)
     if (value && quantity && parseFloat(quantity) > 0) {
-      const calculatedUnitCost = (parseFloat(value) / parseFloat(quantity)).toFixed(4)
+      const calculatedUnitCost = (parseFloat(value) / parseFloat(quantity)).toFixed(DECIMAL_PLACES)
       setUnitCost(calculatedUnitCost)
     }
   }
@@ -286,7 +289,7 @@ export function InventoryEntryPage() {
   const handleUnitCostChange = (value: string) => {
     setUnitCost(value)
     if (value && quantity && parseFloat(quantity) > 0) {
-      const calculatedTotal = (parseFloat(value) * parseFloat(quantity)).toFixed(2)
+      const calculatedTotal = (parseFloat(value) * parseFloat(quantity)).toFixed(DECIMAL_PLACES)
       setTotalCost(calculatedTotal)
     } else {
       setTotalCost('')
