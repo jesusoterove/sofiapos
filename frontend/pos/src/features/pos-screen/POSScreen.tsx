@@ -31,6 +31,9 @@ export function POSScreen() {
   
   const { hasOpenShift, isLoading: shiftLoading } = useShiftContext()
   
+  useEffect(() => {
+    console.log('HAS OPEN SHIFT CHANGED', hasOpenShift);
+  }, [hasOpenShift])
   // Enable operations only when shift is open and loaded
   const isOperationsEnabled = !shiftLoading && hasOpenShift
   

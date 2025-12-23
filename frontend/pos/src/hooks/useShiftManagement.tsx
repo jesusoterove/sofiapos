@@ -92,6 +92,7 @@ export function useShiftManagement() {
     enabled: !!cashRegisterId,
     staleTime: 30 * 1000, // 30 seconds
     // Preserve previous data during refetch to prevent hasOpenShift from becoming false temporarily
+    // BUT: If previousData is null (shift was closed), keep it as null
     placeholderData: (previousData) => previousData,
     // Don't refetch on mount to prevent unnecessary refetches when navigating to CloseShiftPage
     refetchOnMount: false,
@@ -344,7 +345,9 @@ export function useShiftManagement() {
     },
     onSuccess: async (result) => {
       const { closedShift } = result
-      
+
+      console.log('CLOSED SHIFT', closedShift);
+
       // Double-check IndexedDB: Ensure shift is marked as closed (source of truth)
       const db = await openDatabase()
       // Use shift_number as primary key (string key)
@@ -360,8 +363,14 @@ export function useShiftManagement() {
         console.error('[closeShiftMutation.onSuccess] Shift not found in IndexedDB after close!')
       }
       
+      // CRITICAL: Immediately clear currentOpenShift query data to null
+      // This ensures the app immediately reflects no open shift
+      queryClient.setQueryData(['shift', 'open', cashRegisterId], null)
+      
       // Additional cache invalidation to ensure all components see the updated state
       queryClient.invalidateQueries({ queryKey: ['shift'] })
+
+      console.log('CLOSED SHIFT', hasOpenShift);
     },
   })
 

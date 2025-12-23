@@ -272,6 +272,21 @@ export async function updateShiftSummaryOnClose(
   // Calculate difference
   summary.difference = summary.expected_cash - finalCash
   
+  // Get all inventory entries for this shift to check if there were any entries during the shift
+  const { getInventoryEntriesByShift } = await import('../db/queries/inventory')
+  const { getInventoryEntryDetailsByEntryNumber } = await import('../db/queries/inventory')
+  const inventoryEntries = await getInventoryEntriesByShift(db, shiftNumber)
+  
+  // Build a set of items that had inventory entries during the shift
+  const itemsWithInventoryEntries = new Set<string>()
+  for (const entry of inventoryEntries) {
+    const details = await getInventoryEntryDetailsByEntryNumber(db, entry.entry_number)
+    for (const detail of details) {
+      const itemKey = `${detail.product_id || detail.material_id}-${detail.product_id ? 'Product' : 'Material'}-${detail.unit_of_measure_id}`
+      itemsWithInventoryEntries.add(itemKey)
+    }
+  }
+  
   // Update inventory summary with end balances and calculate differences
   for (const endBalance of endBalances) {
     const inventoryEntry = summary.inventory_summary.find(
@@ -295,19 +310,24 @@ export async function updateShiftSummaryOnClose(
   }
   
   // Remove inventory summary entries with no activity
-  // Criteria: beg_balance = 0, end_balance = 0 (or undefined), and no refills
+  // Criteria: beg_balance = 0, end_balance = 0 (or undefined), no refills, no material usage, AND no inventory entries during the shift
   summary.inventory_summary = summary.inventory_summary.filter((entry) => {
     const hasBegBalance = entry.beg_balance !== 0
     const hasEndBalance = entry.end_balance !== undefined && entry.end_balance !== 0
     const hasRefills = entry.refills.length > 0
     const hasMaterialUsage = entry.item_type === 'Material' && (entry.material_usage || 0) !== 0
     
+    // Check if there were any inventory entries for this item during the shift
+    const itemKey = `${entry.item_id}-${entry.item_type}-${entry.uofm_id}`
+    const hasInventoryEntries = itemsWithInventoryEntries.has(itemKey)
+    
     // Keep entry if it has any activity:
     // - Beginning balance > 0, OR
     // - End balance > 0, OR
     // - Has refills, OR
-    // - Has material usage (for materials)
-    return hasBegBalance || hasEndBalance || hasRefills || hasMaterialUsage
+    // - Has material usage (for materials), OR
+    // - Had inventory entries during the shift
+    return hasBegBalance || hasEndBalance || hasRefills || hasMaterialUsage || hasInventoryEntries
   })
   
   console.log(`[updateShiftSummaryOnClose] Filtered inventory summary: ${summary.inventory_summary.length} entries with activity`)

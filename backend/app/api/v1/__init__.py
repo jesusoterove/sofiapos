@@ -9,7 +9,8 @@ router = APIRouter(prefix="/api/v1", tags=["v1"])
 from app.api.v1 import (
     auth, stores, users, materials, products, unit_of_measures, settings,
     store_product_groups, kit_components, store_product_prices, shifts, cash_registers, sales, tables, inventory_control,
-    product_categories, document_prefixes, orders, recipes, product_unit_of_measures, material_unit_of_measures
+    product_categories, document_prefixes, orders, recipes, product_unit_of_measures, material_unit_of_measures,
+    inventory_entries, inventory_transactions
 )
 router.include_router(auth.router)
 router.include_router(stores.router)
@@ -32,4 +33,6 @@ router.include_router(orders.router)
 router.include_router(recipes.router)
 router.include_router(product_unit_of_measures.router)
 router.include_router(material_unit_of_measures.router)
+router.include_router(inventory_entries.router)
+router.include_router(inventory_transactions.router)
 

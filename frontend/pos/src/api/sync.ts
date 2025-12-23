@@ -98,31 +98,61 @@ class SyncManager {
         break
       case 'inventory_entry':
         if (item.action === 'create') {
-          await apiClient.post('/api/v1/inventory-entries', item.data)
+          const response = await apiClient.post('/api/v1/inventory-entries', item.data)
           // Update inventory entry sync status after successful sync
+          // data_id is entry_number (primary key for local operations)
           const db = await openDatabase()
-          const entry = await db.get('inventory_entries', item.data_id)
+          const entry = await db.get('inventory_entries', item.data_id as string)
           if (entry) {
-            await db.put('inventory_entries', { ...entry, sync_status: 'synced' })
+            // Extract remote ID from response - FastAPI returns the model directly in response.data
+            const serverId = response.data?.id
+            if (serverId === undefined || serverId === null || typeof serverId !== 'number') {
+              console.error('[sync] Inventory entry sync response missing or invalid id:', response.data)
+              throw new Error(`Failed to get remote ID for inventory entry ${entry.entry_number}`)
+            }
+            
+            // Update with server ID (entry_number remains the primary key)
+            const updatedEntry = {
+              ...entry,
+              entry_number: entry.entry_number, // PRIMARY KEY - keep local entry_number
+              id: serverId, // Always use server ID from response
+              sync_status: 'synced' as const,
+              updated_at: new Date().toISOString(),
+            }
+            // Save using entry_number as key (put will update existing record)
+            await db.put('inventory_entries', updatedEntry)
+            console.log(`[sync] Updated inventory entry ${entry.entry_number} with remote id: ${serverId}`)
+          } else {
+            console.error(`[sync] Inventory entry with entry_number '${item.data_id}' not found in local database`)
           }
         } else if (item.action === 'update') {
-          await apiClient.put(`/api/v1/inventory-entries/${item.data_id}`, item.data)
-          // Update inventory entry sync status after successful sync
+          // Note: Inventory entries are typically never updated locally, only created
+          // This case should not occur, but kept for safety
+          // data_id is entry_number, but we need entry.id for the API call
           const db = await openDatabase()
-          const entry = await db.get('inventory_entries', item.data_id)
-          if (entry) {
-            await db.put('inventory_entries', { ...entry, sync_status: 'synced' })
+          const entry = await db.get('inventory_entries', item.data_id as string)
+          if (!entry || !entry.id || entry.id === 0) {
+            throw new Error(`Inventory entry with entry_number '${item.data_id}' not found or not synced`)
           }
+          await apiClient.put(`/api/v1/inventory-entries/${entry.id}`, item.data)
+          // Update inventory entry sync status after successful sync
+          await db.put('inventory_entries', { ...entry, sync_status: 'synced' })
         }
         break
       case 'inventory_entry_detail':
         if (item.action === 'create') {
-          await apiClient.post('/api/v1/inventory-transactions', item.data)
+          const response = await apiClient.post('/api/v1/inventory-transactions', item.data)
           // Update inventory entry detail sync status after successful sync
           const db = await openDatabase()
           const detail = await db.get('inventory_entry_details', item.data_id)
           if (detail) {
-            await db.put('inventory_entry_details', { ...detail, sync_status: 'synced' })
+            // Update with server ID
+            const updatedDetail = {
+              ...detail,
+              id: response.data.id || detail.id, // Use server ID if provided
+              sync_status: 'synced' as const,
+            }
+            await db.put('inventory_entry_details', updatedDetail)
           }
         }
         break
@@ -197,42 +227,27 @@ class SyncManager {
               inventory_balance: shift.inventory_balance,
               shift_number: shift.shift_number,
             })
-            
-            // Now close it
-            await apiClient.post(`/api/v1/shifts/${createResponse.data.id}/close-with-inventory`, {
-              ...closeData,
-              shift_number: shift.shift_number,
-            })
-            
-            // Update local shift with server ID
-            const updatedShift = {
-              ...shift,
-              shift_number: shift.shift_number, // PRIMARY KEY
-              id: createResponse.data.id, // Server-generated ID
-              status: 'closed' as const,
-              sync_status: 'synced' as const,
-              updated_at: new Date().toISOString(),
-            }
-            await db.put('shifts', updatedShift)
-          } else {
-            // Shift already synced - just close it
-            await apiClient.post(`/api/v1/shifts/${shift.id}/close-with-inventory`, {
-              ...closeData,
-              shift_number: shift.shift_number,
-            })
-            
-            // Update shift sync status after successful sync
-            const updatedShift = {
-              ...shift,
-              shift_number: shift.shift_number, // PRIMARY KEY
-              id: shift.id, // Keep existing ID
-              status: 'closed' as const,
-              sync_status: 'synced' as const,
-              updated_at: new Date().toISOString(),
-            }
-            await db.put('shifts', updatedShift)
+
+            shift.id = createResponse.data.id
+            shift.updated_at = new Date().toISOString()
+            await db.put('shifts', shift)
           }
+          // Now close it
+          await apiClient.post(`/api/v1/shifts/${shift.id}/close-with-inventory`, {
+            ...closeData,
+            shift_number: shift.shift_number,
+          })
           
+          // Update local shift with server ID
+          const updatedShift = {
+            ...shift,
+            shift_number: shift.shift_number, // PRIMARY KEY
+            id: shift.id, // Server-generated ID
+            status: 'closed' as const,
+            sync_status: 'synced' as const,
+            updated_at: new Date().toISOString(),
+          }
+          await db.put('shifts', updatedShift)
           //For Agent: No need to remove local storage. Sync is a background job and should not affect local storage, since local storage should have been updated during the local operation before enqueuing the sync item.
         } else if (item.action === 'update') {
           // REMOTE SYNC: Update shift on server

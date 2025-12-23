@@ -146,12 +146,12 @@ export interface POSDatabase extends DBSchema {
     }
   }
   inventory_entries: {
-    key: number
+    key: string // PRIMARY KEY: entry_number (local identifier, always present)
     value: {
-      id: number
+      entry_number: string // PRIMARY KEY: Local identifier, always present
+      id: number // 0 for unsynced, numeric ID after sync (reference only, not used for local operations)
       store_id: number
       vendor_id?: number
-      entry_number: string
       entry_type: 'purchase' | 'sale' | 'adjustment' | 'transfer' | 'waste' | 'return'
       entry_date: string
       notes?: string
@@ -162,7 +162,7 @@ export interface POSDatabase extends DBSchema {
       created_at: string
       updated_at: string
     }
-    indexes: { 'by-sync-status': string; 'by-store': number; 'by-entry-type': string; 'by-shift': number; 'by-shift-number': string }
+    indexes: { 'by-sync-status': string; 'by-store': number; 'by-entry-type': string; 'by-shift': number; 'by-shift-number': string; 'by-id': number }
   }
   inventory_entry_details: {
     key: number
@@ -406,13 +406,14 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
       // Settings store
       db.createObjectStore('settings', { keyPath: 'key' })
 
-      // Inventory entries store
-      const inventoryEntryStore = db.createObjectStore('inventory_entries', { keyPath: 'id', autoIncrement: true })
+      // Inventory entries store - use entry_number as primary key
+      const inventoryEntryStore = db.createObjectStore('inventory_entries', { keyPath: 'entry_number' })
       inventoryEntryStore.createIndex('by-sync-status', 'sync_status')
       inventoryEntryStore.createIndex('by-store', 'store_id')
       inventoryEntryStore.createIndex('by-entry-type', 'entry_type')
       inventoryEntryStore.createIndex('by-shift', 'shift_id')
       inventoryEntryStore.createIndex('by-shift-number', 'shift_number')
+      inventoryEntryStore.createIndex('by-id', 'id') // Index for sync purposes only
 
       // Inventory entry details store
       const inventoryEntryDetailStore = db.createObjectStore('inventory_entry_details', { keyPath: 'id', autoIncrement: true })

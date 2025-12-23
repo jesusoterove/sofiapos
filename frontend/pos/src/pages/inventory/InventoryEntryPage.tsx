@@ -322,7 +322,7 @@ export function InventoryEntryPage() {
       const totalCostValue = totalCost ? parseFloat(totalCost) : undefined
 
       // Save inventory entry (entry_number will be auto-generated)
-      const entryId = await saveInventoryEntry(db, {
+      const entryNumber = await saveInventoryEntry(db, {
         store_id: storeId,
         entry_type: 'purchase', // Use 'purchase' for shift refills
         entry_date: new Date().toISOString(),
@@ -331,16 +331,16 @@ export function InventoryEntryPage() {
         shift_number: currentShift.shift_number,
       })
 
-      // Get the entry to get the generated entry_number
-      const entry = await db.get('inventory_entries', entryId)
+      // Get the entry to verify it was created (entry_number is the return value)
+      const entry = await db.get('inventory_entries', entryNumber)
       if (!entry) {
         throw new Error('Failed to retrieve created inventory entry')
       }
 
       // Save inventory entry detail
       await saveInventoryEntryDetail(db, {
-        entry_number: entry.entry_number, // Local link using entry_number
-        entry_id: entryId,
+        entry_number: entryNumber, // Local link using entry_number (primary key)
+        entry_id: entry.id || 0, // Use id from entry (0 if unsynced)
         product_id: selectedItem.product_id,
         material_id: selectedItem.material_id,
         quantity: quantityValue,
