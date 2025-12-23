@@ -13,6 +13,7 @@ import { initializeSequences } from '../db/queries/sequences'
 import { saveRecipes, saveRecipeMaterials } from '../db/queries/recipes'
 import { saveUnitOfMeasures, saveProductUnitOfMeasures, saveMaterialUnitOfMeasures } from '../db/queries/unitOfMeasures'
 import { listProducts } from '../api/products'
+import { downloadProductImage } from '../utils/productImages'
 import { listProductCategories } from '../api/categories'
 import { listMaterials } from '../api/materials'
 import { getGlobalSettings } from '../api/settings'
@@ -76,6 +77,25 @@ async function syncProducts(db: IDBPDatabase<POSDatabase>): Promise<number> {
   }))
   
   await saveProducts(db, dbProducts)
+  
+  // Download product images in parallel (but limit concurrency to avoid overwhelming the server)
+  const downloadPromises = products.map((p: Product) => {
+    if (p.code) {
+      return downloadProductImage(p.id, p.code).catch((error) => {
+        // Log but don't fail sync if image download fails
+        console.error(`[syncProducts] Failed to download image for product ${p.id} (${p.code}):`, error)
+      })
+    }
+    return Promise.resolve()
+  })
+  
+  // Download images with limited concurrency (5 at a time)
+  const BATCH_SIZE = 5
+  for (let i = 0; i < downloadPromises.length; i += BATCH_SIZE) {
+    const batch = downloadPromises.slice(i, i + BATCH_SIZE)
+    await Promise.all(batch)
+  }
+  
   return products.length
 }
 

@@ -2,6 +2,8 @@
  * Product tile component for displaying individual products.
  */
 import { formatPrice } from '@sofiapos/ui'
+import { useState, useEffect } from 'react'
+import { getProductImageUrl } from '@/utils/productImages'
 
 interface Product {
   id: number
@@ -33,6 +35,33 @@ export function ProductTile({ product, onClick, size = 'small' }: ProductTilePro
   const imageSize = SIZE_DIMENSIONS[size]
   const imageSizePx = `${imageSize}px`
   const buttonMaxWidth = `${imageSize + 8}px` // imageSize + 8px for padding (p-1 = 4px on each side)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imageError, setImageError] = useState(false)
+
+  // Load product image from local storage
+  useEffect(() => {
+    if (product.code) {
+      getProductImageUrl(product.code)
+        .then((url) => {
+          if (url) {
+            setImageUrl(url)
+            setImageError(false)
+          }
+        })
+        .catch(() => {
+          setImageError(true)
+        })
+    }
+  }, [product.code])
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl)
+      }
+    }
+  }, [imageUrl])
 
   return (
     <button
@@ -47,9 +76,9 @@ export function ProductTile({ product, onClick, size = 'small' }: ProductTilePro
       }}
     >
       <div className="flex flex-col h-full">
-        {/* Product Image Placeholder */}
+        {/* Product Image */}
         <div
-          className="rounded flex items-center justify-center"
+          className="rounded flex items-center justify-center overflow-hidden"
           style={{ 
             aspectRatio: '1 / 1',
             width: imageSizePx,
@@ -57,9 +86,18 @@ export function ProductTile({ product, onClick, size = 'small' }: ProductTilePro
             backgroundColor: 'var(--color-border-light)',
           }}
         >
-          <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-            {product.code}
-          </span>
+          {imageUrl && !imageError ? (
+            <img
+              src={imageUrl}
+              alt={product.name}
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              {product.code}
+            </span>
+          )}
         </div>
 
         {/* Product Name */}
