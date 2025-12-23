@@ -63,6 +63,13 @@ apiClient.interceptors.response.use(
     
     // Handle common errors
     if (error.response?.status === 401) {
+      // Skip redirect for static file requests (uploads) and image endpoints - these don't require auth
+      const requestUrl = error.config?.url || '';
+      if (requestUrl.includes('/uploads/') || requestUrl.includes('/images')) {
+        // Static file or image endpoint request - don't redirect, just reject the promise
+        return Promise.reject(error);
+      }
+      
       // Unauthorized - clear token
       localStorage.removeItem('auth_token');
       

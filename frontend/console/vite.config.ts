@@ -27,6 +27,13 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/uploads': {
+          // Proxy static file requests to backend API server
+          // Static files are served without authentication
+          target: env.VITE_API_URL || 'http://localhost:8001',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     build: {

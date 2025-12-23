@@ -4,7 +4,10 @@ FastAPI application entry point.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import os
+from pathlib import Path
 
 from app.database import engine, Base
 from app.hooks import loader  # Load custom hooks on startup
@@ -117,7 +120,34 @@ async def health_check():
         )
 
 
-# Import and include routers
+# Mount static files for uploaded images BEFORE routers
+# This ensures static files are served before API routes are checked
+# Static files are served without authentication by default in FastAPI
+uploads_dir = Path("uploads")
+uploads_dir.mkdir(exist_ok=True)
+
+# # Ensure product_images subdirectory exists
+# product_images_dir = uploads_dir / "product_images"
+# product_images_dir.mkdir(parents=True, exist_ok=True)
+# tiles_dir = product_images_dir / "tiles_110_110"
+# tiles_dir.mkdir(parents=True, exist_ok=True)
+
+# Mount static files - StaticFiles mounts bypass authentication by default
+# Mount BEFORE routers to ensure static files are checked first
+try:
+    # Use absolute path to avoid issues with working directory
+    abs_uploads_dir = uploads_dir.resolve()
+    
+    # Mount static files directly - this serves files without authentication
+    # FastAPI's StaticFiles doesn't use dependencies, so it bypasses OAuth2PasswordBearer
+    app.mount("/uploads", StaticFiles(directory=str(abs_uploads_dir), html=False), name="uploads")
+    print(f"✓ Static files mounted at /uploads from {abs_uploads_dir}")
+except Exception as e:
+    print(f"⚠ Warning: Could not mount static files directory: {e}")
+    import traceback
+    traceback.print_exc()
+
+# Import and include routers AFTER static files mount
 from app.api.v1 import router as api_v1_router
 app.include_router(api_v1_router)
 

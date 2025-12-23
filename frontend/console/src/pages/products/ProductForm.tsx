@@ -10,7 +10,7 @@ import { useTranslation } from '@/i18n/hooks'
 import { productsApi, ProductType } from '@/api/products'
 import { Button, messageBox, Tabs, Tab } from '@sofiapos/ui'
 import { useSettings } from '@/contexts/SettingsContext'
-import { IngredientsTab, ComponentsTab, GroupsTab, PricesTab } from './components'
+import { IngredientsTab, ComponentsTab, GroupsTab, PricesTab, ImagesTab } from './components'
 
 export function ProductForm() {
   const { t } = useTranslation()
@@ -236,6 +236,15 @@ export function ProductForm() {
       id: 'groups',
       label: t('inventory.groups') || 'Groups',
       content: <GroupsTab productId={productId} isEditMode={isEditMode} />,
+    })
+  }
+
+  // Add images tab only in edit mode
+  if (isEditMode) {
+    tabs.push({
+      id: 'images',
+      label: t('inventory.images') || 'Images',
+      content: <ImagesTab productId={productId} isEditMode={isEditMode} />,
     })
   }
 

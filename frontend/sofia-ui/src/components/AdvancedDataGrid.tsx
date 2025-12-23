@@ -196,7 +196,6 @@ export function AdvancedDataGrid<T extends Record<string, any> = any>({
 
     // Transform custom column definitions
     columnDefs.forEach((col) => {
-      console.log(col.field, col.cellRenderer);
       const agCol: ColDef = {
         field: col.field,
         headerName: col.headerName || col.field,

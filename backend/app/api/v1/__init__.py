@@ -10,7 +10,7 @@ from app.api.v1 import (
     auth, stores, users, materials, products, unit_of_measures, settings,
     store_product_groups, kit_components, store_product_prices, shifts, cash_registers, sales, tables, inventory_control,
     product_categories, document_prefixes, orders, recipes, product_unit_of_measures, material_unit_of_measures,
-    inventory_entries, inventory_transactions
+    inventory_entries, inventory_transactions, product_images
 )
 router.include_router(auth.router)
 router.include_router(stores.router)
@@ -35,4 +35,5 @@ router.include_router(product_unit_of_measures.router)
 router.include_router(material_unit_of_measures.router)
 router.include_router(inventory_entries.router)
 router.include_router(inventory_transactions.router)
+router.include_router(product_images.router)
 

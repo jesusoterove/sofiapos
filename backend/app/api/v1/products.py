@@ -1,13 +1,16 @@
 """
 Product management API endpoints.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from decimal import Decimal
+from pathlib import Path
+import os
 
 from app.database import get_db
-from app.models import Product, Recipe, RecipeMaterial, Material, UnitOfMeasure, StoreProductGroup, KitComponent, StoreProductPrice, Store
+from app.models import Product, Recipe, RecipeMaterial, Material, UnitOfMeasure, StoreProductGroup, KitComponent, StoreProductPrice, Store, ProductImage
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.schemas.recipe_material import RecipeMaterialCreate, RecipeMaterialUpdate, RecipeMaterialResponse
 from app.schemas.store_product_group import ProductGroupAssignment
@@ -108,20 +111,33 @@ async def create_product(
     current_user: User = Depends(get_current_user)
 ):
     """Create a new product."""
-    # Check if code already exists (globally, since products are global)
-    if product_data.code:
-        existing = db.query(Product).filter(Product.code == product_data.code).first()
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Product with this code already exists"
-            )
+    product = Product(
+        name=product_data.name,
+        code=product_data.code,
+        description=product_data.description,
+        category_id=product_data.category_id,
+        product_type=product_data.product_type,
+        is_active=product_data.is_active,
+        selling_price=product_data.selling_price,
+    )
     
-    product = Product(**product_data.model_dump())
     db.add(product)
     db.commit()
     db.refresh(product)
-    return product
+    
+    return {
+        "id": product.id,
+        "name": product.name,
+        "code": product.code,
+        "description": product.description,
+        "category_id": product.category_id,
+        "product_type": product.product_type,
+        "is_active": product.is_active,
+        "selling_price": float(product.selling_price),
+        "tax_rate": 0.0,
+        "created_at": product.created_at,
+        "updated_at": product.updated_at,
+    }
 
 
 @router.put("/{product_id}", response_model=ProductResponse)
@@ -132,6 +148,8 @@ async def update_product(
     current_user: User = Depends(get_current_user)
 ):
     """Update a product."""
+    from app.models import ProductTax, Tax
+    
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(
@@ -139,23 +157,44 @@ async def update_product(
             detail="Product not found"
         )
     
-    # Check if code already exists (if being updated)
-    if product_data.code and product_data.code != product.code:
-        existing = db.query(Product).filter(Product.code == product_data.code).first()
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Product with this code already exists"
-            )
-    
-    # Update fields
-    update_data = product_data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(product, field, value)
+    # Update fields if provided
+    if product_data.name is not None:
+        product.name = product_data.name
+    if product_data.code is not None:
+        product.code = product_data.code
+    if product_data.description is not None:
+        product.description = product_data.description
+    if product_data.category_id is not None:
+        product.category_id = product_data.category_id
+    if product_data.product_type is not None:
+        product.product_type = product_data.product_type
+    if product_data.is_active is not None:
+        product.is_active = product_data.is_active
+    if product_data.selling_price is not None:
+        product.selling_price = product_data.selling_price
     
     db.commit()
     db.refresh(product)
-    return product
+    
+    # Calculate total tax rate
+    tax_rate = 0.0
+    for product_tax in product.taxes:
+        if product_tax.is_active and product_tax.tax and product_tax.tax.is_active:
+            tax_rate += float(product_tax.tax.rate)
+    
+    return {
+        "id": product.id,
+        "name": product.name,
+        "code": product.code,
+        "description": product.description,
+        "category_id": product.category_id,
+        "product_type": product.product_type,
+        "is_active": product.is_active,
+        "selling_price": float(product.selling_price),
+        "tax_rate": tax_rate,
+        "created_at": product.created_at,
+        "updated_at": product.updated_at,
+    }
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -172,27 +211,18 @@ async def delete_product(
             detail="Product not found"
         )
     
-    # Check if product is used in orders
-    if product.order_items:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete product that is used in orders"
-        )
-    
     db.delete(product)
     db.commit()
     return None
 
 
-# Recipe Materials endpoints (for ingredients tab)
-@router.get("/{product_id}/recipe-materials", response_model=List[RecipeMaterialResponse])
-async def list_product_recipe_materials(
+@router.get("/{product_id}/recipes", response_model=List[RecipeMaterialResponse])
+async def get_product_recipes(
     product_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all recipe materials for a product."""
-    # Verify product exists and is prepared
+    """Get recipes for a product."""
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(
@@ -200,60 +230,40 @@ async def list_product_recipe_materials(
             detail="Product not found"
         )
     
-    if product.product_type.value != "prepared":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Product must be of type 'prepared' to have recipe materials"
-        )
-    
-    # Get or create recipe for this product
-    recipe = db.query(Recipe).filter(Recipe.product_id == product_id).first()
-    if not recipe:
-        # Create default recipe
-        recipe = Recipe(
-            product_id=product_id,
-            name=f"Recipe for {product.name}",
-            yield_quantity=Decimal("1.0"),
-            is_active=True
-        )
-        db.add(recipe)
-        db.commit()
-        db.refresh(recipe)
-    
-    # Get recipe materials
-    recipe_materials = db.query(RecipeMaterial).options(
-        joinedload(RecipeMaterial.material),
-        joinedload(RecipeMaterial.unit_of_measure)
-    ).filter(RecipeMaterial.recipe_id == recipe.id).all()
-    
-    # Convert to response format
+    recipes = db.query(Recipe).filter(Recipe.product_id == product_id).all()
     result = []
-    for rm in recipe_materials:
-        result.append({
-            "id": rm.id,
-            "recipe_id": rm.recipe_id,
-            "material_id": rm.material_id,
-            "quantity": float(rm.quantity) if rm.quantity is not None else None,
-            "unit_of_measure_id": rm.unit_of_measure_id,
-            "display_order": rm.display_order,
-            "created_at": rm.created_at,
-            "updated_at": rm.updated_at,
-            "material_name": rm.material.name if rm.material else None,
-            "material_code": rm.material.code if rm.material else None,
-            "unit_of_measure_name": rm.unit_of_measure.abbreviation if rm.unit_of_measure else None,
-        })
+    
+    for recipe in recipes:
+        recipe_materials = db.query(RecipeMaterial).filter(RecipeMaterial.recipe_id == recipe.id).all()
+        for rm in recipe_materials:
+            material = db.query(Material).filter(Material.id == rm.material_id).first()
+            unit_of_measure = db.query(UnitOfMeasure).filter(UnitOfMeasure.id == rm.unit_of_measure_id).first() if rm.unit_of_measure_id else None
+            
+            result.append({
+                "id": rm.id,
+                "recipe_id": rm.recipe_id,
+                "recipe_name": recipe.name,
+                "material_id": rm.material_id,
+                "material_name": material.name if material else None,
+                "quantity": float(rm.quantity),
+                "unit_of_measure_id": rm.unit_of_measure_id,
+                "unit_of_measure_name": unit_of_measure.name if unit_of_measure else None,
+                "display_order": rm.display_order,
+                "created_at": rm.created_at,
+                "updated_at": rm.updated_at,
+            })
+    
     return result
 
 
-@router.post("/{product_id}/recipe-materials", response_model=RecipeMaterialResponse, status_code=status.HTTP_201_CREATED)
-async def create_product_recipe_material(
+@router.post("/{product_id}/recipes", response_model=RecipeMaterialResponse, status_code=status.HTTP_201_CREATED)
+async def create_product_recipe(
     product_id: int,
-    material_data: RecipeMaterialCreate,
+    recipe_data: RecipeMaterialCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a recipe material for a product."""
-    # Verify product exists and is prepared
+    """Create a recipe for a product."""
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(
@@ -261,86 +271,60 @@ async def create_product_recipe_material(
             detail="Product not found"
         )
     
-    if product.product_type.value != "prepared":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Product must be of type 'prepared' to have recipe materials"
-        )
-    
-    # Get or create recipe
-    recipe = db.query(Recipe).filter(Recipe.product_id == product_id).first()
+    # Check if recipe exists, if not create it
+    recipe = db.query(Recipe).filter(Recipe.id == recipe_data.recipe_id).first()
     if not recipe:
-        recipe = Recipe(
-            product_id=product_id,
-            name=f"Recipe for {product.name}",
-            yield_quantity=Decimal("1.0"),
-            is_active=True
-        )
-        db.add(recipe)
-        db.commit()
-        db.refresh(recipe)
-    
-    # Verify material exists
-    material = db.query(Material).filter(Material.id == material_data.material_id).first()
-    if not material:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Material not found"
+            detail="Recipe not found"
         )
     
-    # Check if material already exists in recipe
-    existing = db.query(RecipeMaterial).filter(
-        RecipeMaterial.recipe_id == recipe.id,
-        RecipeMaterial.material_id == material_data.material_id
-    ).first()
-    if existing:
+    # Verify recipe belongs to this product
+    if recipe.product_id != product_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This material already exists in the recipe"
+            detail="Recipe does not belong to this product"
         )
     
-    # Create recipe material
     recipe_material = RecipeMaterial(
-        recipe_id=recipe.id,
-        material_id=material_data.material_id,
-        quantity=material_data.quantity,
-        unit_of_measure_id=material_data.unit_of_measure_id,
+        recipe_id=recipe_data.recipe_id,
+        material_id=recipe_data.material_id,
+        quantity=recipe_data.quantity,
+        unit_of_measure_id=recipe_data.unit_of_measure_id,
+        display_order=recipe_data.display_order,
     )
+    
     db.add(recipe_material)
     db.commit()
     db.refresh(recipe_material)
     
-    # Reload with relationships
-    recipe_material = db.query(RecipeMaterial).options(
-        joinedload(RecipeMaterial.material),
-        joinedload(RecipeMaterial.unit_of_measure)
-    ).filter(RecipeMaterial.id == recipe_material.id).first()
+    material = db.query(Material).filter(Material.id == recipe_material.material_id).first()
+    unit_of_measure = db.query(UnitOfMeasure).filter(UnitOfMeasure.id == recipe_material.unit_of_measure_id).first() if recipe_material.unit_of_measure_id else None
     
     return {
         "id": recipe_material.id,
         "recipe_id": recipe_material.recipe_id,
+        "recipe_name": recipe.name,
         "material_id": recipe_material.material_id,
-        "quantity": float(recipe_material.quantity) if recipe_material.quantity is not None else None,
+        "material_name": material.name if material else None,
+        "quantity": float(recipe_material.quantity),
         "unit_of_measure_id": recipe_material.unit_of_measure_id,
+        "unit_of_measure_name": unit_of_measure.name if unit_of_measure else None,
         "display_order": recipe_material.display_order,
         "created_at": recipe_material.created_at,
         "updated_at": recipe_material.updated_at,
-        "material_name": recipe_material.material.name if recipe_material.material else None,
-        "material_code": recipe_material.material.code if recipe_material.material else None,
-        "unit_of_measure_name": recipe_material.unit_of_measure.abbreviation if recipe_material.unit_of_measure else None,
     }
 
 
-@router.put("/{product_id}/recipe-materials/{material_id}", response_model=RecipeMaterialResponse)
-async def update_product_recipe_material(
+@router.put("/{product_id}/recipes/{recipe_material_id}", response_model=RecipeMaterialResponse)
+async def update_product_recipe(
     product_id: int,
-    material_id: int,
-    material_data: RecipeMaterialUpdate,
+    recipe_material_id: int,
+    recipe_data: RecipeMaterialUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Update a recipe material for a product."""
-    # Verify product exists
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(
@@ -348,63 +332,57 @@ async def update_product_recipe_material(
             detail="Product not found"
         )
     
-    # Get recipe
-    recipe = db.query(Recipe).filter(Recipe.product_id == product_id).first()
-    if not recipe:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Recipe not found for this product"
-        )
-    
-    # Get recipe material
-    recipe_material = db.query(RecipeMaterial).filter(
-        RecipeMaterial.id == material_id,
-        RecipeMaterial.recipe_id == recipe.id
-    ).first()
+    recipe_material = db.query(RecipeMaterial).filter(RecipeMaterial.id == recipe_material_id).first()
     if not recipe_material:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Recipe material not found"
         )
     
-    # Update fields
-    update_data = material_data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(recipe_material, field, value)
+    # Verify recipe belongs to this product
+    recipe = db.query(Recipe).filter(Recipe.id == recipe_material.recipe_id).first()
+    if not recipe or recipe.product_id != product_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Recipe material does not belong to this product"
+        )
+    
+    if recipe_data.quantity is not None:
+        recipe_material.quantity = recipe_data.quantity
+    if recipe_data.unit_of_measure_id is not None:
+        recipe_material.unit_of_measure_id = recipe_data.unit_of_measure_id
+    if recipe_data.display_order is not None:
+        recipe_material.display_order = recipe_data.display_order
     
     db.commit()
     db.refresh(recipe_material)
     
-    # Reload with relationships
-    recipe_material = db.query(RecipeMaterial).options(
-        joinedload(RecipeMaterial.material),
-        joinedload(RecipeMaterial.unit_of_measure)
-    ).filter(RecipeMaterial.id == material_id).first()
+    material = db.query(Material).filter(Material.id == recipe_material.material_id).first()
+    unit_of_measure = db.query(UnitOfMeasure).filter(UnitOfMeasure.id == recipe_material.unit_of_measure_id).first() if recipe_material.unit_of_measure_id else None
     
     return {
         "id": recipe_material.id,
         "recipe_id": recipe_material.recipe_id,
+        "recipe_name": recipe.name,
         "material_id": recipe_material.material_id,
-        "quantity": float(recipe_material.quantity) if recipe_material.quantity is not None else None,
+        "material_name": material.name if material else None,
+        "quantity": float(recipe_material.quantity),
         "unit_of_measure_id": recipe_material.unit_of_measure_id,
+        "unit_of_measure_name": unit_of_measure.name if unit_of_measure else None,
         "display_order": recipe_material.display_order,
         "created_at": recipe_material.created_at,
         "updated_at": recipe_material.updated_at,
-        "material_name": recipe_material.material.name if recipe_material.material else None,
-        "material_code": recipe_material.material.code if recipe_material.material else None,
-        "unit_of_measure_name": recipe_material.unit_of_measure.abbreviation if recipe_material.unit_of_measure else None,
     }
 
 
-@router.delete("/{product_id}/recipe-materials/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_product_recipe_material(
+@router.delete("/{product_id}/recipes/{recipe_material_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product_recipe(
     product_id: int,
-    material_id: int,
+    recipe_material_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Delete a recipe material from a product."""
-    # Verify product exists
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(
@@ -412,23 +390,19 @@ async def delete_product_recipe_material(
             detail="Product not found"
         )
     
-    # Get recipe
-    recipe = db.query(Recipe).filter(Recipe.product_id == product_id).first()
-    if not recipe:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Recipe not found for this product"
-        )
-    
-    # Get recipe material
-    recipe_material = db.query(RecipeMaterial).filter(
-        RecipeMaterial.id == material_id,
-        RecipeMaterial.recipe_id == recipe.id
-    ).first()
+    recipe_material = db.query(RecipeMaterial).filter(RecipeMaterial.id == recipe_material_id).first()
     if not recipe_material:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Recipe material not found"
+        )
+    
+    # Verify recipe belongs to this product
+    recipe = db.query(Recipe).filter(Recipe.id == recipe_material.recipe_id).first()
+    if not recipe or recipe.product_id != product_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Recipe material does not belong to this product"
         )
     
     db.delete(recipe_material)
@@ -436,15 +410,13 @@ async def delete_product_recipe_material(
     return None
 
 
-# Kit Components endpoints (nested under products)
-@router.get("/{product_id}/kit-components", response_model=List[dict])
-async def list_product_kit_components(
+@router.get("/{product_id}/groups")
+async def get_product_groups(
     product_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all kit components for a product."""
-    # Verify product exists and is a kit
+    """Get store product groups for a product."""
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(
@@ -452,107 +424,17 @@ async def list_product_kit_components(
             detail="Product not found"
         )
     
-    if product.product_type.value != "kit":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Product must be of type 'kit' to have components"
-        )
-    
-    # Get kit components
-    components = db.query(KitComponent).options(
-        joinedload(KitComponent.component)
-    ).filter(KitComponent.product_id == product_id).all()
-    
-    result = []
-    for component in components:
-        result.append({
-            "id": component.id,
-            "product_id": component.product_id,
-            "component_id": component.component_id,
-            "quantity": float(component.quantity),
-            "created_at": component.created_at.isoformat() if component.created_at else None,
-            "updated_at": component.updated_at.isoformat() if component.updated_at else None,
-            "component_name": component.component.name if component.component else None,
-            "component_code": component.component.code if component.component else None,
-        })
-    return result
-
-
-# Store Product Prices endpoints (nested under products)
-@router.get("/{product_id}/store-prices", response_model=List[dict])
-async def list_product_store_prices(
-    product_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """List all store prices for a product."""
-    from app.models import Setting
-    
-    # Verify product exists
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found"
-        )
-    
-    # Get store prices
-    prices = db.query(StoreProductPrice).options(
-        joinedload(StoreProductPrice.store)
-    ).filter(StoreProductPrice.product_id == product_id).all()
-    
-    result = []
-    for price in prices:
-        result.append({
-            "id": price.id,
-            "store_id": price.store_id,
-            "product_id": price.product_id,
-            "selling_price": float(price.selling_price) if price.selling_price is not None else None,
-            "created_at": price.created_at.isoformat() if price.created_at else None,
-            "updated_at": price.updated_at.isoformat() if price.updated_at else None,
-            "store_name": price.store.name if price.store else None,
-        })
-    return result
-
-
-# Store Product Groups endpoints (nested under products)
-@router.get("/{product_id}/groups", response_model=List[dict])
-async def list_product_groups(
-    product_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """List all store groups that a product belongs to."""
-    # Verify product exists
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found"
-        )
-    
-    # Get all groups the product belongs to
-    # Use the many-to-many relationship through the association table
-    from app.models.product import product_group_table
-    groups = db.query(StoreProductGroup).options(
-        joinedload(StoreProductGroup.store)
-    ).join(
-        product_group_table
-    ).filter(
-        product_group_table.c.product_id == product_id
-    ).all()
-    
-    result = []
-    for group in groups:
-        result.append({
+    groups = product.store_groups
+    return [
+        {
             "id": group.id,
             "store_id": group.store_id,
             "group_name": group.group_name,
-            "store_name": group.store.name if group.store else None,
-            "created_at": group.created_at.isoformat() if group.created_at else None,
-            "updated_at": group.updated_at.isoformat() if group.updated_at else None,
-        })
-    return result
+            "created_at": group.created_at,
+            "updated_at": group.updated_at,
+        }
+        for group in groups
+    ]
 
 
 @router.post("/{product_id}/groups", status_code=status.HTTP_204_NO_CONTENT)
@@ -562,8 +444,7 @@ async def assign_product_to_group(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Assign or unassign a product to/from a store group."""
-    # Verify product exists
+    """Assign or unassign a product to/from a store product group."""
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(
@@ -571,7 +452,6 @@ async def assign_product_to_group(
             detail="Product not found"
         )
     
-    # Verify group exists
     group = db.query(StoreProductGroup).filter(StoreProductGroup.id == assignment.group_id).first()
     if not group:
         raise HTTPException(
@@ -591,3 +471,58 @@ async def assign_product_to_group(
     db.commit()
     return None
 
+
+@router.get("/{product_id}/images")
+async def get_product_image(
+    product_id: int,
+    size: Optional[str] = Query(None, description="Image size (e.g., '110' for 110x110 thumbnail)"),
+    db: Session = Depends(get_db)
+):
+    print("GET PRODUCT IMAGE")
+    """
+    Get product image.
+    If size is provided (e.g., '110'), returns the thumbnail from tiles_110_110 folder.
+    Otherwise returns the original image.
+    """
+    # Get product to verify it exists
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with ID {product_id} not found"
+        )
+    
+    # Get product image
+    product_image = db.query(ProductImage).filter(ProductImage.product_id == product_id).first()
+    if not product_image:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No image found for product {product_id}"
+        )
+    
+    # Determine which file to serve based on size parameter
+    if size == "110":
+        # Return thumbnail from tiles_110_110 folder
+        filename = Path(product_image.image_url).name
+        image_path = Path("uploads/product_images/tiles_110_110") / filename
+    else:
+        # Return original image
+        image_path = Path(product_image.image_path) if product_image.image_path else None
+        if not image_path:
+            # Fallback: construct path from image_url
+            filename = Path(product_image.image_url).name
+            image_path = Path("uploads/product_images") / filename
+    
+    # Check if file exists
+    if not image_path or not image_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Image file not found for product {product_id}"
+        )
+    
+    # Return file response
+    return FileResponse(
+        path=str(image_path),
+        media_type="image/jpeg",
+        filename=image_path.name
+    )
