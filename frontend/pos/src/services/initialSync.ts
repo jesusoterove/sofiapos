@@ -12,6 +12,7 @@ import { saveDocumentPrefixes } from '../db/queries/documentPrefixes'
 import { initializeSequences } from '../db/queries/sequences'
 import { saveRecipes, saveRecipeMaterials } from '../db/queries/recipes'
 import { saveUnitOfMeasures, saveProductUnitOfMeasures, saveMaterialUnitOfMeasures } from '../db/queries/unitOfMeasures'
+import { updateLastSyncTimestamp } from '../db/queries/syncState'
 import { listProducts } from '../api/products'
 import { downloadProductImage } from '../utils/productImages'
 import { listProductCategories } from '../api/categories'
@@ -78,6 +79,9 @@ async function syncProducts(db: IDBPDatabase<POSDatabase>): Promise<number> {
   
   await saveProducts(db, dbProducts)
   
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'products', new Date().toISOString())
+  
   // Download product images in parallel (but limit concurrency to avoid overwhelming the server)
   const downloadPromises = products.map((p: Product) => {
     if (p.code) {
@@ -115,6 +119,10 @@ async function syncCategories(db: IDBPDatabase<POSDatabase>): Promise<number> {
   }))
   
   await saveCategories(db, dbCategories)
+  
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'categories', new Date().toISOString())
+  
   return categories.length
 }
 
@@ -142,6 +150,9 @@ async function syncMaterials(db: IDBPDatabase<POSDatabase>): Promise<number> {
   )
   await tx.done
   
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'materials', new Date().toISOString())
+  
   return materials.length
 }
 
@@ -162,6 +173,10 @@ async function syncUnitOfMeasures(db: IDBPDatabase<POSDatabase>): Promise<number
   }))
   
   await saveUnitOfMeasures(db, dbUnits)
+  
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'unit_of_measures', new Date().toISOString())
+  
   return units.length
 }
 
@@ -183,6 +198,10 @@ async function syncProductUnitOfMeasures(db: IDBPDatabase<POSDatabase>): Promise
   }))
   
   await saveProductUnitOfMeasures(db, dbUnits)
+  
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'product_unit_of_measures', new Date().toISOString())
+  
   return units.length
 }
 
@@ -204,6 +223,10 @@ async function syncMaterialUnitOfMeasures(db: IDBPDatabase<POSDatabase>): Promis
   }))
   
   await saveMaterialUnitOfMeasures(db, dbUnits)
+  
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'material_unit_of_measures', new Date().toISOString())
+  
   return units.length
 }
 
@@ -226,6 +249,10 @@ async function syncRecipes(db: IDBPDatabase<POSDatabase>): Promise<number> {
   }))
   
   await saveRecipes(db, dbRecipes)
+  
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'recipes', new Date().toISOString())
+  
   return recipes.length
 }
 
@@ -259,6 +286,9 @@ async function syncRecipeMaterials(db: IDBPDatabase<POSDatabase>, recipes: Recip
     }
   }
   
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'recipe_materials', new Date().toISOString())
+  
   return totalMaterials
 }
 
@@ -281,6 +311,9 @@ async function syncSettings(db: IDBPDatabase<POSDatabase>): Promise<number> {
   )
   await tx.done
   
+  // Record sync timestamp
+  await updateLastSyncTimestamp(db, 'settings', new Date().toISOString())
+  
   return settings.length
 }
 
@@ -291,6 +324,12 @@ async function syncTables(db: IDBPDatabase<POSDatabase>, storeId?: number): Prom
   const tables = await listTables(storeId, true)
   
   await saveTables(db, tables)
+  
+  // Record sync timestamp (store-specific)
+  if (storeId) {
+    await updateLastSyncTimestamp(db, 'tables', new Date().toISOString(), storeId)
+  }
+  
   return tables.length
 }
 
@@ -312,6 +351,12 @@ async function syncDocumentPrefixes(db: IDBPDatabase<POSDatabase>, storeId?: num
   }))
   
   await saveDocumentPrefixes(db, dbPrefixes)
+  
+  // Record sync timestamp (store-specific)
+  if (storeId) {
+    await updateLastSyncTimestamp(db, 'document_prefixes', new Date().toISOString(), storeId)
+  }
+  
   return prefixes.length
 }
 
@@ -352,6 +397,10 @@ async function syncInventoryControlConfig(db: IDBPDatabase<POSDatabase>, storeId
     console.log(`[syncInventoryControlConfig] Saving ${dbConfigs.length} config items to IndexedDB`)
     await saveInventoryControlConfigs(db, dbConfigs)
     console.log(`[syncInventoryControlConfig] Successfully synced ${configs.length} inventory control config items`)
+    
+    // Record sync timestamp (store-specific)
+    await updateLastSyncTimestamp(db, 'inventory_config', new Date().toISOString(), storeId)
+    
     return configs.length
   } catch (error: any) {
     console.error('[syncInventoryControlConfig] Error syncing inventory control config:', error)

@@ -109,16 +109,10 @@ export async function generateShiftNumber(
   
   // Get or increment sequence for this cash register, doc type, and date
   const sequence = await incrementSequence(db, cashRegisterId, 'shift', dateKey)
-  console.log('timestamp', timestamp)
-  console.log('sequence', sequence)
   // Encode date + sequence: MMddyyyyxx (xx is 2-digit sequence, base-36 padded)
   const sequencePadded = encodeBase36(sequence, 2) // 2-digit base-36 sequence
   const dateBase36 = encodeBase36(timestamp)
 
-  console.log('dateBase36', dateBase36)
-  console.log('sequencePadded', sequencePadded)
-  console.log('generated number', `${shiftPrefix}${cashRegisterCode}-${dateBase36}${sequencePadded}`)
-  
   return `${shiftPrefix}${cashRegisterCode}-${dateBase36}${sequencePadded}`
 }
 

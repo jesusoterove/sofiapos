@@ -125,6 +125,26 @@ async def create_product(
     db.commit()
     db.refresh(product)
     
+    # Notify WebSocket clients about product creation
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[ProductCreate] Product {product.id} created, triggering WebSocket notification")
+        
+        from app.services.notification_service import notify_entity_update
+        notify_entity_update(
+            entity_type="products",
+            entity_id=product.id,
+            change_type="create",
+            store_id=None  # Products are global, broadcast to all
+        )
+        logger.info(f"[ProductCreate] Notification triggered successfully for product {product.id}")
+    except Exception as e:
+        # Don't fail the create if notification fails
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[ProductCreate] Failed to send product create notification: {e}", exc_info=True)
+    
     return {
         "id": product.id,
         "name": product.name,
@@ -175,6 +195,28 @@ async def update_product(
     
     db.commit()
     db.refresh(product)
+    
+    # Notify WebSocket clients about product update
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[ProductUpdate] Product {product.id} updated, triggering WebSocket notification")
+        
+        from app.services.notification_service import notify_entity_update
+        # Get store_id from product if available (products are global, but we can broadcast to all)
+        logger.info(f"[ProductUpdate] Calling notify_entity_update for product {product.id}")
+        notify_entity_update(
+            entity_type="products",
+            entity_id=product.id,
+            change_type="update",
+            store_id=None  # Products are global, broadcast to all
+        )
+        logger.info(f"[ProductUpdate] Notification triggered successfully for product {product.id}")
+    except Exception as e:
+        # Don't fail the update if notification fails
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[ProductUpdate] Failed to send product update notification: {e}", exc_info=True)
     
     # Calculate total tax rate
     tax_rate = 0.0
@@ -256,6 +298,126 @@ async def get_product_recipes(
     return result
 
 
+@router.get("/{product_id}/recipe-materials", response_model=List[RecipeMaterialResponse])
+async def get_product_recipe_materials(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get recipe materials for a product (used by console IngredientsTab)."""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+    
+    # Get all recipes for this product
+    recipes = db.query(Recipe).filter(Recipe.product_id == product_id).all()
+    result = []
+    
+    for recipe in recipes:
+        recipe_materials = db.query(RecipeMaterial).filter(
+            RecipeMaterial.recipe_id == recipe.id
+        ).order_by(RecipeMaterial.display_order).all()
+        
+        for rm in recipe_materials:
+            material = db.query(Material).filter(Material.id == rm.material_id).first()
+            unit_of_measure = db.query(UnitOfMeasure).filter(
+                UnitOfMeasure.id == rm.unit_of_measure_id
+            ).first() if rm.unit_of_measure_id else None
+            
+            result.append({
+                "id": rm.id,
+                "recipe_id": rm.recipe_id,
+                "material_id": rm.material_id,
+                "material_name": material.name if material else None,
+                "material_code": material.code if material else None,
+                "quantity": float(rm.quantity),
+                "unit_of_measure_id": rm.unit_of_measure_id,
+                "unit_of_measure_name": unit_of_measure.name if unit_of_measure else None,
+                "display_order": rm.display_order,
+                "created_at": rm.created_at,
+                "updated_at": rm.updated_at,
+            })
+    
+    return result
+
+
+@router.post("/{product_id}/recipe-materials", response_model=RecipeMaterialResponse, status_code=status.HTTP_201_CREATED)
+async def create_product_recipe_material(
+    product_id: int,
+    recipe_data: RecipeMaterialCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a recipe material for a product (used by console IngredientsTab)."""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+    
+    # Get or create recipe for this product
+    recipe = None
+    if recipe_data.recipe_id and recipe_data.recipe_id > 0:
+        recipe = db.query(Recipe).filter(Recipe.id == recipe_data.recipe_id).first()
+        if recipe and recipe.product_id != product_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Recipe does not belong to this product"
+            )
+    
+    # If no recipe exists, create one
+    if not recipe:
+        recipe = Recipe(
+            product_id=product_id,
+            name=f"Recipe for {product.name}",
+            yield_quantity=1,
+            is_active=True,
+        )
+        db.add(recipe)
+        db.flush()  # Flush to get the recipe ID
+    
+    # Get max display_order for this recipe
+    max_order = db.query(RecipeMaterial).filter(
+        RecipeMaterial.recipe_id == recipe.id
+    ).order_by(RecipeMaterial.display_order.desc()).first()
+    display_order = (max_order.display_order + 1) if max_order else 0
+    
+    recipe_material = RecipeMaterial(
+        recipe_id=recipe.id,
+        material_id=recipe_data.material_id,
+        quantity=recipe_data.quantity,
+        unit_of_measure_id=recipe_data.unit_of_measure_id,
+        display_order=display_order,
+    )
+    
+    db.add(recipe_material)
+    db.commit()
+    db.refresh(recipe_material)
+    
+    material = db.query(Material).filter(Material.id == recipe_material.material_id).first()
+    unit_of_measure = db.query(UnitOfMeasure).filter(
+        UnitOfMeasure.id == recipe_material.unit_of_measure_id
+    ).first() if recipe_material.unit_of_measure_id else None
+    
+    return {
+        "id": recipe_material.id,
+        "recipe_id": recipe_material.recipe_id,
+        "material_id": recipe_material.material_id,
+        "material_name": material.name if material else None,
+        "material_code": material.code if material else None,
+        "quantity": float(recipe_material.quantity),
+        "unit_of_measure_id": recipe_material.unit_of_measure_id,
+        "unit_of_measure_name": unit_of_measure.name if unit_of_measure else None,
+        "display_order": recipe_material.display_order,
+        "created_at": recipe_material.created_at,
+        "updated_at": recipe_material.updated_at,
+    }
+
+
 @router.post("/{product_id}/recipes", response_model=RecipeMaterialResponse, status_code=status.HTTP_201_CREATED)
 async def create_product_recipe(
     product_id: int,
@@ -307,6 +469,66 @@ async def create_product_recipe(
         "recipe_name": recipe.name,
         "material_id": recipe_material.material_id,
         "material_name": material.name if material else None,
+        "quantity": float(recipe_material.quantity),
+        "unit_of_measure_id": recipe_material.unit_of_measure_id,
+        "unit_of_measure_name": unit_of_measure.name if unit_of_measure else None,
+        "display_order": recipe_material.display_order,
+        "created_at": recipe_material.created_at,
+        "updated_at": recipe_material.updated_at,
+    }
+
+
+@router.put("/{product_id}/recipe-materials/{material_id}", response_model=RecipeMaterialResponse)
+async def update_product_recipe_material(
+    product_id: int,
+    material_id: int,
+    recipe_data: RecipeMaterialUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update a recipe material for a product (used by console IngredientsTab)."""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+    
+    # Find recipe material by ID (material_id parameter is the recipe_material.id)
+    recipe_material = db.query(RecipeMaterial).filter(RecipeMaterial.id == material_id).first()
+    if not recipe_material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recipe material not found"
+        )
+    
+    # Verify recipe belongs to this product
+    recipe = db.query(Recipe).filter(Recipe.id == recipe_material.recipe_id).first()
+    if not recipe or recipe.product_id != product_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Recipe material does not belong to this product"
+        )
+    
+    if recipe_data.quantity is not None:
+        recipe_material.quantity = recipe_data.quantity
+    if recipe_data.unit_of_measure_id is not None:
+        recipe_material.unit_of_measure_id = recipe_data.unit_of_measure_id
+    
+    db.commit()
+    db.refresh(recipe_material)
+    
+    material = db.query(Material).filter(Material.id == recipe_material.material_id).first()
+    unit_of_measure = db.query(UnitOfMeasure).filter(
+        UnitOfMeasure.id == recipe_material.unit_of_measure_id
+    ).first() if recipe_material.unit_of_measure_id else None
+    
+    return {
+        "id": recipe_material.id,
+        "recipe_id": recipe_material.recipe_id,
+        "material_id": recipe_material.material_id,
+        "material_name": material.name if material else None,
+        "material_code": material.code if material else None,
         "quantity": float(recipe_material.quantity),
         "unit_of_measure_id": recipe_material.unit_of_measure_id,
         "unit_of_measure_name": unit_of_measure.name if unit_of_measure else None,
@@ -373,6 +595,42 @@ async def update_product_recipe(
         "created_at": recipe_material.created_at,
         "updated_at": recipe_material.updated_at,
     }
+
+
+@router.delete("/{product_id}/recipe-materials/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product_recipe_material(
+    product_id: int,
+    material_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a recipe material from a product (used by console IngredientsTab)."""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+    
+    # Find recipe material by ID (material_id parameter is the recipe_material.id)
+    recipe_material = db.query(RecipeMaterial).filter(RecipeMaterial.id == material_id).first()
+    if not recipe_material:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recipe material not found"
+        )
+    
+    # Verify recipe belongs to this product
+    recipe = db.query(Recipe).filter(Recipe.id == recipe_material.recipe_id).first()
+    if not recipe or recipe.product_id != product_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Recipe material does not belong to this product"
+        )
+    
+    db.delete(recipe_material)
+    db.commit()
+    return None
 
 
 @router.delete("/{product_id}/recipes/{recipe_material_id}", status_code=status.HTTP_204_NO_CONTENT)

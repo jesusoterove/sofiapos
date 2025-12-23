@@ -210,6 +210,20 @@ async def create_product_image(
     db.commit()
     db.refresh(product_image)
     
+    # Notify WebSocket clients about product image update (triggers product sync)
+    try:
+        from app.services.notification_service import notify_entity_update
+        notify_entity_update(
+            entity_type="products",
+            entity_id=product_id,
+            change_type="update",  # Image update is treated as product update
+            store_id=None  # Products are global, broadcast to all
+        )
+    except Exception as e:
+        # Don't fail the create if notification fails
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to send product image update notification: {e}")
+    
     return product_image
 
 
@@ -288,6 +302,20 @@ async def update_product_image(
     db.commit()
     db.refresh(image)
     
+    # Notify WebSocket clients about product image update (triggers product sync)
+    try:
+        from app.services.notification_service import notify_entity_update
+        notify_entity_update(
+            entity_type="products",
+            entity_id=image.product_id,
+            change_type="update",  # Image update is treated as product update
+            store_id=None  # Products are global, broadcast to all
+        )
+    except Exception as e:
+        # Don't fail the update if notification fails
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to send product image update notification: {e}")
+    
     return image
 
 
@@ -325,8 +353,24 @@ async def delete_product_image(
             except Exception as e:
                 print(f"Failed to delete thumbnail file: {e}")
     
+    product_id = image.product_id  # Save before deletion
+    
     db.delete(image)
     db.commit()
+    
+    # Notify WebSocket clients about product image deletion (triggers product sync)
+    try:
+        from app.services.notification_service import notify_entity_update
+        notify_entity_update(
+            entity_type="products",
+            entity_id=product_id,
+            change_type="update",  # Image deletion is treated as product update
+            store_id=None  # Products are global, broadcast to all
+        )
+    except Exception as e:
+        # Don't fail the delete if notification fails
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to send product image delete notification: {e}")
     
     return None
 

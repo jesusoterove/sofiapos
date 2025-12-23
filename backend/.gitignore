@@ -58,3 +58,7 @@ alembic/versions/*.pyc
 .coverage
 htmlcov/
 
+# App data folders
+uploads/
+
+

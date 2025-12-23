@@ -346,6 +346,16 @@ export interface POSDatabase extends DBSchema {
     }
     indexes: { 'by-shift-id': number }
   }
+  sync_state: {
+    key: string // entity_type (e.g., 'products', 'categories', 'materials')
+    value: {
+      entity_type: string
+      last_sync_at: string // ISO timestamp
+      store_id?: number // Optional, for store-specific entities
+      updated_at: string
+    }
+    indexes: { 'by-store': number }
+  }
 }
 
 const DB_NAME = 'sofiapos-db'
@@ -475,6 +485,10 @@ export async function openDatabase(): Promise<IDBPDatabase<POSDatabase>> {
       const syncQueueStore = db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true })
       syncQueueStore.createIndex('by-type', 'type')
       syncQueueStore.createIndex('by-action', 'action')
+
+      // Sync state store
+      const syncStateStore = db.createObjectStore('sync_state', { keyPath: 'entity_type' })
+      syncStateStore.createIndex('by-store', 'store_id', { unique: false })
     },
   })
 }

@@ -281,7 +281,9 @@
     "notStarted": "Synchronization not started",
     "results": "Synchronization Results",
     "viewResults": "View sync results",
-    "authFailure": "Sync authentication failed. Click to re-authenticate."
+    "authFailure": "Sync authentication failed. Click to re-authenticate.",
+    "websocketConnected": "Real-time sync connected",
+    "websocketReconnecting": "Reconnecting to real-time sync..."
   },
   "settings": {
     "title": "Settings",

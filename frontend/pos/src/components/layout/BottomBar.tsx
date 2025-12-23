@@ -19,7 +19,7 @@ export function BottomBar() {
   const { isOnline, pendingCount, syncNow } = useOffline()
   // Use context instead of hook directly - this ensures state persists across remounts
   const { openOrders, currentLocation, switchToLocation, switchToCashRegister } = useOrderManagementContext()
-  const { syncError, isFirstSync, syncAuthFailure, clearSyncAuthFailure, retrySync } = useSync()
+  const { syncError, isFirstSync, syncAuthFailure, incrementalSyncError, websocketStatus, clearSyncAuthFailure, retrySync, performIncrementalSync } = useSync()
   const { t } = useTranslation()
   const [tables, setTables] = useState<Table[]>([])
   const [showSyncResults, setShowSyncResults] = useState(false)
@@ -74,6 +74,13 @@ export function BottomBar() {
   // Sync auth failure button is always visible, but only enabled when online and there's an auth failure
   const isSyncAuthFailureButtonEnabled = syncAuthFailure && isOnline && !isFirstSync
 
+  // Show incremental sync error indicator (silent, no toast)
+  const showIncrementalSyncError = incrementalSyncError && !isFirstSync && isOnline
+
+  // WebSocket status indicator
+  const websocketConnected = websocketStatus === 'connected'
+  const websocketReconnecting = websocketStatus === 'reconnecting' || websocketStatus === 'connecting'
+
   return (
     <div
       className="h-16 flex items-center justify-between px-4"
@@ -105,6 +112,10 @@ export function BottomBar() {
           {pendingCount > 0 && (
             <span className="ml-1">({pendingCount})</span>
           )}
+          {/* WebSocket Status Debug Indicator */}
+          <span className="ml-2 text-xs opacity-60" title={`WebSocket: ${websocketStatus}`}>
+            WS: {websocketStatus === 'connected' ? '✓' : websocketStatus === 'connecting' ? '⟳' : websocketStatus === 'reconnecting' ? '↻' : '✗'}
+          </span>
         </div>
         {pendingCount > 0 && (
           <button
@@ -140,9 +151,36 @@ export function BottomBar() {
 
       {/* Right: Sync Auth Failure Button, Failed Sync Button & Settings */}
       <div className="flex items-center gap-2">
+        {/* Incremental Sync Error Indicator - shows when incremental sync fails (silent) */}
+        {showIncrementalSyncError && (
+          <IconButton
+            variant="warning"
+            onClick={async () => {
+              // Retry incremental sync on click
+              await performIncrementalSync()
+            }}
+            title={t('sync.incrementalSyncError') || `Incremental sync error: ${incrementalSyncError}. Click to retry.`}
+            className="p-2"
+          >
+            <FaExclamationTriangle />
+          </IconButton>
+        )}
+
+        {/* WebSocket Status Indicator - shows when reconnecting */}
+        {websocketReconnecting && isOnline && (
+          <IconButton
+            variant="secondary"
+            disabled
+            title={t('sync.websocketReconnecting') || 'Reconnecting to sync server...'}
+            className="p-2"
+          >
+            <FaSync className="animate-spin" />
+          </IconButton>
+        )}
+
         {/* Sync Auth Failure Button - always visible, enabled only when online and there's an auth failure */}
         <IconButton
-          variant={isSyncAuthFailureButtonEnabled ? "danger" : "secondary"}
+          variant={isSyncAuthFailureButtonEnabled ? "danger" : websocketConnected ? "success" : "secondary"}
           onClick={handleSyncAuthFailureClick}
           disabled={!isSyncAuthFailureButtonEnabled}
           title={
@@ -150,6 +188,8 @@ export function BottomBar() {
               ? t('sync.offline') || 'Offline - sync unavailable'
               : syncAuthFailure
               ? t('sync.authFailure') || 'Sync authentication failed. Click to re-authenticate.'
+              : websocketConnected
+              ? t('sync.websocketConnected') || 'Real-time sync connected'
               : t('sync.online') || 'Sync is online'
           }
           className="p-2"

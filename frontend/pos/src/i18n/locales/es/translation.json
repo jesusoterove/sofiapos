@@ -281,7 +281,9 @@
     "notStarted": "Sincronización no iniciada",
     "results": "Resultados de Sincronización",
     "viewResults": "Ver resultados de sincronización",
-    "authFailure": "Error de autenticación de sincronización. Haga clic para volver a autenticarse."
+    "authFailure": "Error de autenticación de sincronización. Haga clic para volver a autenticarse.",
+    "websocketConnected": "Sincronización en tiempo real conectada",
+    "websocketReconnecting": "Reconectando a sincronización en tiempo real..."
   },
   "settings": {
     "title": "Configuración",
