@@ -1,7 +1,7 @@
 """
 Cash register API endpoints.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -270,47 +270,9 @@ async def create_cash_register_user(
     )
 
 
-@router.get("/{cash_register_id}", response_model=CashRegisterResponse)
-async def get_cash_register(
-    cash_register_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Get a single cash register by ID.
-    """
-    cash_register = db.query(CashRegister).filter(CashRegister.id == cash_register_id).first()
-    if not cash_register:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Cash register with ID {cash_register_id} not found"
-        )
-    
-    # Check access
-    if not current_user.is_superuser and current_user.store_id != cash_register.store_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have access to this cash register"
-        )
-    
-    # Extract registration code from code (CR-XXXXXXXX -> XXXXXXXX)
-    registration_code = cash_register.code.replace("CR-", "") if cash_register.code.startswith("CR-") else cash_register.code
-    
-    return CashRegisterResponse(
-        id=cash_register.id,
-        store_id=cash_register.store_id,
-        name=cash_register.name,
-        code=cash_register.code,
-        is_active=cash_register.is_active,
-        registration_code=registration_code,
-        registration_token="",  # Not returned for security
-        created_at=cash_register.created_at
-    )
-
-
 @router.get("/list", response_model=List[CashRegisterResponse])
 async def list_cash_registers(
-    store_id: Optional[int] = None,
+    store_id: Optional[int],
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -358,9 +320,47 @@ async def list_cash_registers(
     return result
 
 
+@router.get("/{cash_register_id}", response_model=CashRegisterResponse)
+async def get_cash_register(
+    cash_register_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get a single cash register by ID.
+    """
+    cash_register = db.query(CashRegister).filter(CashRegister.id == cash_register_id).first()
+    if not cash_register:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cash register with ID {cash_register_id} not found"
+        )
+    
+    # Check access
+    if not current_user.is_superuser and current_user.store_id != cash_register.store_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this cash register"
+        )
+    
+    # Extract registration code from code (CR-XXXXXXXX -> XXXXXXXX)
+    registration_code = cash_register.code.replace("CR-", "") if cash_register.code.startswith("CR-") else cash_register.code
+    
+    return CashRegisterResponse(
+        id=cash_register.id,
+        store_id=cash_register.store_id,
+        name=cash_register.name,
+        code=cash_register.code,
+        is_active=cash_register.is_active,
+        registration_code=registration_code,
+        registration_token="",  # Not returned for security
+        created_at=cash_register.created_at
+    )
+
+
 @router.get("", response_model=List[CashierResponse])
 async def list_cashiers(
-    store_id: Optional[int] = None,
+    store_id: Optional[int] = Query(None, description="Filter by store ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
