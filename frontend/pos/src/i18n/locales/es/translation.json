@@ -66,7 +66,8 @@
     "openShift": "Abrir Turno",
     "closeShift": "Cerrar Turno",
     "inventoryEntry": "Entrada de Inventario",
-    "salesInvoices": "Facturas de Venta"
+    "salesInvoices": "Facturas de Venta",
+    "shiftStart": "Inicio de Turno:"
   },
   "productSelection": {
     "title": "Productos",

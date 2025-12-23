@@ -66,7 +66,8 @@
     "openShift": "Open Shift",
     "closeShift": "Close Shift",
     "inventoryEntry": "Inventory Entry",
-    "salesInvoices": "Sales Invoices"
+    "salesInvoices": "Sales Invoices",
+    "shiftStart": "Shift Start:"
   },
   "productSelection": {
     "title": "Products",

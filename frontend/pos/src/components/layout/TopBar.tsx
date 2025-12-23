@@ -9,6 +9,7 @@ import { useShiftContext } from '@/contexts/ShiftContext'
 import { IconButton } from '@sofiapos/ui'
 import { FaSignOutAlt, FaBox, FaClock, FaFileInvoice, FaHome } from 'react-icons/fa'
 import { ChangeShiftModal } from '@/components/shift/ChangeShiftModal'
+import { formatDateTime } from '@/utils/dateFormat'
 
 interface TopBarProps {
   onSalesInvoicesClick?: () => void
@@ -19,7 +20,7 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
   const { t } = useTranslation()
   const { logout, user } = useAuth()
   const navigate = useNavigate()
-  const { hasOpenShift } = useShiftContext()
+  const { hasOpenShift, currentShift } = useShiftContext()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [windowWidth, setWindowWidth] = useState(window.innerWidth)
   const [showChangeShiftModal, setShowChangeShiftModal] = useState(false)
@@ -92,12 +93,18 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
         <span className="text-xs opacity-75">{t('topBar.version') || 'v1.0.0'}</span>
       </div>
 
-      {/* Center: User and Time */}
+      {/* Center: User, Shift Start Date, and Time */}
       <div className="flex items-center gap-6">
         <div className="text-sm">
           <span className="opacity-75">User: </span>
           <span>{user?.username || 'Unknown'}</span>
         </div>
+        {currentShift && currentShift.opened_at && (
+          <div className="text-sm">
+            <span className="opacity-75">{t('topBar.shiftStart') || 'Shift Start: '}</span>
+            <span>{formatDateTime(currentShift.opened_at)}</span>
+          </div>
+        )}
         <div className="text-sm font-mono">
           {formatTime(currentTime)}
         </div>
