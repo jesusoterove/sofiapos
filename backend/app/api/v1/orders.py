@@ -7,7 +7,7 @@ from typing import List, Optional, Union, Any
 from datetime import datetime
 
 from app.database import get_db
-from app.models import Order, OrderItem, Store, Shift, CashRegister, Table, Customer, User, Product
+from app.models import Order, OrderItem, Store, Shift, CashRegister, Table, Customer, User, Product, Payment, PaymentMethod, PaymentMethodType
 from app.schemas.order import (
     OrderCreate, OrderUpdate, OrderResponse, OrderItemCreate, OrderItemResponse
 )
@@ -29,6 +29,7 @@ async def create_order(
     Accepts order_number if provided, otherwise generates one.
     Handles both Pydantic schema (from frontend) and dict (from sync).
     """
+    print(f"creating order and payment: {order_data}")
     # Parse order_data - handle both dict (from sync) and Pydantic model
     if isinstance(order_data, dict):
         # Handle dict from sync (flexible field names)
@@ -45,6 +46,7 @@ async def create_order(
         customer_id = order_data.get('customer_id')
         notes = order_data.get('notes')
         items = order_data.get('items', [])
+        payments = order_data.get('payments', [])
     else:
         # Handle Pydantic model
         store_id = order_data.store_id
@@ -60,6 +62,7 @@ async def create_order(
         customer_id = order_data.customer_id
         notes = order_data.notes
         items = order_data.items or []
+        payments = getattr(order_data, 'payments', []) or []
     
     # Verify store exists
     store = db.query(Store).filter(Store.id == store_id).first()
@@ -246,8 +249,58 @@ async def create_order(
             )
             db.add(order_item)
     
-    db.commit()
-    db.refresh(new_order)
+    # Create payments if provided
+    print(f"creating payments: {payments}")
+    if payments:
+        for payment_data in payments:
+            # Handle both dict and Pydantic model for payments
+            if isinstance(payment_data, dict):
+                payment_method_type_str = payment_data.get('payment_method_type') or payment_data.get('payment_method')
+                amount = payment_data.get('amount', 0)
+                reference_number = payment_data.get('reference_number')
+                notes = payment_data.get('notes')
+            else:
+                payment_method_type_str = payment_data.payment_method_type or payment_data.payment_method
+                amount = payment_data.amount
+                reference_number = getattr(payment_data, 'reference_number', None)
+                notes = getattr(payment_data, 'notes', None)
+            
+            print(f"payment_method_type_str: {payment_method_type_str}")
+            # Find payment method by type
+            payment_method = None
+            if payment_method_type_str:
+                # Map payment method type string to PaymentMethodType enum
+                try:
+                    payment_method_type = PaymentMethodType(payment_method_type_str.lower())
+                    # Find payment method by type
+                    payment_method = db.query(PaymentMethod).filter(
+                        PaymentMethod.type == payment_method_type
+                    ).first()
+                except ValueError:
+                    # Invalid payment method type, continue without payment method
+                    pass
+            print(f"payment_method: {payment_method.id if payment_method else None} - {amount} - {reference_number} - {notes}")
+            # Create payment record
+            payment = Payment(
+                order_id=new_order.id,
+                payment_method_id=payment_method.id if payment_method else None,
+                amount=amount,
+                reference_number=reference_number,
+                notes=notes,
+                user_id=current_user.id,
+            )
+            db.add(payment)
+    
+    # Commit all changes atomically (order, items, payments)
+    try:
+        db.commit()
+        db.refresh(new_order)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create order: {str(e)}"
+        )
     
     return new_order
 

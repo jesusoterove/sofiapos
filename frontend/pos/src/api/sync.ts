@@ -2,6 +2,7 @@
  * Sync manager for offline-first functionality.
  */
 import { openDatabase, getSyncQueue, removeFromSyncQueue, saveOrder } from '../db'
+import { getOrderItemsByOrderNumber } from '../db/queries/orders'
 import apiClient from './client'
 
 export interface SyncStatus {
@@ -58,11 +59,42 @@ class SyncManager {
         if (item.action === 'create') {
           // Only sync paid orders (not draft orders)
           if (item.data?.status === 'paid') {
-            const response = await apiClient.post('/api/v1/orders', item.data)
-            // Update order sync status and ID after successful sync
-            // data_id is order_number (primary key for local operations)
             const db = await openDatabase()
-            const order = await db.get('orders', item.data_id as string)
+            const orderNumber = item.data_id as string
+            
+            // Get order items for this order
+            const orderItems = await getOrderItemsByOrderNumber(db, orderNumber)
+            
+            // Get shift_id and cash_register_id from the order data
+            const shiftId = item.data.shift_id || null
+            const cashRegisterId = item.data.cash_register_id || null
+            
+            // Build complete order payload with items and payment
+            const orderPayload = {
+              ...item.data,
+              shift_id: shiftId,
+              cash_register_id: cashRegisterId,
+              items: orderItems.map(item => ({
+                product_id: item.product_id,
+                quantity: item.quantity,
+                unit_of_measure_id: (item as any).unit_of_measure_id || null,
+                unit_price: item.unit_price,
+                discount_amount: (item as any).discount_amount || 0,
+                tax_amount: item.tax_amount || 0,
+                total: item.total,
+                notes: (item as any).notes || null,
+                display_order: (item as any).display_order || 0,
+              })),
+              payments: item.data.payment_method && item.data.amount_paid ? [{
+                payment_method_type: item.data.payment_method, // 'cash' or 'bank_transfer'
+                amount: item.data.amount_paid,
+              }] : [],
+            }
+            
+            const response = await apiClient.post('/api/v1/orders', orderPayload)
+            
+            // Update order sync status and ID after successful sync
+            const order = await db.get('orders', orderNumber)
             if (order) {
               // Update with server ID (order_number remains the primary key)
               const updatedOrder = {
@@ -73,6 +105,14 @@ class SyncManager {
               }
               // Save using order_number as key (put will update existing record)
               await saveOrder(db, updatedOrder)
+              
+              // Update order items sync status
+              for (const orderItem of orderItems) {
+                await db.put('order_items', {
+                  ...orderItem,
+                  sync_status: 'synced' as const,
+                })
+              }
             }
           }
         } else if (item.action === 'update') {

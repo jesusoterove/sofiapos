@@ -22,6 +22,7 @@ class CashRegister(Base):
     store_id = Column(Integer, ForeignKey("stores.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     code = Column(String(50), nullable=False, index=True)
+    hardware_id = Column(String(100), nullable=True, index=True, unique=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

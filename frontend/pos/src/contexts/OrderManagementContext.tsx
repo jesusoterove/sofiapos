@@ -3,7 +3,7 @@
  * This ensures the order state persists even if POSScreen remounts.
  */
 import { createContext, useContext, ReactNode } from 'react'
-import { useOrderManagement, type Order, type OrderItem, type OpenOrder, type OrderLocation } from '@/hooks/useOrderManagement'
+import { useOrderManagement, type Order, type OpenOrder, type OrderLocation } from '@/hooks/useOrderManagement'
 
 interface OrderManagementContextValue {
   // Current order being edited
@@ -25,14 +25,14 @@ interface OrderManagementContextValue {
   switchToCashRegister: () => Promise<void>
   
   // Order operations
-  addItem: (product: { id: number; name: string; selling_price: number; tax_rate: number }) => void
+  addItem: (product: { id: number; name: string; selling_price: number; tax_rate: number }) => Promise<void>
   updateQuantity: (itemId: string, quantity: number) => void
   removeItem: (itemId: string) => void
   setCustomer: (customerId?: number) => void
   setTable: (tableId?: number | null) => void
   clearOrder: () => Promise<void>
   saveDraft: () => Promise<void>
-  markAsPaid: (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number) => Promise<void>
+  markAsPaid: (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number, shiftId: number | null) => Promise<void>
   orderRefId: string | null
 }
 

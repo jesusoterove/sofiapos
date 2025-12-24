@@ -11,9 +11,20 @@ class SalesFilterRequest(BaseModel):
     """Schema for filtering sales data."""
     store_id: Optional[int] = Field(None, description="Store ID (None for all stores)")
     cash_register_id: Optional[int] = Field(None, description="Cash register ID (None for all)")
-    filter_mode: str = Field(..., description="Filter mode: current_shift, last_shift, last_week, last_month, date_range")
+    filter_mode: str = Field(..., description="Filter mode: today, yesterday, current_shift, last_shift, last_week, last_month, date_range")
     start_date: Optional[datetime] = Field(None, description="Start date for date_range mode")
     end_date: Optional[datetime] = Field(None, description="End date for date_range mode")
+
+
+class SalesDetailsRequest(BaseModel):
+    """Schema for requesting paginated sales details."""
+    store_id: Optional[int] = Field(None, description="Store ID (None for all stores)")
+    cash_register_id: Optional[int] = Field(None, description="Cash register ID (None for all)")
+    filter_mode: str = Field(..., description="Filter mode: today, yesterday, current_shift, last_shift, last_week, last_month, date_range")
+    start_date: Optional[datetime] = Field(None, description="Start date for date_range mode")
+    end_date: Optional[datetime] = Field(None, description="End date for date_range mode")
+    page: int = Field(1, ge=1, description="Page number (1-based)")
+    page_size: int = Field(20, ge=1, le=100, description="Number of items per page")
 
 
 class PaymentMethodSummary(BaseModel):
@@ -58,6 +69,29 @@ class SalesResponse(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     cash_register_user: Optional[str] = Field(None, description="User in cash register during shift")
+
+    class Config:
+        from_attributes = True
+
+
+class SalesSummaryResponse(BaseModel):
+    """Response for sales summary only."""
+    summary: SalesSummary
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    cash_register_user: Optional[str] = Field(None, description="User in cash register during shift")
+
+    class Config:
+        from_attributes = True
+
+
+class SalesDetailsResponse(BaseModel):
+    """Response for paginated sales details."""
+    details: List[SalesDetail]
+    total_count: int = Field(..., description="Total number of records")
+    page: int = Field(..., description="Current page number")
+    page_size: int = Field(..., description="Page size")
+    total_pages: int = Field(..., description="Total number of pages")
 
     class Config:
         from_attributes = True

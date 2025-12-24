@@ -75,10 +75,10 @@ export function POSScreen() {
     setShowPaymentScreen(true)
   }
 
-  const handleProcessPayment = async (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number) => {
+  const handleProcessPayment = async (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number, shiftId: number | null) => {
     try {
       // ALWAYS save locally first (for performance, even when online)
-      await markAsPaid(paymentMethod, amountPaid)
+      await markAsPaid(paymentMethod, amountPaid, shiftId)
       
       // Open cash drawer if payment is cash
       if (paymentMethod === 'cash') {

@@ -288,6 +288,8 @@
     "store": "Store",
     "cashRegister": "Cash Register",
     "filterMode": "Filter Mode",
+    "today": "Today",
+    "yesterday": "Yesterday",
     "currentShift": "Current Shift",
     "lastShift": "Last Shift",
     "lastWeek": "Last Week",
@@ -308,7 +310,12 @@
     "cashPaid": "Cash Paid",
     "otherPaid": "Other Paid",
     "date": "Date",
-    "all": "All"
+    "all": "All",
+    "showing": "Showing",
+    "of": "of",
+    "page": "Page",
+    "previous": "Previous",
+    "next": "Next"
   },
   "reports": {
     "title": "Reports",

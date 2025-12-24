@@ -27,6 +27,8 @@ export interface POSDatabase extends DBSchema {
       order_number: string // PRIMARY KEY: Local identifier, always present
       id: number | string // 0 for unsynced, numeric ID after sync (reference only, not used for local operations)
       store_id: number
+      shift_id?: number | null
+      cash_register_id?: number | null
       customer_id?: number
       table_id?: number | null
       status: 'draft' | 'paid' | 'cancelled'
@@ -49,6 +51,7 @@ export interface POSDatabase extends DBSchema {
       product_id: number
       product_name: string
       quantity: number
+      unit_of_measure_id?: number | null
       unit_price: number
       tax_rate: number
       total: number

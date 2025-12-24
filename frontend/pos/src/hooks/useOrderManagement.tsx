@@ -26,10 +26,11 @@ export interface OrderItem {
   taxRate: number
   total: number
   taxAmount: number
+  unitOfMeasureId?: number
 }
 
 export interface Order {
-  id: string
+  id: number
   orderNumber: string
   storeId: number
   customerId?: number
@@ -43,7 +44,7 @@ export interface Order {
 }
 
 export interface OpenOrder {
-  id: string
+  id: number
   orderNumber: string
   tableId?: number | null
   total: number
@@ -100,7 +101,7 @@ export function useOrderManagement(storeId: number) {
             : 'cash_register'
           
           transformed.push({
-            id: order.id,
+            id: typeof order.id === 'number' ? order.id : Number(order.id),
             orderNumber: order.order_number,
             tableId: order.table_id ?? undefined,
             total: order.total,
@@ -136,6 +137,7 @@ export function useOrderManagement(storeId: number) {
       taxRate: item.tax_rate,
       total: item.total,
       taxAmount: item.tax_amount,
+      unitOfMeasureId: (item as any).unit_of_measure_id || undefined,
     }))
   }, [])
 
@@ -144,7 +146,7 @@ export function useOrderManagement(storeId: number) {
     const totals = calculateTotals(orderItems)
     // Always create a new object with new array reference to ensure React detects changes
     return {
-      id: dbOrder.id,
+      id: typeof dbOrder.id === 'number' ? dbOrder.id : Number(dbOrder.id),
       orderNumber: dbOrder.order_number,
       storeId: dbOrder.store_id,
       customerId: dbOrder.customer_id,
@@ -274,12 +276,12 @@ export function useOrderManagement(storeId: number) {
     setOrderRefId(new Date().getTime().toString())
   }, [loadOrderForLocation])
 
-  const switchToCashRegister = useCallback(() => {
+  const switchToCashRegister = useCallback(async () => {
     console.log('[useOrderManagement] switchToCashRegister called')
     const location: OrderLocation = 'cash_register'
     setCurrentLocation(location)
     // Load order immediately after setting location
-    loadOrderForLocation(location)
+    await loadOrderForLocation(location)
   }, [loadOrderForLocation])
 
   const removeItem = useCallback((itemId: string) => {
@@ -300,9 +302,25 @@ export function useOrderManagement(storeId: number) {
   }, [calculateTotals])
 
   const addItem = useCallback(
-    (product: { id: number; name: string; selling_price: number; tax_rate: number }) => {
+    async (product: { id: number; name: string; selling_price: number; tax_rate: number }) => {
       // Enable auto-save for this change
       shouldAutoSaveRef.current = true
+      
+      // Get product's base unit of measure
+      let unitOfMeasureId: number | null = null
+      try {
+        const db = await openDatabase()
+        // Get product unit of measures for this product
+        const productUofms = await db.getAllFromIndex('product_unit_of_measures', 'by-product', product.id)
+        // Find the base unit
+        const baseUnit = productUofms.find(uofm => uofm.is_base_unit)
+        if (baseUnit) {
+          unitOfMeasureId = baseUnit.unit_of_measure_id
+        }
+      } catch (error) {
+        console.error('[useOrderManagement] Error getting product UoM:', error)
+      }
+      
       setOrder((currentOrder) => {
         // If no order exists, create one with default location based on current location
         const orderId = currentOrder?.id || 0 // Use 0 for unsynced orders
@@ -347,6 +365,7 @@ export function useOrderManagement(storeId: number) {
             taxRate: product.tax_rate || 0,
             total: itemTotal,
             taxAmount: taxAmount,
+            unitOfMeasureId: unitOfMeasureId || undefined,
           }
           newItems = [...(currentOrder?.items || []), newItem]
         }
@@ -490,37 +509,29 @@ export function useOrderManagement(storeId: number) {
     // Generate order number if not already generated (for new orders)
     let orderNumber = orderToSave.orderNumber
     if (!orderNumber || orderNumber.startsWith('ORD-TEMP-')) {
-      // Get cash register code for order number generation
-      const registration = getRegistration()
-      let cashRegisterCode = 'CR-UNKNOWN' // Fallback
+      // Get cash register code from registration (offline-first: no API calls)
+      let registration = getRegistration()
       
-      // Try to get cash register code from registration or fetch from API
-      if (registration?.cashRegisterCode) {
-        cashRegisterCode = registration.cashRegisterCode
-      } else if (registration?.cashRegisterId) {
-        // Fetch cash register code from API
-        try {
-          const { apiClient } = await import('../api/client')
-          const response = await apiClient.get(`/api/v1/cash_registers/${registration.cashRegisterId}`)
-          cashRegisterCode = response.data.code
-          // Store in registration for future use
-          const updatedRegistration = { ...registration, cashRegisterCode }
-          const { saveRegistration } = await import('../utils/registration')
-          saveRegistration(updatedRegistration as any)
-        } catch (error) {
-          console.warn('[useOrderManagement] Failed to fetch cash register code, using fallback:', error)
-        }
+      if (!registration) {
+        throw new Error('Registration data not available. Cannot generate order number offline.')
       }
       
-      // Generate order number
+      let cashRegisterCode = registration.cashRegisterCode
+      
+      // If still not available, throw error
+      if (!cashRegisterCode) {
+        throw new Error('Cash register code not available in registration. Cannot generate order number offline.')
+      }
+      
+      // Generate order number using documentNumbers logic
       try {
         orderNumber = await generateOrderNumber(cashRegisterCode, storeId)
         // Update order with generated number
         setOrder(prev => prev ? { ...prev, orderNumber } : null)
       } catch (error) {
-        console.error('[useOrderManagement] Failed to generate order number:', error)
-        // Fallback to timestamp-based number
-        orderNumber = `ORD-${Date.now()}`
+        // If generation fails, raise an error
+        console.error('[useOrderManagement] Failed to generate order number after retry:', error)
+        throw new Error(`Failed to generate order number: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
     
@@ -576,6 +587,7 @@ export function useOrderManagement(storeId: number) {
         product_id: item.productId,
         product_name: item.productName,
         quantity: item.quantity,
+        unit_of_measure_id: item.unitOfMeasureId || null,
         unit_price: item.unitPrice,
         tax_rate: item.taxRate,
         total: item.total,
@@ -635,7 +647,7 @@ export function useOrderManagement(storeId: number) {
     }
   }, [order?.items, order?.subtotal, order?.taxes, order?.total, order?.customerId, order?.tableId, saveDraft])
 
-  const markAsPaid = useCallback(async (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number) => {
+  const markAsPaid = useCallback(async (paymentMethod: 'cash' | 'bank_transfer', _amountPaid: number, shiftId: number | null) => {
     // Use ref to get the latest order state (avoids stale closure issues)
     const currentOrder = orderRef.current
     if (!currentOrder) {
@@ -645,6 +657,11 @@ export function useOrderManagement(storeId: number) {
 
     const db = await openDatabase()
     
+    // Get cash register ID from registration
+    const { getRegistration } = await import('../utils/registration')
+    const registration = getRegistration()
+    const cashRegisterId = registration?.cashRegisterId || null
+    
     // Recalculate totals
     const totals = calculateTotals(currentOrder.items)
     
@@ -653,6 +670,8 @@ export function useOrderManagement(storeId: number) {
       id: currentOrder.id,
       order_number: currentOrder.orderNumber,
       store_id: currentOrder.storeId,
+      shift_id: shiftId,
+      cash_register_id: cashRegisterId,
       customer_id: currentOrder.customerId,
       table_id: currentOrder.tableId ?? null,
       status: 'paid' as const,
@@ -678,6 +697,7 @@ export function useOrderManagement(storeId: number) {
         product_id: item.productId,
         product_name: item.productName,
         quantity: item.quantity,
+        unit_of_measure_id: item.unitOfMeasureId || null,
         unit_price: item.unitPrice,
         tax_rate: item.taxRate,
         total: item.total,
@@ -687,6 +707,7 @@ export function useOrderManagement(storeId: number) {
     }
 
     // Add to sync queue (only paid orders are pushed)
+    // amount_paid should be the actual amount paid (order total), not the tendered amount
     await addToSyncQueue(db, {
       type: 'order',
       action: 'create',
@@ -694,7 +715,7 @@ export function useOrderManagement(storeId: number) {
       data: {
         ...orderData,
         payment_method: paymentMethod,
-        amount_paid: amountPaid,
+        amount_paid: totals.total, // Use order total (actual amount paid), not tendered amount
       },
     })
 

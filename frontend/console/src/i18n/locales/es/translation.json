@@ -288,6 +288,8 @@
     "store": "Tienda",
     "cashRegister": "Caja Registradora",
     "filterMode": "Modo de Filtro",
+    "today": "Hoy",
+    "yesterday": "Ayer",
     "currentShift": "Turno Actual",
     "lastShift": "Último Turno",
     "lastWeek": "Última Semana",
@@ -308,7 +310,12 @@
     "cashPaid": "Efectivo Pagado",
     "otherPaid": "Otros Pagos",
     "date": "Fecha",
-    "all": "Todos"
+    "all": "Todos",
+    "showing": "Mostrando",
+    "of": "de",
+    "page": "Página",
+    "previous": "Anterior",
+    "next": "Siguiente"
   },
   "reports": {
     "title": "Reportes",

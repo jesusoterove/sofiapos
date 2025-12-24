@@ -44,6 +44,14 @@ class OrderBase(BaseModel):
     notes: Optional[str] = Field(None, description="Order notes")
 
 
+class PaymentCreate(BaseModel):
+    """Schema for creating a payment."""
+    payment_method_type: str = Field(..., description="Payment method type: cash, bank_transfer, credit_card, debit_card")
+    amount: float = Field(..., ge=0, description="Payment amount")
+    reference_number: Optional[str] = Field(None, description="Transaction reference number")
+    notes: Optional[str] = Field(None, description="Payment notes")
+
+
 class OrderCreate(OrderBase):
     """Schema for creating a new order."""
     order_number: Optional[str] = Field(None, description="Order number (if provided, will be used instead of generating one)")
@@ -55,6 +63,7 @@ class OrderCreate(OrderBase):
     discount: Optional[float] = Field(None, ge=0, description="Discount amount (alternative field name)")
     total: float = Field(..., ge=0, description="Total amount")
     items: Optional[List[OrderItemCreate]] = Field(default_factory=list, description="Order items")
+    payments: Optional[List[PaymentCreate]] = Field(default_factory=list, description="Order payments")
 
 
 class OrderUpdate(BaseModel):

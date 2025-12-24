@@ -4,10 +4,10 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from '@/i18n/hooks'
-import { getSales } from '@/api/sales'
+import { getSalesSummary, getSalesDetails } from '@/api/sales'
 import { storesApi } from '@/api/stores'
 import { cashRegistersApi } from '@/api/cashRegisters'
-import type { SalesFilterRequest, SalesResponse } from '@/types/sales'
+import type { SalesFilterRequest, SalesDetailsRequest, SalesSummaryResponse, SalesDetailsResponse } from '@/types/sales'
 import { AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
 // Date formatting utility
 const formatDateTime = (dateStr: string | null | undefined) => {
@@ -26,16 +26,18 @@ const formatDateTime = (dateStr: string | null | undefined) => {
   }
 }
 
-type FilterMode = 'current_shift' | 'last_shift' | 'last_week' | 'last_month' | 'date_range'
+type FilterMode = 'today' | 'yesterday' | 'current_shift' | 'last_shift' | 'last_week' | 'last_month' | 'date_range'
 
 export function Sales() {
   const { t } = useTranslation()
   
   const [storeId, setStoreId] = useState<number | null>(null)
   const [cashRegisterId, setCashRegisterId] = useState<number | null>(null)
-  const [filterMode, setFilterMode] = useState<FilterMode>('current_shift')
+  const [filterMode, setFilterMode] = useState<FilterMode>('today')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const pageSize = 20
 
   // Fetch stores
   const { data: stores = [] } = useQuery({
@@ -59,24 +61,49 @@ export function Sales() {
     end_date: filterMode === 'date_range' && endDate ? endDate : null,
   }
 
-  // Fetch sales data
-  const { data: salesData, isLoading } = useQuery<SalesResponse>({
-    queryKey: ['sales', filterRequest],
-    queryFn: () => getSales(filterRequest),
-    enabled: filterMode !== 'current_shift' || !!cashRegisterId, // Only fetch if current_shift has cash register
+  // Build details request with pagination
+  const detailsRequest: SalesDetailsRequest = {
+    ...filterRequest,
+    page: currentPage,
+    page_size: pageSize,
+  }
+
+  // Fetch sales summary (only once, no pagination)
+  const { data: summaryData, isLoading: isLoadingSummary } = useQuery<SalesSummaryResponse>({
+    queryKey: ['sales-summary', filterRequest],
+    queryFn: () => getSalesSummary(filterRequest),
+    enabled: filterMode !== 'current_shift' && filterMode !== 'last_shift' || !!cashRegisterId,
+  })
+
+  // Fetch sales details (paginated)
+  const { data: detailsData, isLoading: isLoadingDetails } = useQuery<SalesDetailsResponse>({
+    queryKey: ['sales-details', detailsRequest],
+    queryFn: () => getSalesDetails(detailsRequest),
+    enabled: filterMode !== 'current_shift' && filterMode !== 'last_shift' || !!cashRegisterId,
   })
 
   // Reset cash register when store changes
   useEffect(() => {
     setCashRegisterId(null)
+    // Reset to default filter mode when store changes
+    if (!storeId) {
+      setFilterMode('today')
+    }
   }, [storeId])
 
-  // Reset filter mode if current_shift selected without cash register
+  // When cash register is selected, default to current_shift if filter mode is not shift-related
   useEffect(() => {
-    if (filterMode === 'current_shift' && !cashRegisterId) {
-      // Keep current_shift but it won't fetch until cash register is selected
+    if (cashRegisterId && filterMode !== 'current_shift' && filterMode !== 'last_shift') {
+      setFilterMode('current_shift')
     }
-  }, [filterMode, cashRegisterId])
+  }, [cashRegisterId])
+
+  // When cash register is deselected, switch to today if current filter requires cash register
+  useEffect(() => {
+    if (!cashRegisterId && (filterMode === 'current_shift' || filterMode === 'last_shift')) {
+      setFilterMode('today')
+    }
+  }, [cashRegisterId, filterMode])
 
 
   const formatCurrency = (amount: number) => {
@@ -149,7 +176,7 @@ export function Sales() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">{t('sales.all') || 'All'}</option>
-              {stores.map((store) => (
+              {stores.map((store: { id: number; name: string }) => (
                 <option key={store.id} value={store.id}>
                   {store.name}
                 </option>
@@ -169,7 +196,7 @@ export function Sales() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             >
               <option value="">{t('sales.all') || 'All'}</option>
-              {cashRegisters.map((cr) => (
+              {cashRegisters.map((cr: { id: number; name: string; code: string }) => (
                 <option key={cr.id} value={cr.id}>
                   {cr.name} ({cr.code})
                 </option>
@@ -184,15 +211,24 @@ export function Sales() {
             </label>
             <select
               value={filterMode}
-              onChange={(e) => setFilterMode(e.target.value as FilterMode)}
+              onChange={(e) => {
+                setFilterMode(e.target.value as FilterMode)
+                setCurrentPage(1) // Reset to first page when filter changes
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="current_shift" disabled={!cashRegisterId}>
-                {t('sales.currentShift') || 'Current Shift'}
-              </option>
-              <option value="last_shift" disabled={!cashRegisterId}>
-                {t('sales.lastShift') || 'Last Shift'}
-              </option>
+              {cashRegisterId && (
+                <>
+                  <option value="current_shift">
+                    {t('sales.currentShift') || 'Current Shift'}
+                  </option>
+                  <option value="last_shift">
+                    {t('sales.lastShift') || 'Last Shift'}
+                  </option>
+                </>
+              )}
+              <option value="today">{t('sales.today') || 'Today'}</option>
+              <option value="yesterday">{t('sales.yesterday') || 'Yesterday'}</option>
               <option value="last_week">{t('sales.lastWeek') || 'Last Week'}</option>
               <option value="last_month">{t('sales.lastMonth') || 'Last Month'}</option>
               <option value="date_range">{t('sales.dateRange') || 'Date Range'}</option>
@@ -229,49 +265,49 @@ export function Sales() {
         </div>
 
         {/* Info Row */}
-        {salesData && (
+        {summaryData && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded">
             <div>
               <span className="text-sm font-medium text-gray-700">
                 {t('sales.startDateTime') || 'Start Date/Time'}:{' '}
               </span>
-              <span className="text-sm">{formatDateTime(salesData.start_date)}</span>
+              <span className="text-sm">{formatDateTime(summaryData.start_date)}</span>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-700">
                 {t('sales.endDateTime') || 'End Date/Time'}:{' '}
               </span>
-              <span className="text-sm">{formatDateTime(salesData.end_date)}</span>
+              <span className="text-sm">{formatDateTime(summaryData.end_date)}</span>
             </div>
-            {salesData.cash_register_user && (
+            {summaryData.cash_register_user && (
               <div>
                 <span className="text-sm font-medium text-gray-700">
                   {t('sales.cashRegisterUser') || 'User'}:{' '}
                 </span>
-                <span className="text-sm">{salesData.cash_register_user}</span>
+                <span className="text-sm">{summaryData.cash_register_user}</span>
               </div>
             )}
           </div>
         )}
 
         {/* Summary Row */}
-        {salesData && (
+        {summaryData && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-3 bg-blue-50 rounded">
-            {salesData.summary.beginning_balance !== null && salesData.summary.beginning_balance !== undefined && (
+            {summaryData.summary.beginning_balance !== null && summaryData.summary.beginning_balance !== undefined && (
               <div>
                 <span className="text-sm font-medium text-gray-700">
                   {t('sales.begBalance') || 'Beg Balance'}:{' '}
                 </span>
-                <span className="text-sm font-semibold">{formatCurrency(salesData.summary.beginning_balance)}</span>
+                <span className="text-sm font-semibold">{formatCurrency(summaryData.summary.beginning_balance)}</span>
               </div>
             )}
             <div>
               <span className="text-sm font-medium text-gray-700">
                 {t('sales.totalSales') || 'Total Sales'}:{' '}
               </span>
-              <span className="text-sm font-semibold">{formatCurrency(salesData.summary.total_sales)}</span>
+              <span className="text-sm font-semibold">{formatCurrency(summaryData.summary.total_sales)}</span>
             </div>
-            {salesData.summary.payment_methods.map((pm) => (
+            {summaryData.summary.payment_methods.map((pm: { payment_method_name: string; total_amount: number }) => (
               <div key={pm.payment_method_name}>
                 <span className="text-sm font-medium text-gray-700">
                   {t('sales.total') || 'Total'} {pm.payment_method_name}:{' '}
@@ -286,11 +322,38 @@ export function Sales() {
       {/* Detail Section */}
       <div className="bg-white rounded-lg shadow">
         <AdvancedDataGrid
-          rowData={salesData?.details || []}
+          rowData={detailsData?.details || []}
           columnDefs={columns}
           height="600px"
           rowSelection={{ mode: 'singleRow' }}
         />
+        {/* Pagination Controls */}
+        {detailsData && detailsData.total_pages > 1 && (
+          <div className="p-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              {t('sales.showing') || 'Showing'} {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, detailsData.total_count)} {t('sales.of') || 'of'} {detailsData.total_count}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                {t('sales.previous') || 'Previous'}
+              </button>
+              <span className="px-3 py-1 text-sm">
+                {t('sales.page') || 'Page'} {currentPage} {t('sales.of') || 'of'} {detailsData.total_pages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(detailsData.total_pages, prev + 1))}
+                disabled={currentPage === detailsData.total_pages}
+                className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                {t('sales.next') || 'Next'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -4,9 +4,14 @@
 export interface SalesFilterRequest {
   store_id?: number | null
   cash_register_id?: number | null
-  filter_mode: 'current_shift' | 'last_shift' | 'last_week' | 'last_month' | 'date_range'
+  filter_mode: 'today' | 'yesterday' | 'current_shift' | 'last_shift' | 'last_week' | 'last_month' | 'date_range'
   start_date?: string | null
   end_date?: string | null
+}
+
+export interface SalesDetailsRequest extends SalesFilterRequest {
+  page: number
+  page_size: number
 }
 
 export interface PaymentMethodSummary {
@@ -38,5 +43,20 @@ export interface SalesResponse {
   start_date?: string | null
   end_date?: string | null
   cash_register_user?: string | null
+}
+
+export interface SalesSummaryResponse {
+  summary: SalesSummary
+  start_date?: string | null
+  end_date?: string | null
+  cash_register_user?: string | null
+}
+
+export interface SalesDetailsResponse {
+  details: SalesDetail[]
+  total_count: number
+  page: number
+  page_size: number
+  total_pages: number
 }
 

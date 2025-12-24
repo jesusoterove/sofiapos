@@ -3,7 +3,7 @@ Sales API endpoints.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, case
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -13,7 +13,8 @@ from app.models import (
     Customer, Table, CashRegisterHistory
 )
 from app.schemas.sales import (
-    SalesFilterRequest, SalesResponse, SalesSummary, SalesDetail, PaymentMethodSummary
+    SalesFilterRequest, SalesDetailsRequest, SalesResponse, SalesSummaryResponse, SalesDetailsResponse,
+    SalesSummary, SalesDetail, PaymentMethodSummary
 )
 from app.api.v1.auth import get_current_user
 
@@ -105,6 +106,17 @@ def get_date_range_for_filter_mode(
             start_date = None
             end_date = None
 
+    elif filter_mode == "today":
+        # Today: from start of today to now
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
+
+    elif filter_mode == "yesterday":
+        # Yesterday: from start of yesterday to end of yesterday
+        yesterday = now - timedelta(days=1)
+        start_date = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = yesterday.replace(hour=23, minute=59, second=59, microsecond=999999)
+
     elif filter_mode == "last_week":
         end_date = now
         start_date = now - timedelta(days=7)
@@ -128,15 +140,13 @@ def get_date_range_for_filter_mode(
     return start_date, end_date, shift_id, cash_register_user
 
 
-@router.post("/", response_model=SalesResponse)
-async def get_sales(
+def build_sales_query(
     filter_data: SalesFilterRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+    db: Session,
+    current_user: User
+) -> tuple:
     """
-    Get sales data based on filters.
-    Returns paid orders with payment details.
+    Build the base query for sales data and return query, start_date, end_date, shift_id, cash_register_user.
     """
     # Get date range based on filter mode
     start_date, end_date, shift_id, cash_register_user = get_date_range_for_filter_mode(
@@ -146,20 +156,6 @@ async def get_sales(
         filter_data.end_date,
         db
     )
-
-    if start_date is None and filter_data.filter_mode in ["current_shift", "last_shift"]:
-        # No shift found
-        return SalesResponse(
-            summary=SalesSummary(
-                beginning_balance=None,
-                total_sales=0.0,
-                payment_methods=[]
-            ),
-            details=[],
-            start_date=None,
-            end_date=None,
-            cash_register_user=None
-        )
 
     # Build query for paid orders
     query = db.query(Order).filter(Order.status == "paid")
@@ -177,18 +173,6 @@ async def get_sales(
         # Non-superusers can only see their store's sales
         if current_user.store_id:
             query = query.filter(Order.store_id == current_user.store_id)
-        else:
-            return SalesResponse(
-                summary=SalesSummary(
-                    beginning_balance=None,
-                    total_sales=0.0,
-                    payment_methods=[]
-                ),
-                details=[],
-                start_date=start_date,
-                end_date=end_date,
-                cash_register_user=cash_register_user
-            )
 
     # Filter by cash register
     if filter_data.cash_register_id:
@@ -207,13 +191,72 @@ async def get_sales(
             )
         )
 
-    # Get orders
-    orders = query.order_by(Order.paid_at.desc()).all()
+    return query, start_date, end_date, shift_id, cash_register_user
 
-    # Build details
+
+def calculate_summary_from_query(
+    query,
+    cash_register_id: Optional[int],
+    shift_id: Optional[int],
+    db: Session
+) -> SalesSummary:
+    """
+    Calculate sales summary using SQL aggregates instead of iterating over orders.
+    This is much more efficient for large datasets.
+    """
+    # Get order IDs from the filtered query as a subquery
+    order_ids_subquery = query.with_entities(Order.id).subquery()
+    
+    # Calculate total sales using SQL aggregate - join Payment with filtered orders
+    total_sales_result = db.query(func.sum(Payment.amount)).join(
+        order_ids_subquery, Payment.order_id == order_ids_subquery.c.id
+    ).scalar()
+    total_sales = float(total_sales_result) if total_sales_result else 0.0
+
+    # Calculate payment method totals using SQL aggregates with GROUP BY
+    payment_method_totals_query = db.query(
+        PaymentMethod.name.label('method_name'),
+        PaymentMethod.type.label('method_type'),
+        func.sum(Payment.amount).label('total_amount')
+    ).join(
+        Payment, Payment.payment_method_id == PaymentMethod.id
+    ).join(
+        order_ids_subquery, Payment.order_id == order_ids_subquery.c.id
+    ).group_by(
+        PaymentMethod.id, PaymentMethod.name, PaymentMethod.type
+    ).all()
+
+    # Build payment method summary from query results
+    payment_methods = [
+        PaymentMethodSummary(
+            payment_method_name=row.method_name,
+            payment_method_type=row.method_type.value,
+            total_amount=float(row.total_amount)
+        )
+        for row in payment_method_totals_query
+    ]
+
+    # Get beginning balance if cash register selected
+    beginning_balance = None
+    if cash_register_id and shift_id:
+        # Get cash register history for the shift
+        history = db.query(CashRegisterHistory).filter(
+            CashRegisterHistory.cash_register_id == cash_register_id,
+            CashRegisterHistory.shift_id == shift_id
+        ).first()
+        if history:
+            beginning_balance = float(history.opening_balance)
+
+    return SalesSummary(
+        beginning_balance=beginning_balance,
+        total_sales=total_sales,
+        payment_methods=payment_methods
+    )
+
+
+def build_details_from_orders(orders: List[Order], db: Session) -> List[SalesDetail]:
+    """Build sales details from a list of orders."""
     details: List[SalesDetail] = []
-    total_sales = 0.0
-    payment_method_totals: dict[str, dict] = {}
 
     for order in orders:
         # Get payments for this order
@@ -227,18 +270,7 @@ async def get_sales(
             total_paid += float(payment.amount)
             
             if payment.payment_method:
-                method_name = payment.payment_method.name
                 method_type = payment.payment_method.type.value
-                
-                # Track payment method totals
-                if method_name not in payment_method_totals:
-                    payment_method_totals[method_name] = {
-                        "name": method_name,
-                        "type": method_type,
-                        "total": 0.0
-                    }
-                payment_method_totals[method_name]["total"] += float(payment.amount)
-                
                 # Separate cash from other methods
                 if method_type == "cash":
                     cash_paid += float(payment.amount)
@@ -248,12 +280,10 @@ async def get_sales(
                 # No payment method assigned, treat as other
                 other_paid += float(payment.amount)
 
-        total_sales += total_paid
-
         # Get table number
         table_number = None
         if order.table:
-            table_number = order.table.number or str(order.table.id)
+            table_number = order.table.table_number or str(order.table.id)
 
         # Get customer name
         customer_name = None
@@ -271,33 +301,130 @@ async def get_sales(
             date=order.paid_at or order.created_at
         ))
 
-    # Get beginning balance if cash register selected
-    beginning_balance = None
-    if filter_data.cash_register_id and shift_id:
-        # Get cash register history for the shift
-        history = db.query(CashRegisterHistory).filter(
-            CashRegisterHistory.cash_register_id == filter_data.cash_register_id,
-            CashRegisterHistory.shift_id == shift_id
-        ).first()
-        if history:
-            beginning_balance = float(history.opening_balance)
+    return details
 
-    # Build payment method summary
-    payment_methods = [
-        PaymentMethodSummary(
-            payment_method_name=pm["name"],
-            payment_method_type=pm["type"],
-            total_amount=pm["total"]
+
+@router.post("/summary", response_model=SalesSummaryResponse)
+async def get_sales_summary(
+    filter_data: SalesFilterRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get sales summary only (no details).
+    Returns summary data for the filter criteria.
+    """
+    query, start_date, end_date, shift_id, cash_register_user = build_sales_query(
+        filter_data, db, current_user
+    )
+
+    if start_date is None and filter_data.filter_mode in ["current_shift", "last_shift"]:
+        # No shift found
+        return SalesSummaryResponse(
+            summary=SalesSummary(
+                beginning_balance=None,
+                total_sales=0.0,
+                payment_methods=[]
+            ),
+            start_date=None,
+            end_date=None,
+            cash_register_user=None
         )
-        for pm in payment_method_totals.values()
-    ]
+
+    # Calculate summary using SQL aggregates (no need to fetch all orders)
+    summary = calculate_summary_from_query(query, filter_data.cash_register_id, shift_id, db)
+
+    return SalesSummaryResponse(
+        summary=summary,
+        start_date=start_date,
+        end_date=end_date,
+        cash_register_user=cash_register_user
+    )
+
+
+@router.post("/details", response_model=SalesDetailsResponse)
+async def get_sales_details(
+    filter_data: SalesDetailsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get paginated sales details.
+    Returns paginated order details for the grid.
+    """
+    # Convert SalesDetailsRequest to SalesFilterRequest for query building
+    filter_request = SalesFilterRequest(
+        store_id=filter_data.store_id,
+        cash_register_id=filter_data.cash_register_id,
+        filter_mode=filter_data.filter_mode,
+        start_date=filter_data.start_date,
+        end_date=filter_data.end_date
+    )
+
+    query, start_date, end_date, shift_id, cash_register_user = build_sales_query(
+        filter_request, db, current_user
+    )
+
+    # Get total count before pagination
+    total_count = query.count()
+
+    print(f"querying {total_count} orders. store_id: {filter_data.store_id}, cash_register_id: {filter_data.cash_register_id}, filter_mode: {filter_data.filter_mode}, start_date: {filter_data.start_date}, end_date: {filter_data.end_date}")
+
+    # Apply pagination
+    offset = (filter_data.page - 1) * filter_data.page_size
+    orders = query.order_by(Order.paid_at.desc()).offset(offset).limit(filter_data.page_size).all()
+
+    # Build details
+    details = build_details_from_orders(orders, db)
+
+    # Calculate total pages
+    total_pages = (total_count + filter_data.page_size - 1) // filter_data.page_size
+
+    return SalesDetailsResponse(
+        details=details,
+        total_count=total_count,
+        page=filter_data.page,
+        page_size=filter_data.page_size,
+        total_pages=total_pages
+    )
+
+
+@router.post("/", response_model=SalesResponse)
+async def get_sales(
+    filter_data: SalesFilterRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get sales data based on filters (legacy endpoint - returns both summary and details).
+    Returns paid orders with payment details.
+    """
+    query, start_date, end_date, shift_id, cash_register_user = build_sales_query(
+        filter_data, db, current_user
+    )
+
+    if start_date is None and filter_data.filter_mode in ["current_shift", "last_shift"]:
+        # No shift found
+        return SalesResponse(
+            summary=SalesSummary(
+                beginning_balance=None,
+                total_sales=0.0,
+                payment_methods=[]
+            ),
+            details=[],
+            start_date=None,
+            end_date=None,
+            cash_register_user=None
+        )
+
+    # Calculate summary using SQL aggregates (no need to fetch all orders)
+    summary = calculate_summary_from_query(query, filter_data.cash_register_id, shift_id, db)
+
+    # Build details
+    details = build_details_from_orders(orders, db)
 
     return SalesResponse(
-        summary=SalesSummary(
-            beginning_balance=beginning_balance,
-            total_sales=total_sales,
-            payment_methods=payment_methods
-        ),
+        summary=summary,
         details=details,
         start_date=start_date,
         end_date=end_date,

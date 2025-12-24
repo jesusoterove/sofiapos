@@ -9,6 +9,7 @@ import { ChangeDisplay } from './ChangeDisplay'
 import { OrderTicketPanel } from './OrderTicketPanel'
 import { NumericKeypad } from './NumericKeypad'
 import { useTranslation } from '@/i18n/hooks'
+import { useShiftContext } from '@/contexts/ShiftContext'
 import type { Order } from '@/hooks/useOrderManagement'
 
 interface PaymentScreenProps {
@@ -19,7 +20,7 @@ interface PaymentScreenProps {
   orderSubtotal: number
   orderTaxes: number
   orderDiscount: number
-  onProcessPayment: (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number) => void
+  onProcessPayment: (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number, shiftId: number | null) => void
   onPrintReceipt?: () => void
 }
 
@@ -35,6 +36,7 @@ export function PaymentScreen({
   onPrintReceipt,
 }: PaymentScreenProps) {
   const { t } = useTranslation()
+  const { currentShift } = useShiftContext()
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank_transfer'>('cash')
   const [amountPaid, setAmountPaid] = useState('')
 
@@ -83,7 +85,12 @@ export function PaymentScreen({
   const handleProcessPayment = () => {
     const paid = parseFloat(amountPaid || '0')
     if (paid >= orderTotal) {
-      onProcessPayment(paymentMethod, paid)
+      // Get shiftId from currentShift (required for payment processing)
+      // Convert to number if it's a string
+      const shiftId = currentShift?.id 
+        ? (typeof currentShift.id === 'number' ? currentShift.id : parseInt(String(currentShift.id), 10))
+        : null
+      onProcessPayment(paymentMethod, paid, shiftId)
       // setAmountPaid('')
       // setPaymentMethod('cash')
     }

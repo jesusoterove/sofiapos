@@ -66,69 +66,63 @@ async def register_cash_register(
             detail="You do not have permission to register cash registers for this store"
         )
     
-    # Find the next available sequence for this store
-    # Get all cash registers for this store and find max sequence
-    existing_crs = db.query(CashRegister).filter(
-        CashRegister.store_id == cashier_data.store_id,
-        CashRegister.code.like(f"{store.code}-%")
-    ).all()
-    
-    max_sequence = -1
-    for cr in existing_crs:
-        if cr.code.startswith(f"{store.code}-"):
-            try:
-                suffix = cr.code.replace(f"{store.code}-", "")
-                seq = decode_base36(suffix)
-                if seq > max_sequence:
-                    max_sequence = seq
-            except:
-                pass
-    
-    sequence = max_sequence + 1
-    
-    # Generate new code: store_code-AAA format (3 digits base-36 padded)
-    code_suffix = pad_base36(sequence, 3)
-    cash_register_code = f"{store.code}-{code_suffix}"
-    
-    # Ensure uniqueness (in case of collision)
-    max_attempts = 36 ** 3  # Maximum possible combinations for 3 digits
-    attempt = 0
-    while attempt < max_attempts:
-        existing = db.query(CashRegister).filter(CashRegister.code == cash_register_code).first()
-        if not existing:
-            break
-        sequence += 1
-        code_suffix = pad_base36(sequence, 3)
-        cash_register_code = f"{store.code}-{code_suffix}"
-        attempt += 1
-    
-    if attempt >= max_attempts:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Could not generate unique cash register code for store '{store.code}'"
-        )
-    
-    # Check if cash register with this registration code already exists (by hardware registration code)
-    # We still use registration_code for lookup, but code is auto-generated
-    existing_by_reg = db.query(CashRegister).filter(
-        CashRegister.code.like(f"%{cashier_data.registration_code.upper()}%")
+    # Check if cash register with this hardware_id (registration_code) already exists
+    existing_by_hardware = db.query(CashRegister).filter(
+        CashRegister.hardware_id == cashier_data.registration_code
     ).first()
     
-    if existing_by_reg:
-        # Update existing cash register
-        existing_by_reg.store_id = cashier_data.store_id
-        existing_by_reg.name = cashier_data.name
-        existing_by_reg.code = cash_register_code  # Update to new format
-        existing_by_reg.is_active = True
-        db.commit()
-        db.refresh(existing_by_reg)
-        cash_register = existing_by_reg
+    if existing_by_hardware:
+        # Return existing cash register without creating a new one
+        cash_register = existing_by_hardware
     else:
-        # Create new cash register
+        # Find the next available sequence for this store
+        # Get all cash registers for this store and find max sequence
+        existing_crs = db.query(CashRegister).filter(
+            CashRegister.store_id == cashier_data.store_id,
+            CashRegister.code.like(f"{store.code}-%")
+        ).all()
+        
+        max_sequence = -1
+        for cr in existing_crs:
+            if cr.code.startswith(f"{store.code}-"):
+                try:
+                    suffix = cr.code.replace(f"{store.code}-", "")
+                    seq = decode_base36(suffix)
+                    if seq > max_sequence:
+                        max_sequence = seq
+                except:
+                    pass
+        
+        sequence = max_sequence + 1
+        
+        # Generate new code: store_code-AAA format (3 digits base-36 padded)
+        code_suffix = pad_base36(sequence, 3)
+        cash_register_code = f"{store.code}-{code_suffix}"
+        
+        # Ensure uniqueness (in case of collision)
+        max_attempts = 36 ** 3  # Maximum possible combinations for 3 digits
+        attempt = 0
+        while attempt < max_attempts:
+            existing = db.query(CashRegister).filter(CashRegister.code == cash_register_code).first()
+            if not existing:
+                break
+            sequence += 1
+            code_suffix = pad_base36(sequence, 3)
+            cash_register_code = f"{store.code}-{code_suffix}"
+            attempt += 1
+        
+        if attempt >= max_attempts:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Could not generate unique cash register code for store '{store.code}'"
+            )
+        
+        # Create new cash register and assign registration_code to hardware_id
         cash_register = CashRegister(
             store_id=cashier_data.store_id,
             name=cashier_data.name,
             code=cash_register_code,
+            hardware_id=cashier_data.registration_code,
             is_active=True
         )
         db.add(cash_register)
