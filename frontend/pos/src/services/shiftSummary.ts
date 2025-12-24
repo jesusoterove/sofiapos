@@ -250,6 +250,188 @@ export async function updateShiftSummaryOnInventoryEntry(
 }
 
 /**
+ * Calculate shift summary from local database (orders, payments, inventory entries).
+ */
+async function calculateShiftSummaryFromLocalDatabase(
+  shiftNumber: string,
+  shift: { id?: number; opened_at: string; initial_cash: number }
+): Promise<ShiftSummaryData> {
+  const db = await openDatabase()
+  
+  // Initialize inventory summary from config
+  const inventoryConfig = await getAllInventoryControlConfig(db, true) // Only show_in_inventory=true
+  const inventorySummary: InventorySummaryItem[] = []
+  
+  for (const config of inventoryConfig) {
+    const itemName = config.item_type === 'Product' ? config.product_name : config.material_name
+    if (!itemName) continue
+    
+    const itemId = config.item_type === 'Product' ? config.product_id! : config.material_id!
+    
+    const uofms: Array<{ id: number; abbreviation: string }> = []
+    if (config.uofm1_id && config.uofm1_abbreviation) {
+      uofms.push({ id: config.uofm1_id, abbreviation: config.uofm1_abbreviation })
+    }
+    if (config.uofm2_id && config.uofm2_abbreviation) {
+      uofms.push({ id: config.uofm2_id, abbreviation: config.uofm2_abbreviation })
+    }
+    if (config.uofm3_id && config.uofm3_abbreviation) {
+      uofms.push({ id: config.uofm3_id, abbreviation: config.uofm3_abbreviation })
+    }
+    
+    for (const uofm of uofms) {
+      inventorySummary.push({
+        item_id: itemId,
+        item_type: config.item_type,
+        item_name: itemName,
+        uofm_id: uofm.id,
+        uofm_abbreviation: uofm.abbreviation,
+        beg_balance: 0, // Will be set from beginning balances if available
+        refills: [],
+        material_usage: config.item_type === 'Material' ? 0 : undefined,
+      })
+    }
+  }
+  
+  // Sort by priority
+  inventorySummary.sort((a, b) => {
+    const aConfig = inventoryConfig.find(
+      (c) => (c.item_type === 'Product' ? c.product_id : c.material_id) === a.item_id
+    )
+    const bConfig = inventoryConfig.find(
+      (c) => (c.item_type === 'Product' ? c.product_id : c.material_id) === b.item_id
+    )
+    return (aConfig?.priority || 0) - (bConfig?.priority || 0)
+  })
+  
+  // Initialize summary
+  let expectedCash = shift.initial_cash
+  let bankTransferBalance = 0
+  
+  // Get all paid orders for this shift
+  const { getAllOrders } = await import('../db/queries/orders')
+  const { getOrderItemsByOrderNumber } = await import('../db/queries/orders')
+  const { getSyncQueue } = await import('../db/queries/sync')
+  
+  const allPaidOrders = await getAllOrders(db, 'paid')
+  // Filter orders by shift_id
+  // Handle both synced shifts (id is a number > 0) and unsynced shifts (id is 0 or undefined)
+  // For unsynced shifts, also check that order was created after shift opened
+  const shiftOrders = allPaidOrders.filter(order => {
+    // Match by shift_id if available
+    if (shift.id !== undefined && shift.id !== null) {
+      // Handle both number and string comparisons
+      const shiftIdMatch = order.shift_id === shift.id || 
+                          (shift.id === 0 && (order.shift_id === 0 || order.shift_id === null))
+      
+      if (shiftIdMatch) {
+        // For unsynced shifts (id === 0), also verify order was created after shift opened
+        if (shift.id === 0 && order.created_at && shift.opened_at) {
+          return new Date(order.created_at) >= new Date(shift.opened_at)
+        }
+        return true
+      }
+    }
+    return false
+  })
+  
+  // Get sync queue to find payment information
+  const syncQueue = await getSyncQueue(db)
+  
+  // Process each order
+  for (const order of shiftOrders) {
+    // Find payment info from sync queue
+    const syncItem = syncQueue.find(
+      item => item.type === 'order' && 
+      item.action === 'create' && 
+      item.data_id === order.order_number &&
+      item.data?.payment_method &&
+      item.data?.amount_paid
+    )
+    
+    const paymentMethod = syncItem?.data?.payment_method as 'cash' | 'bank_transfer' | undefined
+    const amountPaid = syncItem?.data?.amount_paid as number | undefined || order.total
+    
+    if (paymentMethod === 'cash') {
+      expectedCash += amountPaid
+    } else if (paymentMethod === 'bank_transfer') {
+      bankTransferBalance += amountPaid
+    }
+    
+    // Get order items and calculate material usage
+    const orderItems = await getOrderItemsByOrderNumber(db, order.order_number)
+    
+    for (const orderItem of orderItems) {
+      // Get product's active recipe
+      const recipe = await getRecipeByProductId(db, orderItem.product_id)
+      if (!recipe) continue
+      
+      // Get recipe materials
+      const recipeMaterials = await getRecipeMaterials(db, recipe.id)
+      
+      for (const recipeMaterial of recipeMaterials) {
+        // Calculate material usage: (order_item.quantity / recipe.yield_quantity) * recipe_material.quantity
+        const materialUsage = (orderItem.quantity / recipe.yield_quantity) * recipeMaterial.quantity
+        
+        const targetUofmId = recipeMaterial.unit_of_measure_id || recipeMaterial.material_id
+        
+        const inventoryEntry = inventorySummary.find(
+          (entry) => entry.item_type === 'Material' && entry.item_id === recipeMaterial.material_id && entry.uofm_id === targetUofmId
+        )
+        
+        if (inventoryEntry) {
+          inventoryEntry.material_usage = (inventoryEntry.material_usage || 0) + materialUsage
+        } else {
+          // Try to find by material_id only
+          const materialEntry = inventorySummary.find(
+            (entry) => entry.item_type === 'Material' && entry.item_id === recipeMaterial.material_id
+          )
+          if (materialEntry) {
+            materialEntry.material_usage = (materialEntry.material_usage || 0) + materialUsage
+          }
+        }
+      }
+    }
+  }
+  
+  // Get inventory entries for refills
+  const { getInventoryEntriesByShift } = await import('../db/queries/inventory')
+  const { getInventoryEntryDetailsByEntryNumber } = await import('../db/queries/inventory')
+  const inventoryEntries = await getInventoryEntriesByShift(db, shiftNumber)
+  
+  for (const entry of inventoryEntries) {
+    const details = await getInventoryEntryDetailsByEntryNumber(db, entry.entry_number)
+    for (const detail of details) {
+      const inventoryEntry = inventorySummary.find(
+        (e) => e.item_id === (detail.product_id || detail.material_id) && 
+        e.item_type === (detail.product_id ? 'Product' : 'Material') &&
+        e.uofm_id === detail.unit_of_measure_id
+      )
+      
+      if (inventoryEntry && entry.entry_type === 'purchase') {
+        // Add refill quantity to refills array (up to 6 refills)
+        if (inventoryEntry.refills.length < 6) {
+          inventoryEntry.refills.push(detail.quantity)
+        } else {
+          inventoryEntry.refills[5] = (inventoryEntry.refills[5] || 0) + detail.quantity
+        }
+      }
+    }
+  }
+  
+  return {
+    shift_number: shiftNumber,
+    shift_id: shift.id,
+    opened_at: shift.opened_at,
+    initial_cash: shift.initial_cash,
+    expected_cash: expectedCash,
+    bank_transfer_balance: bankTransferBalance,
+    inventory_summary: inventorySummary,
+    updated_at: new Date().toISOString(),
+  }
+}
+
+/**
  * Finalize shift summary when shift closes.
  */
 export async function updateShiftSummaryOnClose(
@@ -259,10 +441,29 @@ export async function updateShiftSummaryOnClose(
 ): Promise<void> {
   const db = await openDatabase()
   
-  const summary = await getShiftSummary(db, shiftNumber)
+  let summary = await getShiftSummary(db, shiftNumber)
   if (!summary) {
-    console.warn(`Shift summary not found for shift ${shiftNumber}`)
-    return
+    console.warn(`Shift summary not found for shift ${shiftNumber}, calculating from local database...`)
+    
+    // Get shift data
+    const { getShiftByNumber } = await import('../db/queries/shifts')
+    const shift = await getShiftByNumber(db, shiftNumber)
+    
+    if (!shift) {
+      console.error(`Shift ${shiftNumber} not found, cannot calculate summary`)
+      return
+    }
+    
+    // Calculate summary from local database
+    summary = await calculateShiftSummaryFromLocalDatabase(shiftNumber, {
+      id: shift.id || undefined,
+      opened_at: shift.opened_at,
+      initial_cash: shift.initial_cash || 0,
+    })
+    
+    // Save the calculated summary
+    await saveShiftSummary(db, summary)
+    console.log(`[updateShiftSummaryOnClose] Calculated and saved shift summary for shift ${shiftNumber}`)
   }
   
   // Set final cash and closed date
