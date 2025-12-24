@@ -367,10 +367,10 @@ export function Sales() {
                 {formatCurrency(summaryData.summary.total_sales)}
               </span>
             </div>
-            {summaryData.summary.payment_methods.map((pm: { payment_method_name: string; total_amount: number }) => (
+            {summaryData.summary.payment_methods.map((pm: { payment_method_name: string; payment_method_type: string; total_amount: number }) => (
               <div key={pm.payment_method_name}>
                 <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-                  {t('sales.total') || 'Total'} {pm.payment_method_name}:{' '}
+                  {t('sales.total') || 'Total'} {t(`paymentMethods.${pm.payment_method_type}`) || pm.payment_method_name}:{' '}
                 </span>
                 <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                   {formatCurrency(pm.total_amount)}
@@ -386,8 +386,7 @@ export function Sales() {
         <AdvancedDataGrid
           rowData={detailsData?.details || []}
           columnDefs={columns}
-          height="600px"
-          rowSelection={{ mode: 'singleRow' }}
+          height="550px"
         />
         {/* Pagination Controls */}
         {detailsData && detailsData.total_pages > 1 && (

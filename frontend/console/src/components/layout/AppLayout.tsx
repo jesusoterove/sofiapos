@@ -5,7 +5,6 @@
 import { Outlet } from '@tanstack/react-router'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
-import { Footer } from './Footer'
 
 export function AppLayout() {
   return (
@@ -22,9 +21,6 @@ export function AppLayout() {
         <main className="flex-1 overflow-y-auto p-4">
           <Outlet />
         </main>
-        
-        {/* Footer */}
-        <Footer />
       </div>
     </div>
   )

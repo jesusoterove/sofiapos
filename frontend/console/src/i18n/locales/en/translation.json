@@ -337,6 +337,13 @@
     "theme": "Theme",
     "currency": "Currency",
     "dateFormat": "Date Format"
+  },
+  "paymentMethods": {
+    "cash": "Cash",
+    "bankTransfer": "Bank Transfer",
+    "card": "Card",
+    "check": "Check",
+    "other": "Other"
   }
 }
 

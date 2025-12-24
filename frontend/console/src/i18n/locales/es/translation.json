@@ -337,6 +337,13 @@
     "theme": "Tema",
     "currency": "Moneda",
     "dateFormat": "Formato de Fecha"
+  },
+  "paymentMethods": {
+    "cash": "Efectivo",
+    "bankTransfer": "Transferencia",
+    "card": "Tarjeta",
+    "check": "Cheque",
+    "other": "Otro"
   }
 }
 

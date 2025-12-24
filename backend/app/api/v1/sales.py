@@ -434,7 +434,11 @@ async def get_sales_summary(
             summary=SalesSummary(
                 beginning_balance=None,
                 total_sales=0.0,
-                payment_methods=[]
+                payment_methods=[{
+                    "payment_method_name": "Cash",
+                    "payment_method_type": "cash",
+                    "total_amount": 0.0
+                }]
             ),
             start_date=None,
             end_date=None,
@@ -520,7 +524,11 @@ async def get_sales(
             summary=SalesSummary(
                 beginning_balance=None,
                 total_sales=0.0,
-                payment_methods=[]
+                payment_methods=[{
+                    "payment_method_name": "Cash",
+                    "payment_method_type": "cash",
+                    "total_amount": 0.0
+                }]
             ),
             details=[],
             start_date=None,

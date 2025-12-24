@@ -144,6 +144,14 @@ export function Sidebar() {
           )
         })}
       </nav>
+      
+      {/* Footer with copyright and version */}
+      <div className="px-4 py-3 border-t border-gray-700">
+        <div className="text-xs text-gray-400 text-center space-y-1">
+          <div>SofiaPOS Console © {new Date().getFullYear()}</div>
+          <div>Version 1.0.0</div>
+        </div>
+      </div>
     </aside>
   )
 }
