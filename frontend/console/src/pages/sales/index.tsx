@@ -52,6 +52,11 @@ export function Sales() {
     enabled: !!storeId,
   })
 
+  // Get client timezone offset in minutes
+  // JavaScript getTimezoneOffset() returns offset in minutes, positive for behind UTC, negative for ahead
+  // We need to negate it: EST (UTC-5) has offset +300, we want -300
+  const timezoneOffset = -new Date().getTimezoneOffset()
+
   // Build filter request
   const filterRequest: SalesFilterRequest = {
     store_id: storeId,
@@ -59,6 +64,7 @@ export function Sales() {
     filter_mode: filterMode,
     start_date: filterMode === 'date_range' && startDate ? startDate : null,
     end_date: filterMode === 'date_range' && endDate ? endDate : null,
+    timezone_offset: timezoneOffset,
   }
 
   // Build details request with pagination
@@ -69,17 +75,27 @@ export function Sales() {
   }
 
   // Fetch sales summary (only once, no pagination)
+  // No caching - always fetch fresh data when filters change
   const { data: summaryData, isLoading: isLoadingSummary } = useQuery<SalesSummaryResponse>({
     queryKey: ['sales-summary', filterRequest],
     queryFn: () => getSalesSummary(filterRequest),
     enabled: filterMode !== 'current_shift' && filterMode !== 'last_shift' || !!cashRegisterId,
+    staleTime: 0, // Data is immediately considered stale
+    gcTime: 0, // No cache time (formerly cacheTime)
+    refetchOnMount: true, // Always refetch on mount
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   })
 
   // Fetch sales details (paginated)
+  // No caching - always fetch fresh data when filters change
   const { data: detailsData, isLoading: isLoadingDetails } = useQuery<SalesDetailsResponse>({
     queryKey: ['sales-details', detailsRequest],
     queryFn: () => getSalesDetails(detailsRequest),
     enabled: filterMode !== 'current_shift' && filterMode !== 'last_shift' || !!cashRegisterId,
+    staleTime: 0, // Data is immediately considered stale
+    gcTime: 0, // No cache time (formerly cacheTime)
+    refetchOnMount: true, // Always refetch on mount
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   })
 
   // Reset cash register when store changes
@@ -158,8 +174,10 @@ export function Sales() {
 
   return (
     <div className="p-3 pb-0">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">{t('sales.title') || 'Sales'}</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+          {t('sales.title') || 'Sales'}
+        </h1>
       </div>
 
       {/* Filter Section */}
@@ -167,13 +185,18 @@ export function Sales() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           {/* Store Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
               {t('sales.store') || 'Store'}
             </label>
             <select
               value={storeId || ''}
               onChange={(e) => setStoreId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{
+                backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
+                color: 'var(--color-text-primary, #111827)',
+                borderColor: 'var(--color-border-default, #E5E7EB)',
+              }}
             >
               <option value="">{t('sales.all') || 'All'}</option>
               {stores.map((store: { id: number; name: string }) => (
@@ -186,14 +209,20 @@ export function Sales() {
 
           {/* Cash Register Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
               {t('sales.cashRegister') || 'Cash Register'}
             </label>
             <select
               value={cashRegisterId || ''}
               onChange={(e) => setCashRegisterId(e.target.value ? Number(e.target.value) : null)}
               disabled={!storeId}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{
+                backgroundColor: !storeId ? 'var(--color-bg-disabled, #F3F4F6)' : 'var(--color-bg-paper, #FFFFFF)',
+                color: !storeId ? 'var(--color-text-disabled, #9CA3AF)' : 'var(--color-text-primary, #111827)',
+                borderColor: 'var(--color-border-default, #E5E7EB)',
+                cursor: !storeId ? 'not-allowed' : 'pointer',
+              }}
             >
               <option value="">{t('sales.all') || 'All'}</option>
               {cashRegisters.map((cr: { id: number; name: string; code: string }) => (
@@ -206,7 +235,7 @@ export function Sales() {
 
           {/* Filter Mode */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
               {t('sales.filterMode') || 'Filter Mode'}
             </label>
             <select
@@ -215,7 +244,12 @@ export function Sales() {
                 setFilterMode(e.target.value as FilterMode)
                 setCurrentPage(1) // Reset to first page when filter changes
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{
+                backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
+                color: 'var(--color-text-primary, #111827)',
+                borderColor: 'var(--color-border-default, #E5E7EB)',
+              }}
             >
               {cashRegisterId && (
                 <>
@@ -239,25 +273,35 @@ export function Sales() {
           {filterMode === 'date_range' && (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                   {t('sales.startDate') || 'Start Date'}
                 </label>
                 <input
                   type="datetime-local"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
+                    color: 'var(--color-text-primary, #111827)',
+                    borderColor: 'var(--color-border-default, #E5E7EB)',
+                  }}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
                   {t('sales.endDate') || 'End Date'}
                 </label>
                 <input
                   type="datetime-local"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
+                    color: 'var(--color-text-primary, #111827)',
+                    borderColor: 'var(--color-border-default, #E5E7EB)',
+                  }}
                 />
               </div>
             </div>
@@ -266,25 +310,34 @@ export function Sales() {
 
         {/* Info Row */}
         {summaryData && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded">
+          <div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-3 rounded"
+            style={{ backgroundColor: 'var(--color-bg-secondary, #F9FAFB)' }}
+          >
             <div>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                 {t('sales.startDateTime') || 'Start Date/Time'}:{' '}
               </span>
-              <span className="text-sm">{formatDateTime(summaryData.start_date)}</span>
+              <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                {formatDateTime(summaryData.start_date)}
+              </span>
             </div>
             <div>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                 {t('sales.endDateTime') || 'End Date/Time'}:{' '}
               </span>
-              <span className="text-sm">{formatDateTime(summaryData.end_date)}</span>
+              <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                {formatDateTime(summaryData.end_date)}
+              </span>
             </div>
             {summaryData.cash_register_user && (
               <div>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                   {t('sales.cashRegisterUser') || 'User'}:{' '}
                 </span>
-                <span className="text-sm">{summaryData.cash_register_user}</span>
+                <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                  {summaryData.cash_register_user}
+                </span>
               </div>
             )}
           </div>
@@ -292,27 +345,36 @@ export function Sales() {
 
         {/* Summary Row */}
         {summaryData && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-3 bg-blue-50 rounded">
+          <div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-3 rounded"
+            style={{ backgroundColor: 'var(--color-bg-secondary, #F9FAFB)' }}
+          >
             {summaryData.summary.beginning_balance !== null && summaryData.summary.beginning_balance !== undefined && (
               <div>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                   {t('sales.begBalance') || 'Beg Balance'}:{' '}
                 </span>
-                <span className="text-sm font-semibold">{formatCurrency(summaryData.summary.beginning_balance)}</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                  {formatCurrency(summaryData.summary.beginning_balance)}
+                </span>
               </div>
             )}
             <div>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                 {t('sales.totalSales') || 'Total Sales'}:{' '}
               </span>
-              <span className="text-sm font-semibold">{formatCurrency(summaryData.summary.total_sales)}</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                {formatCurrency(summaryData.summary.total_sales)}
+              </span>
             </div>
             {summaryData.summary.payment_methods.map((pm: { payment_method_name: string; total_amount: number }) => (
               <div key={pm.payment_method_name}>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                   {t('sales.total') || 'Total'} {pm.payment_method_name}:{' '}
                 </span>
-                <span className="text-sm font-semibold">{formatCurrency(pm.total_amount)}</span>
+                <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                  {formatCurrency(pm.total_amount)}
+                </span>
               </div>
             ))}
           </div>
@@ -329,25 +391,60 @@ export function Sales() {
         />
         {/* Pagination Controls */}
         {detailsData && detailsData.total_pages > 1 && (
-          <div className="p-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
+          <div 
+            className="p-4 border-t flex items-center justify-between"
+            style={{ borderTopColor: 'var(--color-border-default, #E5E7EB)' }}
+          >
+            <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
               {t('sales.showing') || 'Showing'} {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, detailsData.total_count)} {t('sales.of') || 'of'} {detailsData.total_count}
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="px-3 py-1 border rounded-md disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: currentPage === 1 ? 'var(--color-bg-disabled, #F3F4F6)' : 'var(--color-bg-paper, #FFFFFF)',
+                  color: currentPage === 1 ? 'var(--color-text-disabled, #9CA3AF)' : 'var(--color-text-primary, #111827)',
+                  borderColor: 'var(--color-border-default, #E5E7EB)',
+                  opacity: currentPage === 1 ? 0.6 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  if (currentPage !== 1) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary, #F9FAFB)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentPage !== 1) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-bg-paper, #FFFFFF)'
+                  }
+                }}
               >
                 {t('sales.previous') || 'Previous'}
               </button>
-              <span className="px-3 py-1 text-sm">
+              <span className="px-3 py-1 text-sm" style={{ color: 'var(--color-text-primary)' }}>
                 {t('sales.page') || 'Page'} {currentPage} {t('sales.of') || 'of'} {detailsData.total_pages}
               </span>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(detailsData.total_pages, prev + 1))}
                 disabled={currentPage === detailsData.total_pages}
-                className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="px-3 py-1 border rounded-md disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: currentPage === detailsData.total_pages ? 'var(--color-bg-disabled, #F3F4F6)' : 'var(--color-bg-paper, #FFFFFF)',
+                  color: currentPage === detailsData.total_pages ? 'var(--color-text-disabled, #9CA3AF)' : 'var(--color-text-primary, #111827)',
+                  borderColor: 'var(--color-border-default, #E5E7EB)',
+                  opacity: currentPage === detailsData.total_pages ? 0.6 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  if (currentPage !== detailsData.total_pages) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary, #F9FAFB)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentPage !== detailsData.total_pages) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-bg-paper, #FFFFFF)'
+                  }
+                }}
               >
                 {t('sales.next') || 'Next'}
               </button>

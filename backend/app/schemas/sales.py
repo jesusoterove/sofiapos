@@ -12,8 +12,9 @@ class SalesFilterRequest(BaseModel):
     store_id: Optional[int] = Field(None, description="Store ID (None for all stores)")
     cash_register_id: Optional[int] = Field(None, description="Cash register ID (None for all)")
     filter_mode: str = Field(..., description="Filter mode: today, yesterday, current_shift, last_shift, last_week, last_month, date_range")
-    start_date: Optional[datetime] = Field(None, description="Start date for date_range mode")
-    end_date: Optional[datetime] = Field(None, description="End date for date_range mode")
+    start_date: Optional[datetime] = Field(None, description="Start date for date_range mode (should be in UTC)")
+    end_date: Optional[datetime] = Field(None, description="End date for date_range mode (should be in UTC)")
+    timezone_offset: Optional[int] = Field(None, description="Client timezone offset in minutes (e.g., -300 for EST, 0 for UTC)")
 
 
 class SalesDetailsRequest(BaseModel):
@@ -21,8 +22,9 @@ class SalesDetailsRequest(BaseModel):
     store_id: Optional[int] = Field(None, description="Store ID (None for all stores)")
     cash_register_id: Optional[int] = Field(None, description="Cash register ID (None for all)")
     filter_mode: str = Field(..., description="Filter mode: today, yesterday, current_shift, last_shift, last_week, last_month, date_range")
-    start_date: Optional[datetime] = Field(None, description="Start date for date_range mode")
-    end_date: Optional[datetime] = Field(None, description="End date for date_range mode")
+    start_date: Optional[datetime] = Field(None, description="Start date for date_range mode (should be in UTC)")
+    end_date: Optional[datetime] = Field(None, description="End date for date_range mode (should be in UTC)")
+    timezone_offset: Optional[int] = Field(None, description="Client timezone offset in minutes (e.g., -300 for EST, 0 for UTC)")
     page: int = Field(1, ge=1, description="Page number (1-based)")
     page_size: int = Field(20, ge=1, le=100, description="Number of items per page")
 

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, case
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.database import get_db
 from app.models import (
@@ -26,13 +26,30 @@ def get_date_range_for_filter_mode(
     cash_register_id: Optional[int],
     start_date: Optional[datetime],
     end_date: Optional[datetime],
+    timezone_offset: Optional[int],
     db: Session
 ) -> tuple[Optional[datetime], Optional[datetime], Optional[int], Optional[str]]:
     """
     Get start and end dates based on filter mode.
+    Handles timezone conversion from client timezone to UTC.
     Returns: (start_date, end_date, shift_id, cash_register_user)
     """
-    now = datetime.utcnow()
+    # Get UTC now (naive datetime for compatibility with database)
+    now_utc = datetime.utcnow()
+    
+    # Calculate client timezone offset (default to UTC if not provided)
+    # timezone_offset is in minutes: positive = ahead of UTC, negative = behind UTC
+    # Example: EST is UTC-5, so offset = -300 minutes
+    # Note: JavaScript getTimezoneOffset() returns positive for behind UTC, negative for ahead
+    # So EST (UTC-5) would send -300, which is correct
+    tz_offset_minutes = timezone_offset if timezone_offset is not None else 0
+    tz_offset = timedelta(minutes=tz_offset_minutes)
+    
+    # Debug logging (can be removed later)
+    if filter_mode in ["today", "yesterday", "last_week", "last_month", "date_range"]:
+        print(f"[DEBUG] timezone_offset: {timezone_offset}, tz_offset_minutes: {tz_offset_minutes}, tz_offset: {tz_offset}")
+        print(f"[DEBUG] now_utc: {now_utc}")
+    
     shift_id = None
     cash_register_user = None
 
@@ -58,8 +75,12 @@ def get_date_range_for_filter_mode(
         
         if shift:
             shift_id = shift.id
-            start_date = shift.opened_at
-            end_date = now
+            # Ensure both dates are timezone-aware (UTC) for consistent serialization
+            if shift.opened_at.tzinfo is None:
+                start_date = shift.opened_at.replace(tzinfo=timezone.utc)
+            else:
+                start_date = shift.opened_at.astimezone(timezone.utc)
+            end_date = now_utc.replace(tzinfo=timezone.utc)
             
             # Get user in shift
             shift_user = db.query(ShiftUser).filter(ShiftUser.shift_id == shift.id).first()
@@ -93,8 +114,17 @@ def get_date_range_for_filter_mode(
         
         if shift:
             shift_id = shift.id
-            start_date = shift.opened_at
-            end_date = shift.closed_at
+            # Ensure both dates are timezone-aware (UTC) for consistent serialization
+            if shift.opened_at.tzinfo is None:
+                start_date = shift.opened_at.replace(tzinfo=timezone.utc)
+            else:
+                start_date = shift.opened_at.astimezone(timezone.utc)
+            if shift.closed_at and shift.closed_at.tzinfo is None:
+                end_date = shift.closed_at.replace(tzinfo=timezone.utc)
+            elif shift.closed_at:
+                end_date = shift.closed_at.astimezone(timezone.utc)
+            else:
+                end_date = None
             
             # Get user in shift
             shift_user = db.query(ShiftUser).filter(ShiftUser.shift_id == shift.id).first()
@@ -107,23 +137,57 @@ def get_date_range_for_filter_mode(
             end_date = None
 
     elif filter_mode == "today":
-        # Today: from start of today to now
-        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = now
+        # Today: from start of today (00:00 AM) in client timezone to current datetime
+        # Convert UTC to client timezone for date calculations
+        # If client is UTC-5 (offset=-300), we subtract 5 hours from UTC to get client time
+        client_now = now_utc + tz_offset  # Add offset to get client time (UTC + (-5hrs) = client time)
+        client_today_start = client_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        client_today_end = client_now  # Current datetime
+        
+        # Convert back to UTC: subtract the offset (which is negative, so we add hours)
+        # If client is UTC-5 (offset=-300), client_time - (-300min) = client_time + 5hrs = UTC
+        # Create timezone-aware datetimes by first converting to UTC properly
+        start_date_utc_naive = client_today_start - tz_offset
+        end_date_utc_naive = client_today_end - tz_offset
+        start_date = start_date_utc_naive.replace(tzinfo=timezone.utc)
+        end_date = end_date_utc_naive.replace(tzinfo=timezone.utc)
 
     elif filter_mode == "yesterday":
-        # Yesterday: from start of yesterday to end of yesterday
-        yesterday = now - timedelta(days=1)
-        start_date = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = yesterday.replace(hour=23, minute=59, second=59, microsecond=999999)
+        # Yesterday: from start of yesterday (00:00) to end of yesterday (23:59:59) in client timezone
+        client_now = now_utc + tz_offset  # Add offset to get client time
+        client_yesterday = client_now - timedelta(days=1)
+        client_yesterday_start = client_yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+        client_yesterday_end = client_yesterday.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        # Convert back to UTC: subtract the offset
+        start_date = (client_yesterday_start - tz_offset).replace(tzinfo=timezone.utc)
+        end_date = (client_yesterday_end - tz_offset).replace(tzinfo=timezone.utc)
 
     elif filter_mode == "last_week":
-        end_date = now
-        start_date = now - timedelta(days=7)
+        # Last week: 7 days ago from now in client timezone
+        # Start date: beginning of the day 7 days ago
+        # End date: end of period (23:59:59) or current time, whichever is minimum
+        client_now = now_utc + tz_offset  # Add offset to get client time
+        client_week_ago = client_now - timedelta(days=7)
+        client_week_ago_start = client_week_ago.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # End date is current time (already at the end of the period)
+        # Convert back to UTC: subtract the offset
+        start_date = (client_week_ago_start - tz_offset).replace(tzinfo=timezone.utc)
+        end_date = (client_now - tz_offset).replace(tzinfo=timezone.utc)  # Current time
 
     elif filter_mode == "last_month":
-        end_date = now
-        start_date = now - timedelta(days=30)
+        # Last month: 30 days ago from now in client timezone
+        # Start date: beginning of the day 30 days ago
+        # End date: end of period (23:59:59) or current time, whichever is minimum
+        client_now = now_utc + tz_offset  # Add offset to get client time
+        client_month_ago = client_now - timedelta(days=30)
+        client_month_ago_start = client_month_ago.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # End date is current time (already at the end of the period)
+        # Convert back to UTC: subtract the offset
+        start_date = (client_month_ago_start - tz_offset).replace(tzinfo=timezone.utc)
+        end_date = (client_now - tz_offset).replace(tzinfo=timezone.utc)  # Current time
 
     elif filter_mode == "date_range":
         if not start_date or not end_date:
@@ -131,6 +195,46 @@ def get_date_range_for_filter_mode(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Start date and end date are required for date range filter"
             )
+        # If dates are provided, extract the date part and set times appropriately
+        # Start date: beginning of the selected day (00:00:00) in client timezone
+        # End date: end of the selected day (23:59:59) in client timezone
+        # Then convert both to UTC
+        
+        # Normalize start_date to beginning of day in client timezone
+        if start_date.tzinfo is None:
+            # Naive datetime - assume it's in client timezone
+            # Extract date part and set to beginning of day (00:00:00)
+            start_date_client = datetime(
+                start_date.year, start_date.month, start_date.day,
+                hour=0, minute=0, second=0, microsecond=0
+            )
+        else:
+            # Timezone-aware datetime - convert to client timezone first
+            start_date_client_tz = start_date.astimezone(timezone(timedelta(minutes=tz_offset_minutes)))
+            start_date_client = datetime(
+                start_date_client_tz.year, start_date_client_tz.month, start_date_client_tz.day,
+                hour=0, minute=0, second=0, microsecond=0
+            )
+        # Convert to UTC
+        start_date = (start_date_client - tz_offset).replace(tzinfo=timezone.utc)
+        
+        # Normalize end_date to end of day in client timezone
+        if end_date.tzinfo is None:
+            # Naive datetime - assume it's in client timezone
+            # Extract date part and set to end of day (23:59:59)
+            end_date_client = datetime(
+                end_date.year, end_date.month, end_date.day,
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+        else:
+            # Timezone-aware datetime - convert to client timezone first
+            end_date_client_tz = end_date.astimezone(timezone(timedelta(minutes=tz_offset_minutes)))
+            end_date_client = datetime(
+                end_date_client_tz.year, end_date_client_tz.month, end_date_client_tz.day,
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+        # Convert to UTC
+        end_date = (end_date_client - tz_offset).replace(tzinfo=timezone.utc)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -154,6 +258,7 @@ def build_sales_query(
         filter_data.cash_register_id,
         filter_data.start_date,
         filter_data.end_date,
+        filter_data.timezone_offset,
         db
     )
 
@@ -179,17 +284,22 @@ def build_sales_query(
         query = query.filter(Order.cash_register_id == filter_data.cash_register_id)
 
     # Filter by shift if applicable
+    # When filtering by shift_id, use ONLY shift_id - do not include date ranges
     if shift_id:
         query = query.filter(Order.shift_id == shift_id)
-
-    # Filter by date range
-    if start_date and end_date:
-        query = query.filter(
-            and_(
-                Order.paid_at >= start_date,
-                Order.paid_at <= end_date
+    else:
+        # Only apply date range filters if NOT filtering by shift_id
+        if start_date and end_date:
+            # Convert timezone-aware datetimes to naive for database comparison
+            # Database stores UTC as naive datetimes
+            start_date_naive = start_date.replace(tzinfo=None) if start_date.tzinfo else start_date
+            end_date_naive = end_date.replace(tzinfo=None) if end_date.tzinfo else end_date
+            query = query.filter(
+                and_(
+                    Order.paid_at >= start_date_naive,
+                    Order.paid_at <= end_date_naive
+                )
             )
-        )
 
     return query, start_date, end_date, shift_id, cash_register_user
 
@@ -358,7 +468,8 @@ async def get_sales_details(
         cash_register_id=filter_data.cash_register_id,
         filter_mode=filter_data.filter_mode,
         start_date=filter_data.start_date,
-        end_date=filter_data.end_date
+        end_date=filter_data.end_date,
+        timezone_offset=filter_data.timezone_offset
     )
 
     query, start_date, end_date, shift_id, cash_register_user = build_sales_query(

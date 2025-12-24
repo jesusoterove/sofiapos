@@ -7,6 +7,7 @@ export interface SalesFilterRequest {
   filter_mode: 'today' | 'yesterday' | 'current_shift' | 'last_shift' | 'last_week' | 'last_month' | 'date_range'
   start_date?: string | null
   end_date?: string | null
+  timezone_offset?: number | null
 }
 
 export interface SalesDetailsRequest extends SalesFilterRequest {
