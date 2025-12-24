@@ -1,0 +1,175 @@
+name: sofiapos-prod
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: sofiapos-db-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      # PostgreSQL performance tuning for production
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+    volumes:
+      - sofiapos_db_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    # Security: run as non-root user (postgres image does this by default)
+    # Network: only expose to api service
+    networks:
+      - sofiapos-internal
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      # No cache in production to ensure fresh builds
+      no_cache: false
+    image: sofiapos-api:latest
+    container_name: sofiapos-api-prod
+    restart: unless-stopped
+    # NO volume mounts in production - code is baked into image
+    environment:
+      DB_TYPE: postgresql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      APP_ENV: production
+      APP_DEBUG: "False"
+      # CRITICAL: These must be set via environment variables or secrets
+      APP_SECRET_KEY: ${APP_SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      # Default admin user configuration (should be disabled or changed in production)
+      DEFAULT_ADMIN_USERNAME: ${DEFAULT_ADMIN_USERNAME:-admin}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL}
+      DEFAULT_ADMIN_FULL_NAME: ${DEFAULT_ADMIN_FULL_NAME:-Administrator}
+      DEFAULT_ADMIN_CREATE_IF_NOT_EXISTS: ${DEFAULT_ADMIN_CREATE_IF_NOT_EXISTS:-false}
+      # Production settings
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # CORS settings (adjust for your domain)
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://yourdomain.com}
+    # Production command: no --reload flag
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${API_WORKERS:-4} --log-level info
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - sofiapos-internal
+      - sofiapos-public
+    # Expose only to nginx or load balancer
+    expose:
+      - "8000"
+
+  console:
+    build:
+      context: ./frontend
+      dockerfile: console/Dockerfile
+      target: production  # Use production stage
+    image: sofiapos-console:latest
+    container_name: sofiapos-console-prod
+    restart: unless-stopped
+    # NO volume mounts in production
+    environment:
+      # API URL should point to internal service name or load balancer
+      VITE_API_URL: ${API_URL:-http://api:8000}
+      # For production, this is set at build time, but can be overridden
+      VITE_APP_ENV: production
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - sofiapos-public
+    # Expose port 80 (nginx default)
+    expose:
+      - "80"
+
+  # Optional: Nginx reverse proxy for production
+  # Uncomment if you want nginx in front of services
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: sofiapos-nginx-prod
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #     - nginx_cache:/var/cache/nginx
+  #   depends_on:
+  #     - api
+  #     - console
+  #   networks:
+  #     - sofiapos-public
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+volumes:
+  sofiapos_db_prod:
+    driver: local
+    # Consider using named volumes with specific drivers for production
+    # driver_opts:
+    #   type: nfs
+    #   o: addr=nfs.example.com,rw
+    #   device: ":/path/to/nfs"
+  # nginx_cache:
+  #   driver: local
+
+networks:
+  sofiapos-internal:
+    driver: bridge
+    internal: true  # No external access
+  sofiapos-public:
+    driver: bridge
+
