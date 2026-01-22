@@ -11,7 +11,7 @@ import enTranslations from './locales/en/translation.json'
 import esTranslations from './locales/es/translation.json'
 
 // Import sofia-ui translations to merge
-import sofiaUiTranslations from '@sofiapos/ui/i18n/translations'
+import { sofiaUiTranslations } from '@sofiapos/ui'
 
 // Development mode: default to Spanish
 // Production: detect from browser or use English

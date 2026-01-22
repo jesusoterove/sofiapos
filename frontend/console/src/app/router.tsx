@@ -10,6 +10,7 @@ import { ProductList } from '@/pages/products'
 import { ProductForm } from '@/pages/products/ProductForm'
 import { Settings } from '@/pages/settings'
 import { Sales } from '@/pages/sales'
+import { UpdateList } from '@/pages/updates'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Root route
@@ -124,6 +125,13 @@ const settingsRoute = createRoute({
   component: Settings,
 })
 
+// Updates route - protected
+const updatesRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/updates',
+  component: UpdateList,
+})
+
 // Create the route tree
 const routeTree = rootRoute.addChildren([
   loginRoute,
@@ -141,6 +149,7 @@ const routeTree = rootRoute.addChildren([
       ordersRoute,
       salesRoute,
       settingsRoute,
+      updatesRoute,
     ]),
   ]),
 ])

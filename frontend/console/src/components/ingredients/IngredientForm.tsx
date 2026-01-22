@@ -47,7 +47,7 @@ export function IngredientForm({ ingredient, onSubmit, onCancel }: IngredientFor
         description: ingredient.description || '',
         requires_inventory: ingredient.requires_inventory,
         base_uofm_id: ingredient.base_uofm_id || null,
-        unit_cost: ingredient.unit_cost || '',
+        unit_cost: ingredient.unit_cost?.toString() || undefined,
       })
     }
   }, [ingredient, reset])
@@ -152,7 +152,7 @@ export function IngredientForm({ ingredient, onSubmit, onCancel }: IngredientFor
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="secondary" onClick={onCancel}>
               {t('common.cancel')}
             </Button>
             <Button type="submit">

@@ -127,7 +127,7 @@ export function PricesTab({ productId, isEditMode, defaultPrice }: PricesTabProp
     }
   }
 
-  const columns: AdvancedDataGridColumn<StoreProductPrice>[] = [
+  const columns: AdvancedDataGridColumn[] = [
     { field: 'store_name', headerName: t('stores.store') || 'Store', sortable: true, flex: 1 },
     {
       field: 'selling_price',
@@ -182,7 +182,7 @@ export function PricesTab({ productId, isEditMode, defaultPrice }: PricesTabProp
             {t('common.currencySymbol')}{defaultPrice || '0.00'}
           </div>
         </div>
-        <Button type="button" onClick={handleAdd} size="sm">
+        <Button type="button" onClick={handleAdd}>
           <FaPlus className="mr-2" />
           {t('inventory.addPrice') || 'Add Price'}
         </Button>

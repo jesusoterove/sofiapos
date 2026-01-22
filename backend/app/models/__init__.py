@@ -21,6 +21,7 @@ from .table import Table
 from .order import Order, OrderItem
 from .setting import Setting
 from .document_prefix import DocumentPrefix, DocumentType
+from .application_version import ApplicationVersion
 
 __all__ = [
     "Store",
@@ -41,5 +42,6 @@ __all__ = [
     "Order", "OrderItem",
     "Setting",
     "DocumentPrefix", "DocumentType",
+    "ApplicationVersion",
 ]
 

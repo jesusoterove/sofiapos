@@ -245,7 +245,6 @@ export function ImagesTab({ productId, isEditMode }: ImagesTabProps) {
                   <Button
                     type="button"
                     variant="secondary"
-                    size="sm"
                     onClick={() => handleSetPrimary(image)}
                     title={t('inventory.setAsPrimary') || 'Set as Primary'}
                     className="flex items-center gap-1"
@@ -256,7 +255,6 @@ export function ImagesTab({ productId, isEditMode }: ImagesTabProps) {
                 <Button
                   type="button"
                   variant="secondary"
-                  size="sm"
                   onClick={() => handleDelete(image)}
                   title={t('common.delete') || 'Delete'}
                   className="flex items-center gap-1"

@@ -6,7 +6,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { materialsApi, Material } from '@/api/materials'
-import { Button, AdvancedDataGrid, AdvancedDataGridColumn, messageBox, NumberCellRenderer, YesNoCellRenderer } from '@sofiapos/ui'
+import { Button, AdvancedDataGrid, AdvancedDataGridColumn, messageBox, NumberCellRenderer } from '@sofiapos/ui'
 import { FaEdit, FaTrash } from 'react-icons/fa'
 
 export function IngredientList() {
@@ -51,7 +51,7 @@ export function IngredientList() {
   }
 
 
-  const columns: AdvancedDataGridColumn<Material>[] = [
+  const columns: AdvancedDataGridColumn[] = [
     {
       field: 'code',
       headerName: t('inventory.ingredientCode') || 'Code',

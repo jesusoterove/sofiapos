@@ -5,8 +5,8 @@ import { useState, useEffect, FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
-import { usersApi, User, UserCreate, UserUpdate, Role } from '@/api/users'
-import { storesApi, Store } from '@/api/stores'
+import { usersApi, User, UserCreate, UserUpdate } from '@/api/users'
+import { storesApi } from '@/api/stores'
 import { Button } from '@sofiapos/ui'
 
 interface UserFormProps {

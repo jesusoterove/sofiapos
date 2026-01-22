@@ -9,7 +9,7 @@ import { useTranslation } from '@/i18n/hooks'
 import { materialsApi } from '@/api/materials'
 import { recipeMaterialsApi, RecipeMaterial } from '@/api/recipeMaterials'
 import { unitOfMeasuresApi } from '@/api/unitOfMeasures'
-import { Button, messageBox, AdvancedDataGrid, AdvancedDataGridColumn, NumberCellRenderer } from '@sofiapos/ui'
+import { Button, messageBox, AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 
 interface IngredientsTabProps {
@@ -141,7 +141,7 @@ export function IngredientsTab({ productId, isEditMode, productType }: Ingredien
     }
   }
 
-  const columns: AdvancedDataGridColumn<RecipeMaterial>[] = [
+  const columns: AdvancedDataGridColumn[] = [
     { field: 'material_code', headerName: t('inventory.ingredientCode') || 'Code', sortable: true, flex: 1 },
     { field: 'material_name', headerName: t('inventory.ingredientName') || 'Name', sortable: true, flex: 2 },
     {
@@ -185,7 +185,7 @@ export function IngredientsTab({ productId, isEditMode, productType }: Ingredien
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <Button type="button" onClick={handleAdd} size="sm">
+        <Button type="button" onClick={handleAdd}>
           <FaPlus className="mr-2" />
           {t('inventory.addIngredient') || 'Add Ingredient'}
         </Button>

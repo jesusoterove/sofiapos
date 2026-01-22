@@ -10,7 +10,6 @@ import { useTranslation } from '@/i18n/hooks'
 import { materialsApi, Material } from '@/api/materials'
 import { unitOfMeasuresApi } from '@/api/unitOfMeasures'
 import { Button, messageBox } from '@sofiapos/ui'
-import { FaArrowLeft } from 'react-icons/fa'
 import { useSettings } from '@/contexts/SettingsContext'
 
 export function IngredientForm() {

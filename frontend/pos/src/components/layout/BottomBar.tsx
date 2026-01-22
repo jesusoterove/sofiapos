@@ -12,6 +12,8 @@ import { getTables, type Table } from '@/db/queries/tables'
 import { SyncResultsModal } from '@/components/sync/SyncResultsModal'
 import { CredentialDialog } from '@/components/sync/CredentialDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
+import { UpdateNotification } from '@/components/update/UpdateNotification'
+import { useUpdate } from '@/contexts/UpdateContext'
 import { getRegistration } from '@/utils/registration'
 import { TableOrdersList } from './TableOrdersList'
 
@@ -20,11 +22,20 @@ export function BottomBar() {
   // Use context instead of hook directly - this ensures state persists across remounts
   const { openOrders, currentLocation, switchToLocation, switchToCashRegister } = useOrderManagementContext()
   const { syncError, isFirstSync, syncAuthFailure, incrementalSyncError, websocketStatus, clearSyncAuthFailure, retrySync, performIncrementalSync } = useSync()
+  const { status, updateInfo } = useUpdate()
   const { t } = useTranslation()
   const [tables, setTables] = useState<Table[]>([])
   const [showSyncResults, setShowSyncResults] = useState(false)
   const [showCredentialDialog, setShowCredentialDialog] = useState(false)
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false)
+
+  // Show update notification when update becomes available
+  useEffect(() => {
+    if (status === 'available' && updateInfo) {
+      setShowUpdateNotification(true)
+    }
+  }, [status, updateInfo])
 
   useEffect(() => {
     loadTables()
@@ -235,6 +246,16 @@ export function BottomBar() {
         isOpen={showSettingsDialog}
         onClose={() => setShowSettingsDialog(false)}
       />
+
+      {/* Update Notification */}
+      {updateInfo && (
+        <UpdateNotification
+          isOpen={showUpdateNotification || (status === 'available') || (status === 'downloaded')}
+          onClose={() => setShowUpdateNotification(false)}
+          updateInfo={updateInfo}
+          isMandatory={false} // TODO: Get from updateInfo when available
+        />
+      )}
     </div>
   )
 }

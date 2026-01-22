@@ -306,7 +306,34 @@
       "noPortsAvailable": "No serial ports available. Make sure your device is connected.",
       "baudRate": "Baud Rate",
       "isActive": "Active"
+    },
+    "updates": {
+      "title": "Application Updates",
+      "currentVersion": "Current Version",
+      "checking": "Checking for updates...",
+      "updateAvailable": "Update Available",
+      "version": "Version",
+      "releaseNotes": "Release Notes",
+      "upToDate": "You are running the latest version.",
+      "downloading": "Downloading",
+      "downloaded": "Update downloaded. Ready to install.",
+      "checkForUpdates": "Check for Updates"
     }
+  },
+  "update": {
+    "available": "Update Available",
+    "version": "Version",
+    "mandatory": "Mandatory",
+    "releaseNotes": "Release Notes",
+    "fileSize": "File size",
+    "downloading": "Downloading",
+    "downloadSpeed": "Speed",
+    "downloaded": "Update downloaded successfully. Ready to install.",
+    "download": "Download",
+    "installNow": "Install Now",
+    "installing": "Installing",
+    "retry": "Retry",
+    "later": "Later"
   },
   "registration": {
     "title": "Cashier Registration",

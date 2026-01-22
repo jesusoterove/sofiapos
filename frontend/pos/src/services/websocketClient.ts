@@ -5,7 +5,7 @@
 import { getRegistration } from '../utils/registration'
 
 export interface WebSocketMessage {
-  type: 'connected' | 'entity_updated' | 'pong' | 'error'
+  type: 'connected' | 'entity_updated' | 'pong' | 'error' | 'update_available'
   entity_type?: string
   entity_id?: number
   change_type?: 'create' | 'update' | 'delete'
@@ -13,6 +13,16 @@ export interface WebSocketMessage {
   message?: string
   cash_register_id?: number
   store_id?: number
+  update_info?: {
+    version: string
+    platform: string
+    is_mandatory: boolean
+    release_notes?: string
+    download_url: string
+    file_size?: number
+    checksum?: string
+    release_date?: string
+  }
 }
 
 export type WebSocketStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting'
@@ -20,6 +30,16 @@ export type WebSocketStatus = 'disconnected' | 'connecting' | 'connected' | 'rec
 export interface WebSocketClientCallbacks {
   onStatusChange?: (status: WebSocketStatus) => void
   onEntityUpdate?: (entityType: string, entityId: number, changeType: string) => void
+  onUpdateAvailable?: (updateInfo: {
+    version: string
+    platform: string
+    is_mandatory: boolean
+    release_notes?: string
+    download_url: string
+    file_size?: number
+    checksum?: string
+    release_date?: string
+  }) => void
   onError?: (error: Error) => void
 }
 
@@ -187,6 +207,15 @@ class WebSocketClient {
       case 'connected':
         console.log('[WebSocketClient] ✅ Connection confirmed:', message.message)
         console.log(`[WebSocketClient] Store ID: ${message.store_id}, Cash Register ID: ${message.cash_register_id}`)
+        break
+
+      case 'update_available':
+        if (message.update_info) {
+          console.log('[WebSocketClient] 📦 Update available notification received:', message.update_info)
+          this.callbacks.onUpdateAvailable?.(message.update_info)
+        } else {
+          console.warn('[WebSocketClient] ⚠️ Update available message received but update_info is missing')
+        }
         break
 
       case 'entity_updated':

@@ -1,0 +1,1251 @@
+{
+  "unit_of_measures": [
+    {
+      "id": 1,
+      "name": "KILOS",
+      "abbreviation": "KG",
+      "type": "weight",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 2,
+      "name": "GRAMOS",
+      "abbreviation": "GR",
+      "type": "weight",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 3,
+      "name": "LIBRAS",
+      "abbreviation": "LB",
+      "type": "weight",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 4,
+      "name": "LITROS",
+      "abbreviation": "LT",
+      "type": "volume",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 5,
+      "name": "MILILITROS",
+      "abbreviation": "ML",
+      "type": "volume",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 6,
+      "name": "GALONES",
+      "abbreviation": "GAL",
+      "type": "volume",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 7,
+      "name": "TAZAS",
+      "abbreviation": "TAZ",
+      "type": "volume",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 8,
+      "name": "PIEZAS",
+      "abbreviation": "PZA",
+      "type": "piece",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 9,
+      "name": "UNIDADES",
+      "abbreviation": "UND",
+      "type": "piece",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 10,
+      "name": "CAJAS",
+      "abbreviation": "CAJ",
+      "type": "piece",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 11,
+      "name": "PAQUETES",
+      "abbreviation": "PAQ",
+      "type": "piece",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 12,
+      "name": "BOLSAS",
+      "abbreviation": "BOL",
+      "type": "piece",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    },
+    {
+      "id": 13,
+      "name": "BLOQUES",
+      "abbreviation": "BLO",
+      "type": "piece",
+      "is_active": true,
+      "created_at": "2025-12-13T07:40:32.306794Z",
+      "updated_at": null
+    }
+  ],
+  "product_categories": [
+    {
+      "id": 1,
+      "name": "BEBIDAS",
+      "description": "Category: BEBIDAS",
+      "created_at": "2025-12-11T06:17:35.960556Z",
+      "updated_at": "2025-12-11T06:17:35.960566Z"
+    },
+    {
+      "id": 2,
+      "name": "EMPAQUES",
+      "description": "Category: EMPAQUES",
+      "created_at": "2025-12-11T06:17:35.960569Z",
+      "updated_at": "2025-12-11T06:17:35.960570Z"
+    },
+    {
+      "id": 3,
+      "name": "FRITOS",
+      "description": "Category: FRITOS",
+      "created_at": "2025-12-11T06:17:35.960572Z",
+      "updated_at": "2025-12-11T06:17:35.960573Z"
+    },
+    {
+      "id": 4,
+      "name": "MATERIA PRIMA",
+      "description": "Category: MATERIA PRIMA",
+      "created_at": "2025-12-11T06:17:35.960574Z",
+      "updated_at": "2025-12-11T06:17:35.960574Z"
+    },
+    {
+      "id": 5,
+      "name": "VARIOS",
+      "description": "Category: VARIOS",
+      "created_at": "2025-12-11T06:17:35.960576Z",
+      "updated_at": "2025-12-11T06:17:35.960577Z"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "BUÑUELO CHOCOLATE",
+      "code": "P-0001",
+      "description": "",
+      "category_id": 3,
+      "product_type": "prepared",
+      "is_active": true,
+      "selling_price": 3000.0,
+      "created_at": "2025-12-11T02:57:05.425175Z",
+      "updated_at": "2025-12-11T02:57:05.425175Z"
+    },
+    {
+      "id": 2,
+      "name": "BUÑUELO ESPECIAL",
+      "code": "P-0002",
+      "description": "",
+      "category_id": 3,
+      "product_type": "prepared",
+      "is_active": true,
+      "selling_price": 4000.0,
+      "created_at": "2025-12-11T02:57:05.431802Z",
+      "updated_at": "2025-12-11T02:57:05.431802Z"
+    },
+    {
+      "id": 3,
+      "name": "BUÑUELO MOZARELLA",
+      "code": "P-0003",
+      "description": "",
+      "category_id": 3,
+      "product_type": "prepared",
+      "is_active": true,
+      "selling_price": 2500.0,
+      "created_at": "2025-12-11T02:57:05.437376Z",
+      "updated_at": "2025-12-11T02:57:05.437376Z"
+    },
+    {
+      "id": 4,
+      "name": "BUÑUELO TRADICIONAL",
+      "code": "P-0004",
+      "description": "",
+      "category_id": 3,
+      "product_type": "prepared",
+      "is_active": true,
+      "selling_price": 1000.0,
+      "created_at": "2025-12-11T02:57:05.442309Z",
+      "updated_at": "2025-12-11T02:57:05.442309Z"
+    },
+    {
+      "id": 5,
+      "name": "CAFE CON LECHE",
+      "code": "P-0005",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 2000.0,
+      "created_at": "2025-12-11T02:57:05.483933Z",
+      "updated_at": "2025-12-11T02:57:05.483933Z"
+    },
+    {
+      "id": 6,
+      "name": "COCA-COLA",
+      "code": "P-0006",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 2500.0,
+      "created_at": "2025-12-11T02:57:05.487973Z",
+      "updated_at": "2025-12-11T02:57:05.487973Z"
+    },
+    {
+      "id": 8,
+      "name": "CORTESIA (BUÑUELO)",
+      "code": "P-0008",
+      "description": "",
+      "category_id": 3,
+      "product_type": "prepared",
+      "is_active": true,
+      "selling_price": 0.0,
+      "created_at": "2025-12-11T02:57:05.497789Z",
+      "updated_at": "2025-12-11T02:57:05.497789Z"
+    },
+    {
+      "id": 9,
+      "name": "EMPANADAS",
+      "code": "P-0009",
+      "description": "",
+      "category_id": 3,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 3000.0,
+      "created_at": "2025-12-11T02:57:05.502657Z",
+      "updated_at": "2025-12-11T02:57:05.502657Z"
+    },
+    {
+      "id": 10,
+      "name": "EMPANADAS IGLESIA",
+      "code": "P-0010",
+      "description": "",
+      "category_id": 3,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 700.0,
+      "created_at": "2025-12-11T02:57:05.506417Z",
+      "updated_at": "2025-12-11T02:57:05.506417Z"
+    },
+    {
+      "id": 11,
+      "name": "GASEOSA $3000",
+      "code": "P-0011",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 3000.0,
+      "created_at": "2025-12-11T02:57:05.512763Z",
+      "updated_at": "2025-12-11T02:57:05.512763Z"
+    },
+    {
+      "id": 12,
+      "name": "GASEOSA 350",
+      "code": "P-0012",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 3500.0,
+      "created_at": "2025-12-11T02:57:05.517516Z",
+      "updated_at": "2025-12-11T02:57:05.517516Z"
+    },
+    {
+      "id": 13,
+      "name": "GASEOSA LITRO Y MEDIO",
+      "code": "P-0013",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 6000.0,
+      "created_at": "2025-12-11T02:57:05.522111Z",
+      "updated_at": "2025-12-11T02:57:05.522111Z"
+    },
+    {
+      "id": 14,
+      "name": "GASEOSA MEGA",
+      "code": "P-0014",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 10000.0,
+      "created_at": "2025-12-11T02:57:05.530383Z",
+      "updated_at": "2025-12-11T02:57:05.530383Z"
+    },
+    {
+      "id": 15,
+      "name": "GATORADE",
+      "code": "P-0015",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 4000.0,
+      "created_at": "2025-12-11T02:57:05.535299Z",
+      "updated_at": "2025-12-11T02:57:05.535299Z"
+    },
+    {
+      "id": 16,
+      "name": "MALTA",
+      "code": "P-0016",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 2000.0,
+      "created_at": "2025-12-11T02:57:05.539647Z",
+      "updated_at": "2025-12-11T02:57:05.539647Z"
+    },
+    {
+      "id": 17,
+      "name": "MALTA PET",
+      "code": "P-0017",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 3000.0,
+      "created_at": "2025-12-11T02:57:05.547151Z",
+      "updated_at": "2025-12-11T02:57:05.547151Z"
+    },
+    {
+      "id": 18,
+      "name": "MASA BUÑUELOS x KG",
+      "code": "P-0018",
+      "description": "MASA BUÑUELOS x KG",
+      "category_id": 4,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 24000.0,
+      "created_at": "2025-12-11T02:57:05.552728Z",
+      "updated_at": "2025-12-11T02:57:05.552728Z"
+    },
+    {
+      "id": 19,
+      "name": "PALITO DE QUESO",
+      "code": "P-0019",
+      "description": "",
+      "category_id": 3,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 2000.0,
+      "created_at": "2025-12-11T02:57:05.558283Z",
+      "updated_at": "2025-12-11T02:57:05.558283Z"
+    },
+    {
+      "id": 20,
+      "name": "PANZEROTTI",
+      "code": "P-0020",
+      "description": "",
+      "category_id": 3,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 4000.0,
+      "created_at": "2025-12-11T02:57:05.567143Z",
+      "updated_at": "2025-12-11T02:57:05.567143Z"
+    },
+    {
+      "id": 21,
+      "name": "PASTEL DE LECHONA",
+      "code": "P-0021",
+      "description": "",
+      "category_id": 3,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 5000.0,
+      "created_at": "2025-12-11T02:57:05.571848Z",
+      "updated_at": "2025-12-11T02:57:05.571848Z"
+    },
+    {
+      "id": 22,
+      "name": "PASTEL DE POLLO",
+      "code": "P-0022",
+      "description": "",
+      "category_id": 3,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 5000.0,
+      "created_at": "2025-12-11T02:57:05.575857Z",
+      "updated_at": "2025-12-11T02:57:05.575857Z"
+    },
+    {
+      "id": 23,
+      "name": "PERICO",
+      "code": "P-0023",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 1500.0,
+      "created_at": "2025-12-11T02:57:05.579628Z",
+      "updated_at": "2025-12-11T02:57:05.579628Z"
+    },
+    {
+      "id": 24,
+      "name": "GASEOSA PEQUE",
+      "code": "P-0024",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 2000.0,
+      "created_at": "2025-12-11T02:57:05.586713Z",
+      "updated_at": "2025-12-23T23:21:57.573761Z"
+    },
+    {
+      "id": 25,
+      "name": "PROMO EMPANADA x3",
+      "code": "P-0025",
+      "description": "",
+      "category_id": 3,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 2000.0,
+      "created_at": "2025-12-11T02:57:05.591378Z",
+      "updated_at": "2025-12-11T02:57:05.591378Z"
+    },
+    {
+      "id": 26,
+      "name": "TINTO",
+      "code": "P-0026",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 1200.0,
+      "created_at": "2025-12-11T02:57:05.595237Z",
+      "updated_at": "2025-12-11T02:57:05.595237Z"
+    },
+    {
+      "id": 27,
+      "name": "TRADICIONAL RELLENO",
+      "code": "P-0027",
+      "description": "",
+      "category_id": 3,
+      "product_type": "prepared",
+      "is_active": true,
+      "selling_price": 1500.0,
+      "created_at": "2025-12-11T02:57:05.600791Z",
+      "updated_at": "2025-12-11T02:57:05.600791Z"
+    },
+    {
+      "id": 28,
+      "name": "VIVE 100",
+      "code": "P-0028",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 3000.0,
+      "created_at": "2025-12-11T02:57:05.606110Z",
+      "updated_at": "2025-12-11T02:57:05.606110Z"
+    },
+    {
+      "id": 29,
+      "name": "AGUA PEQUEÑA",
+      "code": "P-0029",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 1000.0,
+      "created_at": "2025-12-11T02:57:05.369196Z",
+      "updated_at": "2025-12-11T02:57:05.369196Z"
+    },
+    {
+      "id": 30,
+      "name": "AGUA PERSONAL",
+      "code": "P-0030",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 2000.0,
+      "created_at": "2025-12-11T02:57:05.384336Z",
+      "updated_at": "2025-12-11T02:57:05.384336Z"
+    },
+    {
+      "id": 31,
+      "name": "AROMATICA",
+      "code": "P-0031",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 1200.0,
+      "created_at": "2025-12-11T02:57:05.397332Z",
+      "updated_at": "2025-12-11T02:57:05.397332Z"
+    },
+    {
+      "id": 32,
+      "name": "AVENA",
+      "code": "P-0032",
+      "description": "",
+      "category_id": 1,
+      "product_type": "sales_inventory",
+      "is_active": true,
+      "selling_price": 3000.0,
+      "created_at": "2025-12-11T02:57:05.404228Z",
+      "updated_at": "2025-12-11T02:57:05.404228Z"
+    },
+    {
+      "id": 34,
+      "name": "BUÑUELO AREQUIPE",
+      "code": "P-0034",
+      "description": "",
+      "category_id": 3,
+      "product_type": "prepared",
+      "is_active": true,
+      "selling_price": 3000.0,
+      "created_at": "2025-12-11T02:57:05.414185Z",
+      "updated_at": "2025-12-11T02:57:05.414185Z"
+    }
+  ],
+  "materials": [
+    {
+      "id": 2,
+      "name": "AREQUIPE",
+      "code": "I-0002",
+      "description": null,
+      "requires_inventory": true,
+      "base_uofm_id": 2,
+      "unit_cost": 7.63,
+      "created_at": "2025-12-11T02:57:06.416816Z",
+      "updated_at": "2025-12-11T02:57:06.416816Z"
+    },
+    {
+      "id": 8,
+      "name": "MOJE",
+      "code": "I-0008",
+      "description": null,
+      "requires_inventory": true,
+      "base_uofm_id": 2,
+      "unit_cost": 10.0,
+      "created_at": "2025-12-11T02:57:06.490174Z",
+      "updated_at": "2025-12-11T02:57:06.490174Z"
+    },
+    {
+      "id": 9,
+      "name": "MOZARELLA",
+      "code": "I-0009",
+      "description": null,
+      "requires_inventory": true,
+      "base_uofm_id": 2,
+      "unit_cost": 20.0,
+      "created_at": "2025-12-11T02:57:06.495456Z",
+      "updated_at": "2025-12-11T02:57:06.495456Z"
+    }
+  ],
+  "product_unit_of_measures": [
+    {
+      "id": 2,
+      "product_id": 1,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 3,
+      "product_id": 2,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 4,
+      "product_id": 3,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 5,
+      "product_id": 4,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 6,
+      "product_id": 8,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 8,
+      "product_id": 9,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 9,
+      "product_id": 9,
+      "unit_of_measure_id": 3,
+      "conversion_factor": 15.0,
+      "is_base_unit": false,
+      "display_order": 1
+    },
+    {
+      "id": 10,
+      "product_id": 10,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 18,
+      "product_id": 10,
+      "unit_of_measure_id": 3,
+      "conversion_factor": 50.0,
+      "is_base_unit": false,
+      "display_order": 1
+    },
+    {
+      "id": 16,
+      "product_id": 19,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 17,
+      "product_id": 19,
+      "unit_of_measure_id": 3,
+      "conversion_factor": 10.0,
+      "is_base_unit": false,
+      "display_order": 1
+    },
+    {
+      "id": 13,
+      "product_id": 20,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 14,
+      "product_id": 20,
+      "unit_of_measure_id": 3,
+      "conversion_factor": 5.0,
+      "is_base_unit": false,
+      "display_order": 1
+    },
+    {
+      "id": 12,
+      "product_id": 21,
+      "unit_of_measure_id": 3,
+      "conversion_factor": 10.0,
+      "is_base_unit": false,
+      "display_order": 1
+    },
+    {
+      "id": 11,
+      "product_id": 21,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 19,
+      "product_id": 22,
+      "unit_of_measure_id": 3,
+      "conversion_factor": 10.0,
+      "is_base_unit": false,
+      "display_order": 1
+    },
+    {
+      "id": 15,
+      "product_id": 22,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 7,
+      "product_id": 27,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 1,
+      "product_id": 34,
+      "unit_of_measure_id": 1,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    }
+  ],
+  "material_unit_of_measures": [
+    {
+      "id": 5,
+      "material_id": 2,
+      "unit_of_measure_id": 2,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 6,
+      "material_id": 2,
+      "unit_of_measure_id": 12,
+      "conversion_factor": 4000.0,
+      "is_base_unit": false,
+      "display_order": 1
+    },
+    {
+      "id": 1,
+      "material_id": 8,
+      "unit_of_measure_id": 2,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 2,
+      "material_id": 8,
+      "unit_of_measure_id": 9,
+      "conversion_factor": 4350.0,
+      "is_base_unit": false,
+      "display_order": 1
+    },
+    {
+      "id": 3,
+      "material_id": 9,
+      "unit_of_measure_id": 2,
+      "conversion_factor": 1.0,
+      "is_base_unit": true,
+      "display_order": 1
+    },
+    {
+      "id": 4,
+      "material_id": 9,
+      "unit_of_measure_id": 13,
+      "conversion_factor": 2500.0,
+      "is_base_unit": false,
+      "display_order": 1
+    }
+  ],
+  "recipes": [
+    {
+      "id": 1,
+      "product_id": 34,
+      "name": "BUÑUELO AREQUIPE Recipe",
+      "description": "Recipe for BUÑUELO AREQUIPE",
+      "yield_quantity": 1.0,
+      "yield_unit_of_measure_id": 1,
+      "is_active": true,
+      "created_at": "2025-12-11T06:17:36.005525Z",
+      "updated_at": "2025-12-11T06:17:36.005536Z"
+    },
+    {
+      "id": 2,
+      "product_id": 1,
+      "name": "BUÑUELO CHOCOLATE Recipe",
+      "description": "Recipe for BUÑUELO CHOCOLATE",
+      "yield_quantity": 1.0,
+      "yield_unit_of_measure_id": 1,
+      "is_active": true,
+      "created_at": "2025-12-11T06:17:36.006579Z",
+      "updated_at": "2025-12-11T06:17:36.006584Z"
+    },
+    {
+      "id": 3,
+      "product_id": 2,
+      "name": "BUÑUELO ESPECIAL Recipe",
+      "description": "Recipe for BUÑUELO ESPECIAL",
+      "yield_quantity": 1.0,
+      "yield_unit_of_measure_id": 1,
+      "is_active": true,
+      "created_at": "2025-12-11T06:17:36.007092Z",
+      "updated_at": "2025-12-11T06:17:36.007096Z"
+    },
+    {
+      "id": 4,
+      "product_id": 3,
+      "name": "BUÑUELO MOZARELLA Recipe",
+      "description": "Recipe for BUÑUELO MOZARELLA",
+      "yield_quantity": 1.0,
+      "yield_unit_of_measure_id": 1,
+      "is_active": true,
+      "created_at": "2025-12-11T06:17:36.007617Z",
+      "updated_at": "2025-12-11T06:17:36.007621Z"
+    },
+    {
+      "id": 5,
+      "product_id": 8,
+      "name": "CORTESIA (BUÑUELO) Recipe",
+      "description": "Recipe for CORTESIA (BUÑUELO)",
+      "yield_quantity": 1.0,
+      "yield_unit_of_measure_id": 1,
+      "is_active": true,
+      "created_at": "2025-12-11T06:17:36.008141Z",
+      "updated_at": "2025-12-11T06:17:36.008145Z"
+    },
+    {
+      "id": 6,
+      "product_id": 27,
+      "name": "TRADICIONAL RELLENO Recipe",
+      "description": "Recipe for TRADICIONAL RELLENO",
+      "yield_quantity": 1.0,
+      "yield_unit_of_measure_id": 1,
+      "is_active": true,
+      "created_at": "2025-12-11T06:17:36.008741Z",
+      "updated_at": "2025-12-11T06:17:36.008745Z"
+    },
+    {
+      "id": 7,
+      "product_id": 4,
+      "name": "BUÑUELO TRADICIONAL Recipe",
+      "description": "Recipe for BUÑUELO TRADICIONAL",
+      "yield_quantity": 1.0,
+      "yield_unit_of_measure_id": 1,
+      "is_active": true,
+      "created_at": "2025-12-11T06:17:36.009252Z",
+      "updated_at": "2025-12-11T06:17:36.009255Z"
+    }
+  ],
+  "recipe_materials": [
+    {
+      "id": 1,
+      "recipe_id": 1,
+      "material_id": 8,
+      "quantity": 45.0,
+      "unit_of_measure_id": 2,
+      "display_order": 1
+    },
+    {
+      "id": 2,
+      "recipe_id": 2,
+      "material_id": 8,
+      "quantity": 45.0,
+      "unit_of_measure_id": 2,
+      "display_order": 1
+    },
+    {
+      "id": 3,
+      "recipe_id": 3,
+      "material_id": 8,
+      "quantity": 80.0,
+      "unit_of_measure_id": 2,
+      "display_order": 1
+    },
+    {
+      "id": 4,
+      "recipe_id": 3,
+      "material_id": 9,
+      "quantity": 15.0,
+      "unit_of_measure_id": 2,
+      "display_order": 2
+    },
+    {
+      "id": 5,
+      "recipe_id": 4,
+      "material_id": 8,
+      "quantity": 70.0,
+      "unit_of_measure_id": 2,
+      "display_order": 1
+    },
+    {
+      "id": 6,
+      "recipe_id": 4,
+      "material_id": 9,
+      "quantity": 15.0,
+      "unit_of_measure_id": 2,
+      "display_order": 2
+    },
+    {
+      "id": 7,
+      "recipe_id": 5,
+      "material_id": 8,
+      "quantity": 45.0,
+      "unit_of_measure_id": 2,
+      "display_order": 1
+    },
+    {
+      "id": 8,
+      "recipe_id": 6,
+      "material_id": 8,
+      "quantity": 45.0,
+      "unit_of_measure_id": 2,
+      "display_order": 1
+    },
+    {
+      "id": 9,
+      "recipe_id": 6,
+      "material_id": 2,
+      "quantity": 15.0,
+      "unit_of_measure_id": 2,
+      "display_order": 2
+    },
+    {
+      "id": 10,
+      "recipe_id": 7,
+      "material_id": 8,
+      "quantity": 45.0,
+      "unit_of_measure_id": 2,
+      "display_order": 1
+    }
+  ],
+  "inventory_control_config": [
+    {
+      "item_type": "Material",
+      "product_id": null,
+      "material_id": 8,
+      "show_in_inventory": true,
+      "priority": 1,
+      "uofm1": "UND",
+      "uofm2": "GR"
+    },
+    {
+      "item_type": "Material",
+      "product_id": null,
+      "material_id": 9,
+      "show_in_inventory": true,
+      "priority": 1,
+      "uofm1": "BLO",
+      "uofm2": "GR"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 34,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 2,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 1,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 2
+    },
+    {
+      "item_type": "Product",
+      "product_id": 4,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 10,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 3,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 30,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 2,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 40,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 18,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 50,
+      "uofm1": "KG"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 9,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 60,
+      "uofm1": "PAQ",
+      "uofm2": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 10,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 60,
+      "uofm1": "PAQ",
+      "uofm2": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 21,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 70,
+      "uofm1": "PAQ",
+      "uofm2": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 20,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 80,
+      "uofm1": "PAQ",
+      "uofm2": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 22,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 90,
+      "uofm1": "PAQ",
+      "uofm2": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 19,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 100,
+      "uofm1": "PAQ",
+      "uofm2": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 16,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 200,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 17,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 200,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 6,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 500,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 11,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 500,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 12,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 500,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 13,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 500,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 14,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 500,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 29,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 999,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 30,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 999,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 31,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 999
+    },
+    {
+      "item_type": "Product",
+      "product_id": 32,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 999,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 5,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 999
+    },
+    {
+      "item_type": "Product",
+      "product_id": 8,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 999
+    },
+    {
+      "item_type": "Product",
+      "product_id": 15,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 999,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 23,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 999
+    },
+    {
+      "item_type": "Product",
+      "product_id": 24,
+      "material_id": null,
+      "show_in_inventory": true,
+      "priority": 999,
+      "uofm1": "UND"
+    },
+    {
+      "item_type": "Product",
+      "product_id": 25,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 999
+    },
+    {
+      "item_type": "Product",
+      "product_id": 26,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 999
+    },
+    {
+      "item_type": "Product",
+      "product_id": 27,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 999
+    },
+    {
+      "item_type": "Product",
+      "product_id": 28,
+      "material_id": null,
+      "show_in_inventory": false,
+      "priority": 999
+    }
+  ],
+  "stores": [
+    {
+      "id": 1,
+      "name": "ARA San Cristobal",
+      "code": "AAB",
+      "code_digits": 2,
+      "address": null,
+      "phone": null,
+      "email": "blocosmanager@gmail.com",
+      "is_active": true,
+      "default_tables_count": 10,
+      "requires_start_inventory": false,
+      "requires_end_inventory": false,
+      "created_at": "2025-12-13T07:40:32.823221Z",
+      "updated_at": null
+    }
+  ],
+  "customers": [
+    {
+      "id": 3,
+      "name": "CLIENTE FINAL",
+      "code": "9999",
+      "email": null,
+      "phone": null,
+      "address": null,
+      "tax_id": null,
+      "tax_id_type": null,
+      "credit_limit": 0.0,
+      "notes": null,
+      "is_active": true,
+      "created_at": "2025-12-24T03:30:21.811121Z",
+      "updated_at": null
+    }
+  ]
+}

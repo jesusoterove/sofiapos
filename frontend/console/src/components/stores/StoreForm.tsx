@@ -102,7 +102,7 @@ export function StoreForm({ store, onClose }: StoreFormProps) {
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:outline-none"
               style={{
                 borderColor: 'var(--color-border-default)',
-                focusRingColor: 'var(--color-primary-500)',
+                // focusRingColor: 'var(--color-primary-500)',
               }}
             />
           </div>

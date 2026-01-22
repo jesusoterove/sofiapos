@@ -39,15 +39,15 @@ export function ProductForm({ product, stores, onSubmit, onCancel }: ProductForm
   useEffect(() => {
     if (product) {
       reset({
-        store_id: product.store_id,
+        store_id: (product as any).store_id || stores[0]?.id || '',
         name: product.name,
         code: product.code || '',
         description: product.description || '',
-        selling_price: product.selling_price,
-        requires_inventory: product.requires_inventory,
+        selling_price: product.selling_price.toString(),
+        requires_inventory: (product as any).requires_inventory ?? false,
         is_active: product.is_active,
-        is_top_selling: product.is_top_selling,
-        allow_sell_without_inventory: product.allow_sell_without_inventory,
+        is_top_selling: (product as any).is_top_selling ?? false,
+        allow_sell_without_inventory: (product as any).allow_sell_without_inventory ?? false,
       })
     } else if (stores.length > 0) {
       reset({
@@ -199,7 +199,7 @@ export function ProductForm({ product, stores, onSubmit, onCancel }: ProductForm
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="secondary" onClick={onCancel}>
               {t('common.cancel')}
             </Button>
             <Button type="submit">

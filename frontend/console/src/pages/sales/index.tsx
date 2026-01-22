@@ -76,7 +76,7 @@ export function Sales() {
 
   // Fetch sales summary (only once, no pagination)
   // No caching - always fetch fresh data when filters change
-  const { data: summaryData, isLoading: isLoadingSummary } = useQuery<SalesSummaryResponse>({
+  const { data: summaryData } = useQuery<SalesSummaryResponse>({
     queryKey: ['sales-summary', filterRequest],
     queryFn: () => getSalesSummary(filterRequest),
     enabled: filterMode !== 'current_shift' && filterMode !== 'last_shift' || !!cashRegisterId,
@@ -88,7 +88,7 @@ export function Sales() {
 
   // Fetch sales details (paginated)
   // No caching - always fetch fresh data when filters change
-  const { data: detailsData, isLoading: isLoadingDetails } = useQuery<SalesDetailsResponse>({
+  const { data: detailsData } = useQuery<SalesDetailsResponse>({
     queryKey: ['sales-details', detailsRequest],
     queryFn: () => getSalesDetails(detailsRequest),
     enabled: filterMode !== 'current_shift' && filterMode !== 'last_shift' || !!cashRegisterId,

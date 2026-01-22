@@ -336,6 +336,43 @@ export function SyncProvider({ children }: SyncProviderProps) {
           setIncrementalSyncError(error instanceof Error ? error.message : 'Sync failed')
         }
       },
+      onUpdateAvailable: async (updateInfo) => {
+        // Handle update available notification from WebSocket
+        console.log(`[SyncContext] 📦 Update available notification received via WebSocket:`, updateInfo)
+        
+        // Check if this update is for the current platform
+        // Use electronAPI.platform if available (Electron context), otherwise skip platform check
+        const currentPlatform = window.electronAPI?.platform
+        if (!currentPlatform) {
+          console.warn('[SyncContext] Cannot determine platform - Electron API not available')
+          return
+        }
+        
+        const platformMap: Record<string, string> = {
+          'win32': 'win32',
+          'darwin': 'darwin',
+          'linux': 'linux'
+        }
+        
+        const normalizedPlatform = platformMap[currentPlatform] || currentPlatform
+        
+        if (updateInfo.platform !== normalizedPlatform) {
+          console.log(`[SyncContext] Update is for platform ${updateInfo.platform}, but current platform is ${normalizedPlatform}. Ignoring.`)
+          return
+        }
+        
+        // Trigger update check in Electron (if available)
+        if (window.electronAPI) {
+          try {
+            console.log('[SyncContext] Triggering Electron update check...')
+            await window.electronAPI.checkForUpdates()
+          } catch (error) {
+            console.error('[SyncContext] Error triggering update check:', error)
+          }
+        } else {
+          console.warn('[SyncContext] Electron API not available - cannot trigger update check')
+        }
+      },
       onError: (error) => {
         console.error('[SyncContext] WebSocket error:', error)
         // Don't set sync error - WebSocket errors are silent

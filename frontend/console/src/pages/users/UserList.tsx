@@ -58,7 +58,7 @@ export function UserList() {
   }
 
   // Define columns for AdvancedDataGrid
-  const columns = useMemo<AdvancedDataGridColumn<User>[]>(() => [
+  const columns = useMemo<AdvancedDataGridColumn[]>(() => [
     {
       field: 'username',
       headerName: t('users.username') || 'Username',

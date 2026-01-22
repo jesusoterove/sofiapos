@@ -10,6 +10,31 @@ import_electron.contextBridge.exposeInMainWorld("electronAPI", {
   getAppPath: () => import_electron.ipcRenderer.invoke("get-app-path"),
   // Updates
   checkForUpdates: () => import_electron.ipcRenderer.invoke("check-for-updates"),
+  downloadUpdate: () => import_electron.ipcRenderer.invoke("download-update"),
+  installUpdate: () => import_electron.ipcRenderer.invoke("install-update"),
+  // Update event listeners
+  onUpdateChecking: (callback) => {
+    import_electron.ipcRenderer.on("update-checking", callback);
+  },
+  onUpdateAvailable: (callback) => {
+    import_electron.ipcRenderer.on("update-available", (_, info) => callback(info));
+  },
+  onUpdateNotAvailable: (callback) => {
+    import_electron.ipcRenderer.on("update-not-available", (_, info) => callback(info));
+  },
+  onUpdateError: (callback) => {
+    import_electron.ipcRenderer.on("update-error", (_, error) => callback(error));
+  },
+  onUpdateDownloadProgress: (callback) => {
+    import_electron.ipcRenderer.on("update-download-progress", (_, progress) => callback(progress));
+  },
+  onUpdateDownloaded: (callback) => {
+    import_electron.ipcRenderer.on("update-downloaded", (_, info) => callback(info));
+  },
+  // Remove listeners
+  removeAllListeners: (channel) => {
+    import_electron.ipcRenderer.removeAllListeners(channel);
+  },
   // Platform info
   platform: process.platform,
   // Window controls (if needed)

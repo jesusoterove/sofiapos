@@ -8,6 +8,7 @@ export enum HookType {
   AFTER = 'after',        // Execute after core logic
   FILTER = 'filter',      // Transform data
   COMPONENT = 'component', // Return React components
+  ACTION = 'action',      // Perform additional actions
 }
 
 type HookHandler<T = any> = (data: T, context?: Record<string, any>) => T | void | React.ReactNode;

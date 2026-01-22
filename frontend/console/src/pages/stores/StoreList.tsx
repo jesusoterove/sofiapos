@@ -17,7 +17,7 @@ export function StoreList() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingStore, setEditingStore] = useState<Store | null>(null)
   const [deleteStore, setDeleteStore] = useState<Store | null>(null)
-  const [activeOnly, setActiveOnly] = useState(false)
+  const [activeOnly] = useState(false)
 
   // Fetch stores
   const { data: stores = [], isLoading, error } = useQuery({
@@ -59,7 +59,7 @@ export function StoreList() {
   }
 
   // Define columns for AdvancedDataGrid
-  const columns = useMemo<AdvancedDataGridColumn<Store>[]>(() => [
+  const columns = useMemo<AdvancedDataGridColumn[]>(() => [
     {
       field: 'name',
       headerName: t('stores.name') || 'Name',

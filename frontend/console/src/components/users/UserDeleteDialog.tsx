@@ -51,13 +51,13 @@ export function UserDeleteDialog({ user, onClose, onConfirm }: UserDeleteDialogP
                 {t('users.hasTransactions') || '⚠️ This user has associated data:'}
               </p>
               <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
-                {transactionInfo.orders_count > 0 && (
+                {transactionInfo && transactionInfo.orders_count > 0 && (
                   <li>{transactionInfo.orders_count} {t('users.orders') || 'orders'}</li>
                 )}
-                {transactionInfo.payments_count > 0 && (
+                {transactionInfo && transactionInfo.payments_count > 0 && (
                   <li>{transactionInfo.payments_count} {t('users.payments') || 'payments'}</li>
                 )}
-                {transactionInfo.shifts_count > 0 && (
+                {transactionInfo && transactionInfo.shifts_count > 0 && (
                   <li>{transactionInfo.shifts_count} {t('users.shifts') || 'shifts'}</li>
                 )}
               </ul>

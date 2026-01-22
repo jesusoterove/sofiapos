@@ -19,5 +19,7 @@ COPY . .
 EXPOSE 8000
 
 # Default command (can be overridden in docker-compose)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Development: use --reload flag
+# Production: use --workers flag (set via environment variable)
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8000 ${API_WORKERS:+--workers $API_WORKERS} ${APP_DEBUG:+--reload}"]
 

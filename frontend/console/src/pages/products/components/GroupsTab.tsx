@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { storesApi } from '@/api/stores'
-import { storeProductGroupsApi, StoreProductGroup } from '@/api/storeProductGroups'
+import { storeProductGroupsApi } from '@/api/storeProductGroups'
 import { AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
 
 interface GroupsTabProps {
@@ -54,7 +54,7 @@ export function GroupsTab({ productId, isEditMode }: GroupsTabProps) {
     assignMutation.mutate({ groupId, assigned: checked })
   }
 
-  const columns: AdvancedDataGridColumn<StoreProductGroup>[] = [
+  const columns: AdvancedDataGridColumn[] = [
     { field: 'group_name', headerName: t('inventory.storeGroup') || 'Group Name', sortable: true, flex: 4 },
     {
       field: 'belongs',

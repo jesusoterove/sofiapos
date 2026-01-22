@@ -125,7 +125,7 @@ export function ComponentsTab({ productId, isEditMode, productType }: Components
     }
   }
 
-  const columns: AdvancedDataGridColumn<KitComponent>[] = [
+  const columns: AdvancedDataGridColumn[] = [
     { field: 'component_code', headerName: t('inventory.productCode') || 'Code', sortable: true },
     { field: 'component_name', headerName: t('inventory.productName') || 'Name', sortable: true },
     {
@@ -167,7 +167,7 @@ export function ComponentsTab({ productId, isEditMode, productType }: Components
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <Button type="button" onClick={handleAdd} size="sm">
+        <Button type="button" onClick={handleAdd}>
           <FaPlus className="mr-2" />
           {t('inventory.addComponent') || 'Add Component'}
         </Button>

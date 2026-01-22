@@ -1,7 +1,7 @@
 /**
  * Store deletion confirmation dialog with password verification.
  */
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from '@/i18n/hooks'
 import { storesApi, Store, StoreTransactionInfo } from '@/api/stores'
@@ -51,19 +51,19 @@ export function StoreDeleteDialog({ store, onClose, onConfirm }: StoreDeleteDial
                 {t('stores.hasTransactions') || '⚠️ This store has associated data:'}
               </p>
               <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
-                {transactionInfo.orders_count > 0 && (
+                {transactionInfo && transactionInfo.orders_count > 0 && (
                   <li>{transactionInfo.orders_count} {t('stores.orders') || 'orders'}</li>
                 )}
-                {transactionInfo.users_count > 0 && (
+                {transactionInfo && transactionInfo.users_count > 0 && (
                   <li>{transactionInfo.users_count} {t('stores.users') || 'users'}</li>
                 )}
-                {transactionInfo.products_count > 0 && (
+                {transactionInfo && transactionInfo.products_count > 0 && (
                   <li>{transactionInfo.products_count} {t('stores.products') || 'products'}</li>
                 )}
-                {transactionInfo.shifts_count > 0 && (
+                {transactionInfo && transactionInfo.shifts_count > 0 && (
                   <li>{transactionInfo.shifts_count} {t('stores.shifts') || 'shifts'}</li>
                 )}
-                {transactionInfo.inventory_entries_count > 0 && (
+                {transactionInfo && transactionInfo.inventory_entries_count > 0 && (
                   <li>{transactionInfo.inventory_entries_count} {t('stores.inventoryEntries') || 'inventory entries'}</li>
                 )}
               </ul>

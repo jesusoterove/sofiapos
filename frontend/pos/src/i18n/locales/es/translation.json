@@ -306,7 +306,34 @@
       "noPortsAvailable": "No hay puertos seriales disponibles. Asegúrese de que su dispositivo esté conectado.",
       "baudRate": "Velocidad de Transmisión",
       "isActive": "Activo"
+    },
+    "updates": {
+      "title": "Actualizaciones de Aplicación",
+      "currentVersion": "Versión Actual",
+      "checking": "Buscando actualizaciones...",
+      "updateAvailable": "Actualización Disponible",
+      "version": "Versión",
+      "releaseNotes": "Notas de Lanzamiento",
+      "upToDate": "Está ejecutando la última versión.",
+      "downloading": "Descargando",
+      "downloaded": "Actualización descargada. Lista para instalar.",
+      "checkForUpdates": "Buscar Actualizaciones"
     }
+  },
+  "update": {
+    "available": "Actualización Disponible",
+    "version": "Versión",
+    "mandatory": "Obligatoria",
+    "releaseNotes": "Notas de Lanzamiento",
+    "fileSize": "Tamaño del archivo",
+    "downloading": "Descargando",
+    "downloadSpeed": "Velocidad",
+    "downloaded": "Actualización descargada exitosamente. Lista para instalar.",
+    "download": "Descargar",
+    "installNow": "Instalar Ahora",
+    "installing": "Instalando",
+    "retry": "Reintentar",
+    "later": "Más Tarde"
   },
   "registration": {
     "title": "Registro de Cajero",

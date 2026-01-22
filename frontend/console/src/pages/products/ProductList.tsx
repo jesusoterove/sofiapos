@@ -16,7 +16,7 @@ export function ProductList() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { moneyDecimalPlaces } = useSettings()
-  const [activeOnly, setActiveOnly] = useState(false)
+  const [activeOnly] = useState(false)
 
   // Fetch products
   const { data: products = [], isLoading, error } = useQuery({
@@ -53,7 +53,7 @@ export function ProductList() {
     }
   }
 
-  const columns: AdvancedDataGridColumn<Product>[] = [
+  const columns: AdvancedDataGridColumn[] = [
     {
       field: 'code',
       headerName: t('inventory.productCode') || 'Code',

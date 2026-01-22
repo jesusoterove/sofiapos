@@ -1,7 +1,7 @@
 /**
  * API client setup for Console application.
  */
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
 // Always use VITE_API_URL if it exists, otherwise use appropriate default
 // In dev mode without VITE_API_URL, use empty string (handled by Vite proxy)
