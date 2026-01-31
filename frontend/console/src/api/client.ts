@@ -7,7 +7,7 @@ import axios, { AxiosInstance } from 'axios';
 // In dev mode without VITE_API_URL, use empty string (handled by Vite proxy)
 // In prod mode without VITE_API_URL, use default localhost:8001
 const API_BASE_URL = import.meta.env.PROD
-  ? import.meta.env.VITE_API_URL || 'http://localhost:8001'
+  ? import.meta.env.VITE_API_URL || ''
   : '';
 
 console.log('API_CLIENT', API_BASE_URL);
