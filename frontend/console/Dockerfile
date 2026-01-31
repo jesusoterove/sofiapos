@@ -30,27 +30,27 @@ ENV VITE_API_URL=$VITE_API_URL
 # Build the console app
 RUN npm run build
 
-# Development stage (for hot reload)
-FROM node:20-alpine AS development
+# # Development stage (for hot reload)
+# FROM node:20-alpine AS development
 
-WORKDIR /app
+# WORKDIR /app
 
-# Build sofia-ui first
-COPY sofia-ui/package.json sofia-ui/package-lock.json* ./sofia-ui/
-WORKDIR /app/sofia-ui
-RUN npm ci || npm install
-COPY sofia-ui/ .
-RUN npm run build
+# # Build sofia-ui first
+# COPY sofia-ui/package.json sofia-ui/package-lock.json* ./sofia-ui/
+# WORKDIR /app/sofia-ui
+# RUN npm ci || npm install
+# COPY sofia-ui/ .
+# RUN npm run build
 
-# Setup console
-WORKDIR /app/console
-COPY console/package.json console/package-lock.json* ./
-RUN npm ci || npm install
-COPY console/ .
+# # Setup console
+# WORKDIR /app/console
+# COPY console/package.json console/package-lock.json* ./
+# RUN npm ci || npm install
+# COPY console/ .
 
-EXPOSE 3000
+# EXPOSE 3000
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # Production stage
 FROM nginx:alpine AS production
