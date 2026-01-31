@@ -23,6 +23,10 @@ RUN npm ci || npm install
 # Copy console source files
 COPY console/ .
 
+# Build-time API URL (empty = same-origin when behind nginx reverse proxy)
+ARG VITE_API_URL=
+ENV VITE_API_URL=$VITE_API_URL
+
 # Build the console app
 RUN npm run build
 
