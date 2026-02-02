@@ -5,6 +5,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useQuery } from '@tanstack/react-query'
 import { getGlobalSettings } from '@/api/settings'
 import { SettingsProvider as SofiaUISettingsProvider } from '@sofiapos/ui'
+import i18n from '@/i18n'
 
 interface SettingsContextType {
   moneyDecimalPlaces: number
@@ -38,6 +39,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           setMoneyDecimalPlaces(parsed)
         }
       }
+    }
+  }, [settingsData])
+
+  // Apply default_language from server when user has not set a language preference
+  useEffect(() => {
+    if (!settingsData?.settings?.default_language) return
+    const lang = String(settingsData.settings.default_language).trim().toLowerCase()
+    if (lang !== 'en' && lang !== 'es') return
+    if (typeof window !== 'undefined' && !localStorage.getItem('i18nextLng')) {
+      i18n.changeLanguage(lang)
     }
   }, [settingsData])
 

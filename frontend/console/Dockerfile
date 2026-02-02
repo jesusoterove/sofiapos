@@ -58,8 +58,8 @@ FROM nginx:alpine AS production
 # Copy built files from builder
 COPY --from=builder /app/console/dist /usr/share/nginx/html
 
-# Copy nginx configuration (if you have one)
-# COPY console/nginx.conf /etc/nginx/conf.d/default.conf
+# SPA routing: serve index.html for client routes (e.g. /login) so refresh does not 404
+COPY console/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
