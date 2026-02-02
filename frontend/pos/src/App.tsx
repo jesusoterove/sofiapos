@@ -12,6 +12,7 @@ import { UpdateProvider } from './contexts/UpdateContext'
 import { loadCustomHooks } from './hooks-system/loader'
 import { getRegistration } from './utils/registration'
 import { isElectron, getAppVersion } from './utils/electron'
+import { applyDefaultLanguageFromStore } from './utils/defaultLanguage'
 import { useEffect } from 'react'
 import { ThemeProvider, MessageBoxProvider } from '@sofiapos/ui'
 import '@sofiapos/ui/styles/theme.css'
@@ -35,6 +36,11 @@ function App() {
         console.error('Failed to get app version:', error)
       })
     }
+  }, [])
+
+  // Apply default_language from settings (IndexedDB) only when i18nextLng is not set (never overwrite existing)
+  useEffect(() => {
+    applyDefaultLanguageFromStore()
   }, [])
 
   // Get store ID from registration

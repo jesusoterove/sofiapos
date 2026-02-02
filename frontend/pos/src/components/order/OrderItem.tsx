@@ -1,11 +1,10 @@
 /**
  * Order item component.
  */
-import React from 'react'
 import { Button } from '@sofiapos/ui'
 import { FaMinus, FaPlus, FaTimes } from 'react-icons/fa'
 import { Card } from '@sofiapos/ui'
-import { OrderItemData } from './OrderItemsList'
+import { type OrderItemData } from './QuantityCell'
 
 interface OrderItemProps {
   item: OrderItemData

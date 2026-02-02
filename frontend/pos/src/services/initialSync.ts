@@ -9,7 +9,6 @@ import { saveCategories } from '../db/queries/categories'
 import { saveTables } from '../db/queries/tables'
 import { saveInventoryControlConfigs } from '../db/queries/inventoryControlConfig'
 import { saveDocumentPrefixes } from '../db/queries/documentPrefixes'
-import { initializeSequences } from '../db/queries/sequences'
 import { saveRecipes, saveRecipeMaterials } from '../db/queries/recipes'
 import { saveUnitOfMeasures, saveProductUnitOfMeasures, saveMaterialUnitOfMeasures } from '../db/queries/unitOfMeasures'
 import { updateLastSyncTimestamp } from '../db/queries/syncState'
@@ -37,6 +36,9 @@ export interface SyncProgress {
   step: 'products' | 'categories' | 'materials' | 'unit_of_measures' | 'product_unit_of_measures' | 'material_unit_of_measures' | 'recipes' | 'recipe_materials' | 'settings' | 'tables' | 'inventory_config' | 'document_prefixes' | 'sequences' | 'complete'
   progress: number // 0-100
   message: string
+  productsCount?: number
+  materialsCount?: number
+  settingsCount?: number
 }
 
 export interface SyncResult {
@@ -432,6 +434,7 @@ export async function performInitialSync(
       step: 'products',
       progress: 15,
       message: `Synced ${productsCount} products`,
+      productsCount,
     })
     
     // Sync Categories (30%)
@@ -458,6 +461,7 @@ export async function performInitialSync(
       step: 'materials',
       progress: 35,
       message: `Synced ${materialsCount} materials`,
+      materialsCount,
     })
     
     // Sync Unit of Measures (40%)
@@ -537,6 +541,7 @@ export async function performInitialSync(
       step: 'settings',
       progress: 55,
       message: `Synced ${settingsCount} settings`,
+      settingsCount,
     })
     
     // Sync Tables (60%)
@@ -634,6 +639,9 @@ export async function performInitialSync(
       step: 'complete',
       progress: 100,
       message: 'Sync complete!',
+      productsCount,
+      materialsCount,
+      settingsCount,
     })
     
     return {

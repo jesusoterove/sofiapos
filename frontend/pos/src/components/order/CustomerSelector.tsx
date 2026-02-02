@@ -1,7 +1,6 @@
 /**
  * Customer selector component.
  */
-import React from 'react'
 import { IconButton } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 import { FaSearch, FaPlus } from 'react-icons/fa'
@@ -11,7 +10,7 @@ interface CustomerSelectorProps {
   onSelectCustomer: (customerId?: number) => void
 }
 
-export function CustomerSelector({ customerId, onSelectCustomer }: CustomerSelectorProps) {
+export function CustomerSelector({ customerId, onSelectCustomer: _onSelectCustomer }: CustomerSelectorProps) {
   const { t } = useTranslation()
 
   const handleLookup = () => {

@@ -1,7 +1,6 @@
 /**
  * Payment method selector component with toggle buttons.
  */
-import React from 'react'
 import { useTranslation } from '@/i18n/hooks'
 
 interface PaymentMethodSelectorProps {

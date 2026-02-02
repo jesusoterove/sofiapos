@@ -12,12 +12,12 @@ const REFRESH_TOKEN_KEY = 'pos_refresh_token'
  */
 export async function refreshToken(): Promise<string | null> {
   try {
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-    if (!refreshToken) {
+    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+    if (!storedRefreshToken) {
       return null
     }
 
-    const response = await refreshAccessToken(refreshToken)
+    const response = await refreshAccessToken(storedRefreshToken)
     
     // Store new access token
     if (response.access_token) {
@@ -39,7 +39,7 @@ export async function refreshToken(): Promise<string | null> {
  */
 export async function getValidAccessToken(): Promise<string | null> {
   const accessToken = localStorage.getItem(AUTH_TOKEN_KEY)
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+  const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
   
   // If we have an access token, return it (we'll let the API handle expiration)
   if (accessToken) {
@@ -47,7 +47,7 @@ export async function getValidAccessToken(): Promise<string | null> {
   }
   
   // If we have a refresh token, try to refresh
-  if (refreshToken) {
+  if (storedRefreshToken) {
     return await refreshToken()
   }
   

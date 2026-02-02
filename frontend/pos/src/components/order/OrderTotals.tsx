@@ -1,7 +1,6 @@
 /**
  * Order totals component.
  */
-import React from 'react'
 import { useTranslation } from '@/i18n/hooks'
 
 interface OrderTotalsProps {

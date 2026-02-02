@@ -18,12 +18,10 @@ export function FirstSyncModal({ isOpen, onClose }: FirstSyncModalProps) {
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={onClose ?? (() => {})}
       title={t('sync.firstSync') || 'First Synchronization'}
       size="md"
-      closeOnBackdropClick={false}
-      closeOnEscape={false}
-      showCloseButton={!isSyncing && syncError}
+      showCloseButton={!isSyncing && !!syncError}
     >
       <div className="space-y-4">
         {isSyncing ? (

@@ -11,7 +11,7 @@
     "build:electron": "npm run build && npm run build:electron:main && electron-builder",
     "build:electron:main": "node build.js",
     "electron:dev": "npm run build:electron:main && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "npm run build && npm run build:electron:main && electron-builder",
+    "electron:build": "npm run build -- --mode prod && npm run build:electron:main && electron-builder",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\""

@@ -67,7 +67,7 @@ export function CredentialDialog({ isOpen, onClose, onSuccess, message }: Creden
             label={t('auth.username') || 'Username'}
             type="text"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
             required
             disabled={isLoading}
             autoFocus
@@ -77,7 +77,7 @@ export function CredentialDialog({ isOpen, onClose, onSuccess, message }: Creden
             label={t('auth.password') || 'Password'}
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             required
             disabled={isLoading}
           />

@@ -42,6 +42,7 @@ export function RegistrationPage() {
   const [stores, setStores] = useState<Store[]>([])
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(savedProgress?.selectedStoreId || null)
   const [cashRegisterId, setCashRegisterId] = useState<number | null>(savedProgress?.cashRegisterId || null)
+  const [cashRegisterCode, setCashRegisterCode] = useState<string | null>(savedProgress?.cashRegisterCode ?? null)
   const [cashierName, setCashierName] = useState<string>(savedProgress?.cashierName || '')
   const [storeName, setStoreName] = useState<string>(savedProgress?.storeName || '')
   const [registrationCode, setRegistrationCode] = useState<string>('')
@@ -64,6 +65,7 @@ export function RegistrationPage() {
       adminUsername: adminUsername,
       selectedStoreId: selectedStoreId,
       cashRegisterId: cashRegisterId,
+      cashRegisterCode: cashRegisterCode,
       cashierName: cashierName,
       storeName: storeName,
       syncCompleted: syncCompleted,
@@ -85,14 +87,12 @@ export function RegistrationPage() {
     saveProgress(nextStep)
   }
 
-  const handleStoreNext = (registerId: number, storeId: number, storeNameValue: string, cashierNameValue: string, _registrationToken?: string) => {
+  const handleStoreNext = (registerId: number, storeId: number, storeNameValue: string, cashierNameValue: string, _registrationToken?: string, cashRegisterCodeValue?: string) => {
     setCashRegisterId(registerId)
+    setCashRegisterCode(cashRegisterCodeValue ?? null)
     setSelectedStoreId(storeId)
     setStoreName(storeNameValue)
     setCashierName(cashierNameValue)
-    
-    // Note: registrationToken and cashRegisterId are saved in progress via saveProgress, not in final registration
-    // Final registration is only saved when registration is complete
     
     const nextStep: RegistrationStep = 'sync'
     setCurrentStep(nextStep)
@@ -108,10 +108,10 @@ export function RegistrationPage() {
   }
 
   const handleCreateUserNext = (newUserId: number, newUsername: string) => {
-    // Get progress data to preserve token and cashRegisterId
+    // Get progress data to preserve token, cashRegisterId, and cashRegisterCode
     const progressData = getRegistrationProgress()
     
-    // Save final registration data
+    // Save final registration data (cashRegisterCode saved to localStorage for document numbers, etc.)
     saveRegistration({
       registrationCode,
       storeId: selectedStoreId!,
@@ -121,6 +121,7 @@ export function RegistrationPage() {
       registeredAt: new Date().toISOString(),
       registrationToken: progressData?.adminToken || undefined,
       cashRegisterId: cashRegisterId || progressData?.cashRegisterId || undefined,
+      cashRegisterCode: cashRegisterCode || progressData?.cashRegisterCode || undefined,
     })
     
     // Clear admin token after user creation (security)
@@ -132,10 +133,10 @@ export function RegistrationPage() {
   }
 
   const handleSkipUser = () => {
-    // Get progress data to preserve token and cashRegisterId
+    // Get progress data to preserve token, cashRegisterId, and cashRegisterCode
     const progressData = getRegistrationProgress()
     
-    // Save registration without user
+    // Save registration without user (cashRegisterCode saved to localStorage)
     saveRegistration({
       registrationCode,
       storeId: selectedStoreId!,
@@ -145,6 +146,7 @@ export function RegistrationPage() {
       registeredAt: new Date().toISOString(),
       registrationToken: progressData?.adminToken || undefined,
       cashRegisterId: cashRegisterId || progressData?.cashRegisterId || undefined,
+      cashRegisterCode: cashRegisterCode || progressData?.cashRegisterCode || undefined,
     })
     
     // Clear admin token after skipping user creation (security)

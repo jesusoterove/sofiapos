@@ -25,6 +25,7 @@ export interface RegistrationProgress {
   adminUsername: string
   selectedStoreId: number | null
   cashRegisterId: number | null
+  cashRegisterCode: string | null
   cashierName: string
   storeName: string
   syncCompleted: boolean

@@ -1,7 +1,6 @@
 /**
  * Product search bar component.
  */
-import React from 'react'
 import { Input } from '@sofiapos/ui'
 import { FaSearch, FaTimes } from 'react-icons/fa'
 
@@ -17,7 +16,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search...' }: Search
       <Input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
         leftIcon={<FaSearch />}
         rightIcon={

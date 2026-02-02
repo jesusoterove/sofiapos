@@ -1,6 +1,10 @@
 /**
  * Internationalization setup for POS application.
- * English is base language, Spanish is default for development.
+ *
+ * i18nextLng rule: only READ on app start; only WRITE when user explicitly selects language (e.g. during registration).
+ * - Detection: we read localStorage first (i18nextLng), then navigator, then htmlTag. No lng set so detector decides.
+ * - caches: [] so the detector NEVER writes to localStorage on init or on changeLanguage. We persist only in the
+ *   registration flow when the user selects a language (see setPersistedLanguage).
  */
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
@@ -10,60 +14,41 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import enTranslations from './locales/en/translation.json'
 import esTranslations from './locales/es/translation.json'
 
-// Development mode: default to Spanish
-// Production: detect from browser or use English
-const defaultLanguage = import.meta.env.DEV ? 'es' : 'en'
+const I18N_LNG_KEY = 'i18nextLng'
 
 i18n
-  // Detect user language
   .use(LanguageDetector)
-  // Pass the i18n instance to react-i18next
   .use(initReactI18next)
-  // Initialize i18next
   .init({
-    // Base language (English)
-    lng: defaultLanguage,
-    
-    // Fallback language
     fallbackLng: 'en',
-    
-    // Namespaces
     ns: ['translation'],
     defaultNS: 'translation',
-    
-    // Debug mode (only in development)
     debug: import.meta.env.DEV,
-    
-    // Resources (translations)
     resources: {
-      en: {
-        translation: enTranslations,
-      },
-      es: {
-        translation: esTranslations,
-      },
+      en: { translation: enTranslations },
+      es: { translation: esTranslations },
     },
-    
-    // Interpolation options
-    interpolation: {
-      escapeValue: false, // React already escapes values
-    },
-    
-    // Detection options
+    interpolation: { escapeValue: false },
     detection: {
-      // Order of detection methods
       order: ['localStorage', 'navigator', 'htmlTag'],
-      // Cache user language
-      caches: ['localStorage'],
-      // Default language if detection fails
-      lookupLocalStorage: 'i18nextLng',
+      lookupLocalStorage: I18N_LNG_KEY,
+      // Do not cache: we never write i18nextLng on start or from detector. Only registration flow writes.
+      caches: [],
     },
-    
-    // React options
-    react: {
-      useSuspense: false,
-    },
+    react: { useSuspense: false },
   })
+
+/**
+ * Call this when the user explicitly selects a language (e.g. during registration).
+ * This is the only place that should write to i18nextLng.
+ */
+export function setPersistedLanguage(lang: string): void {
+  if (lang !== 'en' && lang !== 'es') return
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(I18N_LNG_KEY, lang)
+  }
+  i18n.changeLanguage(lang)
+}
 
 export default i18n
 

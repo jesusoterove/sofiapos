@@ -456,7 +456,7 @@ export async function updateShiftSummaryOnClose(
     
     // Calculate summary from local database
     summary = await calculateShiftSummaryFromLocalDatabase(shiftNumber, {
-      id: shift.id || undefined,
+      id: shift.id !== undefined && shift.id !== null ? Number(shift.id) : undefined,
       opened_at: shift.opened_at,
       initial_cash: shift.initial_cash || 0,
     })

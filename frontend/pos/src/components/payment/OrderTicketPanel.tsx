@@ -1,7 +1,6 @@
 /**
  * Order ticket panel component - readonly order display for payment screen.
  */
-import React from 'react'
 import { useTranslation } from '@/i18n/hooks'
 import type { Order } from '@/hooks/useOrderManagement'
 

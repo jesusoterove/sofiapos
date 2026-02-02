@@ -1,7 +1,6 @@
 /**
  * Payment summary component.
  */
-import React from 'react'
 import { Card } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 

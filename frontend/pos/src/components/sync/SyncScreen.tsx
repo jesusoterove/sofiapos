@@ -68,7 +68,7 @@ export function SyncScreen({ children }: { children: React.ReactNode }) {
       }}
     >
       <div className="text-center space-y-4 p-8">
-        {isSyncing && <Spinner size="large" />}
+        {isSyncing && <Spinner size="lg" />}
         <div>
           <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary, #111827)' }}>
             {isSyncing ? (t('sync.syncing') || 'Synchronizing Data...') : (t('sync.syncError') || 'Sync Error')}

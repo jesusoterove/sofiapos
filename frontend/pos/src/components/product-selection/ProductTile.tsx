@@ -14,7 +14,7 @@ interface Product {
   product_type: string
   category_id?: number
   is_active: boolean
-  tax_rate: number
+  tax_rate?: number
 }
 
 type ProductTileSize = 'small' | 'medium' | 'large'

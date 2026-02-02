@@ -98,7 +98,6 @@ export function TableOrdersList({
               variant={active ? 'primary' : 'secondary'}
               onClick={() => switchToLocation({ type: 'table', tableId })}
               className="whitespace-nowrap flex-shrink-0"
-              size="sm"
             >
               {getTableName(tableId)} ({order.itemCount})
             </Button>
@@ -111,7 +110,6 @@ export function TableOrdersList({
             variant="secondary"
             onClick={() => setShowFloatingPanel(true)}
             className="flex-shrink-0"
-            size="sm"
             title={t('order.viewAllTables') || 'View all busy tables'}
             aria-label={t('order.viewAllTables') || 'View all busy tables'}
           >

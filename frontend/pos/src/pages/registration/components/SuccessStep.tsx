@@ -1,7 +1,6 @@
 /**
  * Success step component for registration wizard.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from '@/i18n/hooks'
 import { Button } from '@sofiapos/ui'
 import { FaCheckCircle, FaArrowRight } from 'react-icons/fa'

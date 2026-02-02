@@ -17,7 +17,7 @@ interface Store {
 }
 
 interface StoreStepProps {
-  onNext: (cashRegisterId: number, storeId: number, storeName: string, cashierName: string, registrationToken?: string) => void
+  onNext: (cashRegisterId: number, storeId: number, storeName: string, cashierName: string, registrationToken?: string, cashRegisterCode?: string) => void
   onBack: () => void
   adminToken: string
   stores: Store[]
@@ -194,13 +194,14 @@ export function StoreStep({
 
       toast.success(t('registration.cashRegisterCreated') || 'Cash register created successfully!')
       
-      // Move to next step with registration token
+      // Move to next step with registration token and cash register code (saved to progress then to final registration)
       onNext(
-        cashRegister.id, 
-        selectedStoreId, 
-        selectedStore.name, 
+        cashRegister.id,
+        selectedStoreId,
+        selectedStore.name,
         cashierName.trim(),
-        cashRegister.registration_token
+        cashRegister.registration_token,
+        cashRegister.code
       )
     } catch (error: any) {
       console.error('Registration error:', error)

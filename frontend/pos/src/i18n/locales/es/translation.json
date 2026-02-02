@@ -305,7 +305,12 @@
       "refreshPorts": "Actualizar",
       "noPortsAvailable": "No hay puertos seriales disponibles. Asegúrese de que su dispositivo esté conectado.",
       "baudRate": "Velocidad de Transmisión",
-      "isActive": "Activo"
+      "isActive": "Activo",
+      "notConfigured": "Cajón de efectivo no configurado. Configúrelo en ajustes.",
+      "requiresElectron": "El cajón de efectivo requiere el entorno Electron.",
+      "openedSuccess": "Cajón de efectivo abierto correctamente",
+      "openFailed": "Error al abrir el cajón de efectivo. Compruebe la conexión.",
+      "openError": "Error al abrir el cajón de efectivo"
     },
     "updates": {
       "title": "Actualizaciones de Aplicación",

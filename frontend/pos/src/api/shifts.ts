@@ -2,7 +2,7 @@
  * Shifts API client.
  */
 import apiClient from './client'
-import type { ShiftInventoryEntry, ShiftCloseWithInventoryRequest } from './inventoryControl'
+import type { ShiftCloseWithInventoryRequest } from './inventoryControl'
 
 export interface Shift {
   id: number

@@ -115,12 +115,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     await checkForUpdates()
   }
 
-  const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return ''
-    const mb = bytes / (1024 * 1024)
-    return `${mb.toFixed(1)} MB`
-  }
-
   return (
     <Modal
       isOpen={isOpen}
@@ -210,7 +204,6 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                   variant="secondary"
                   onClick={loadAvailablePorts}
                   disabled={isLoading || isLoadingPorts}
-                  size="sm"
                 >
                   {isLoadingPorts ? (t('common.loading') || 'Loading...') : (t('settings.cashDrawer.refreshPorts') || 'Refresh')}
                 </Button>

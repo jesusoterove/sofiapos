@@ -4,6 +4,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { performInitialSync, hasCompletedInitialSync, SyncProgress } from '../services/initialSync'
 import { checkAndSyncUpdates, syncEntityType } from '../services/incrementalSync'
+import { applyDefaultLanguageFromStore } from '../utils/defaultLanguage'
 import { useAuth } from './AuthContext'
 import { refreshToken } from '../services/tokenRefresh'
 import { CredentialDialog } from '../components/sync/CredentialDialog'
@@ -96,6 +97,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
           progress: 100,
           message: 'Sync complete!',
         })
+        await applyDefaultLanguageFromStore()
       } else {
         // Check if error is due to authentication failure
         const errorMsg = result.error || 'Sync failed'
@@ -115,6 +117,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
                 progress: 100,
                 message: 'Sync complete!',
               })
+              await applyDefaultLanguageFromStore()
               return
             }
           }
@@ -147,6 +150,7 @@ export function SyncProvider({ children }: SyncProviderProps) {
                 progress: 100,
                 message: 'Sync complete!',
               })
+              await applyDefaultLanguageFromStore()
               return
             }
           } catch (retryError) {

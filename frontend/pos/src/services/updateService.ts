@@ -46,7 +46,7 @@ class UpdateService {
       return null
     }
     try {
-      return await window.electronAPI.getAppVersion()
+      return await window.electronAPI!.getAppVersion()
     } catch (error) {
       console.error('[UpdateService] Error getting app version:', error)
       return null
@@ -62,7 +62,7 @@ class UpdateService {
     }
 
     try {
-      const result = await window.electronAPI.checkForUpdates()
+      const result = await window.electronAPI!.checkForUpdates()
       return result
     } catch (error) {
       console.error('[UpdateService] Error checking for updates:', error)
@@ -82,7 +82,7 @@ class UpdateService {
     }
 
     try {
-      const result = await window.electronAPI.downloadUpdate()
+      const result = await window.electronAPI!.downloadUpdate()
       return result
     } catch (error) {
       console.error('[UpdateService] Error downloading update:', error)
@@ -102,7 +102,7 @@ class UpdateService {
     }
 
     try {
-      const result = await window.electronAPI.installUpdate()
+      const result = await window.electronAPI!.installUpdate()
       return result
     } catch (error) {
       console.error('[UpdateService] Error installing update:', error)
@@ -137,50 +137,50 @@ class UpdateService {
 
     // Remove existing listeners first
     channels.forEach(channel => {
-      window.electronAPI.removeAllListeners(channel)
+      window.electronAPI!.removeAllListeners(channel)
     })
 
     // Setup new listeners
-    if (callbacks.onChecking) {
-      window.electronAPI.onUpdateChecking(() => {
-        callbacks.onChecking?.()
+    if (this.callbacks.onChecking) {
+      window.electronAPI!.onUpdateChecking(() => {
+        this.callbacks.onChecking?.()
       })
     }
 
-    if (callbacks.onAvailable) {
-      window.electronAPI.onUpdateAvailable((info: UpdateInfo) => {
-        callbacks.onAvailable?.(info)
+    if (this.callbacks.onAvailable) {
+      window.electronAPI!.onUpdateAvailable((info: UpdateInfo) => {
+        this.callbacks.onAvailable?.(info)
       })
     }
 
-    if (callbacks.onNotAvailable) {
-      window.electronAPI.onUpdateNotAvailable(() => {
-        callbacks.onNotAvailable?.()
+    if (this.callbacks.onNotAvailable) {
+      window.electronAPI!.onUpdateNotAvailable(() => {
+        this.callbacks.onNotAvailable?.()
       })
     }
 
-    if (callbacks.onError) {
-      window.electronAPI.onUpdateError((error: { message: string; stack?: string }) => {
-        callbacks.onError?.(error.message)
+    if (this.callbacks.onError) {
+      window.electronAPI!.onUpdateError((error: { message: string; stack?: string }) => {
+        this.callbacks.onError?.(error.message)
       })
     }
 
-    if (callbacks.onProgress) {
-      window.electronAPI.onUpdateDownloadProgress((progress: UpdateProgress) => {
-        callbacks.onProgress?.(progress)
+    if (this.callbacks.onProgress) {
+      window.electronAPI!.onUpdateDownloadProgress((progress: UpdateProgress) => {
+        this.callbacks.onProgress?.(progress)
       })
     }
 
-    if (callbacks.onDownloaded) {
-      window.electronAPI.onUpdateDownloaded((info: UpdateInfo) => {
-        callbacks.onDownloaded?.(info)
+    if (this.callbacks.onDownloaded) {
+      window.electronAPI!.onUpdateDownloaded((info: UpdateInfo) => {
+        this.callbacks.onDownloaded?.(info)
       })
     }
 
     // Return cleanup function
     const cleanup = () => {
       channels.forEach(channel => {
-        window.electronAPI.removeAllListeners(channel)
+        window.electronAPI!.removeAllListeners(channel)
       })
       this.callbacks = {}
     }

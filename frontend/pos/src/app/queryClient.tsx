@@ -10,7 +10,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 1,
       staleTime: 10 * 60 * 1000, // 10 minutes (longer for offline)
-      cacheTime: 30 * 60 * 1000, // 30 minutes
+      gcTime: 30 * 60 * 1000, // 30 minutes (formerly cacheTime in React Query v4)
     },
     mutations: {
       retry: 0,

@@ -1,8 +1,6 @@
 /**
  * Product selection panel component.
  */
-import React from 'react'
-import { ScanButton } from './ScanButton'
 import { SearchBar } from './SearchBar'
 import { CategoryTabs } from './CategoryTabs'
 import { ProductList } from './ProductList'

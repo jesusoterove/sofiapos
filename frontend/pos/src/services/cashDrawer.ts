@@ -3,6 +3,7 @@
  */
 import { openDatabase } from '../db'
 import { toast } from 'react-toastify'
+import i18n from '../i18n'
 
 export interface CashDrawerConfig {
   id?: number
@@ -82,13 +83,13 @@ export async function openCashDrawer(): Promise<boolean> {
     const config = await getCashDrawerConfig()
     
     if (!config) {
-      toast.error('Cash drawer not configured. Please configure it in settings.')
+      toast.error(i18n.t('settings.cashDrawer.notConfigured') || 'Cash drawer not configured. Please configure it in settings.')
       return false
     }
 
     // Check if we're in Electron environment
     if (typeof window === 'undefined' || !(window as any).electron?.serial) {
-      toast.error('Cash drawer functionality requires Electron environment.')
+      toast.error(i18n.t('settings.cashDrawer.requiresElectron') || 'Cash drawer functionality requires Electron environment.')
       return false
     }
 
@@ -98,7 +99,7 @@ export async function openCashDrawer(): Promise<boolean> {
     
     try {
       await (window as any).electron.serial.write(config.port_path, config.baud_rate, command)
-      toast.success('Cash drawer opened successfully')
+      toast.success(i18n.t('settings.cashDrawer.openedSuccess') || 'Cash drawer opened successfully')
       return true
     } catch (error) {
       console.error('Failed to open cash drawer:', error)
@@ -106,17 +107,17 @@ export async function openCashDrawer(): Promise<boolean> {
       try {
         const altCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA])
         await (window as any).electron.serial.write(config.port_path, config.baud_rate, altCommand)
-        toast.success('Cash drawer opened successfully')
+        toast.success(i18n.t('settings.cashDrawer.openedSuccess') || 'Cash drawer opened successfully')
         return true
       } catch (altError) {
         console.error('Failed to open cash drawer with alternative command:', altError)
-        toast.error('Failed to open cash drawer. Please check the connection.')
+        toast.error(i18n.t('settings.cashDrawer.openFailed') || 'Failed to open cash drawer. Please check the connection.')
         return false
       }
     }
   } catch (error) {
     console.error('Error opening cash drawer:', error)
-    toast.error('Error opening cash drawer')
+    toast.error(i18n.t('settings.cashDrawer.openError') || 'Error opening cash drawer')
     return false
   }
 }

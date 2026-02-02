@@ -145,7 +145,6 @@ export function BottomBar() {
           variant={isCashRegisterActive ? 'primary' : 'secondary'}
           onClick={switchToCashRegister}
           className="whitespace-nowrap flex-shrink-0"
-          size="sm"
         >
           {t('order.onCashRegister') || 'On Cash Register'}
         </Button>
@@ -165,7 +164,7 @@ export function BottomBar() {
         {/* Incremental Sync Error Indicator - shows when incremental sync fails (silent) */}
         {showIncrementalSyncError && (
           <IconButton
-            variant="warning"
+            variant="secondary"
             onClick={async () => {
               // Retry incremental sync on click
               await performIncrementalSync()
@@ -191,7 +190,7 @@ export function BottomBar() {
 
         {/* Sync Auth Failure Button - always visible, enabled only when online and there's an auth failure */}
         <IconButton
-          variant={isSyncAuthFailureButtonEnabled ? "danger" : websocketConnected ? "success" : "secondary"}
+          variant={isSyncAuthFailureButtonEnabled ? "danger" : websocketConnected ? "primary" : "secondary"}
           onClick={handleSyncAuthFailureClick}
           disabled={!isSyncAuthFailureButtonEnabled}
           title={

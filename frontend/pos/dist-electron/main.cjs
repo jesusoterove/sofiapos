@@ -15101,6 +15101,7 @@ var require_main2 = __commonJS({
 var import_electron = require("electron");
 var import_electron_updater = __toESM(require_main2(), 1);
 var path = __toESM(require("path"), 1);
+var import_url = require("url");
 var import_fs = require("fs");
 var mainWindow = null;
 var isDev = process.env.NODE_ENV === "development" || !import_electron.app.isPackaged;
@@ -15211,8 +15212,14 @@ function createWindow() {
     mainWindow.loadURL(indexPath);
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(indexPath);
+    const fileUrl = (0, import_url.pathToFileURL)(indexPath).href + "#/";
+    mainWindow.loadURL(fileUrl);
   }
+  mainWindow.webContents.on("before-input-event", (_, input) => {
+    if (input.type === "keyDown" && input.control && input.shift && input.key.toLowerCase() === "i") {
+      mainWindow?.webContents.toggleDevTools();
+    }
+  });
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

@@ -1,7 +1,6 @@
 /**
  * Barcode scanner button component.
  */
-import React from 'react'
 import { IconButton } from '@sofiapos/ui'
 import { FaBarcode } from 'react-icons/fa'
 import { useTranslation } from '@/i18n/hooks'

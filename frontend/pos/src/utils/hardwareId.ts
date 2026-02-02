@@ -20,8 +20,8 @@ export async function generateHardwareId(): Promise<string> {
 
   // Try to get machine-specific ID from Electron if available
   if (isElectron) {
-    const api = getElectronAPI()
-    if (api && typeof api.getMachineId === 'function') {
+    const api = getElectronAPI() as any;
+    if (api && api.getMachineId && typeof api.getMachineId === 'function') {
       try {
         const machineId = await api.getMachineId()
         if (machineId) {

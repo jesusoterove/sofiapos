@@ -23,7 +23,8 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@sofiapos/ui": ["../sofia-ui/src"]
     }
   },
   "include": ["src"],

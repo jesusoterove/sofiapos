@@ -4,6 +4,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: './', // Required for Electron: file:// loads need relative paths, not /
   plugins: [react()],
   resolve: {
     alias: {

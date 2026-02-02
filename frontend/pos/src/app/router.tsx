@@ -1,4 +1,4 @@
-import { createRouter, createRootRoute, createRoute, redirect } from '@tanstack/react-router'
+import { createRouter, createRootRoute, createRoute, redirect, createHashHistory } from '@tanstack/react-router'
 import { POSScreen } from '@/features/pos-screen/POSScreen'
 import { LoginPage } from '@/pages/login/LoginPage'
 import { RegistrationPage } from '@/pages/registration/RegistrationPage'
@@ -255,8 +255,16 @@ const routeTree = rootRoute.addChildren([
 // ============================================================================
 // ROUTER INSTANCE
 // ============================================================================
-// Create the router with the route tree
-export const router = createRouter({ routeTree, context: { auth: undefined! } })
+// In Electron production the app is loaded via file://, so pathname is the full
+// file path and no route matches → "Not Found". Use hash history so the path
+// comes from the hash (e.g. #/app) and routes match.
+const isFileProtocol = typeof window !== 'undefined' && window.location?.protocol === 'file:'
+const history = isFileProtocol ? createHashHistory() : undefined
+export const router = createRouter({
+  routeTree,
+  context: { auth: undefined! },
+  ...(history ? { history } : {}),
+})
 
 // Register the router instance for type safety
 declare module '@tanstack/react-router' {

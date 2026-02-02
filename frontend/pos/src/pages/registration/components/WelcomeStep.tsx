@@ -3,6 +3,7 @@
  */
 import { useState, useEffect } from 'react'
 import { useTranslation } from '@/i18n/hooks'
+import { setPersistedLanguage } from '@/i18n'
 import { Button } from '@sofiapos/ui'
 import { FaGlobe, FaArrowRight } from 'react-icons/fa'
 
@@ -13,13 +14,13 @@ interface WelcomeStepProps {
 }
 
 export function WelcomeStep({ onNext, initialLanguage = 'es', onLanguageChange }: WelcomeStepProps) {
-  const { t, changeLanguage, currentLanguage } = useTranslation()
+  const { t, currentLanguage } = useTranslation()
   const [selectedLanguage, setSelectedLanguage] = useState<string>(initialLanguage)
 
   useEffect(() => {
-    // Update language when selection changes (only if different from current)
+    // Persist and apply language only when user selection differs from current (only place we write i18nextLng)
     if (currentLanguage !== selectedLanguage) {
-      changeLanguage(selectedLanguage)
+      setPersistedLanguage(selectedLanguage)
       onLanguageChange?.(selectedLanguage)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

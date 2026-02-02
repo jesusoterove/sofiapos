@@ -1,7 +1,6 @@
 /**
  * Category tabs component for product filtering.
  */
-import React from 'react'
 import { Button } from '@sofiapos/ui'
 
 interface Category {

@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { Modal, Button } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 import { useUpdate } from '@/contexts/UpdateContext'
-import { UpdateService } from '@/services/updateService'
+import { UpdateService, type UpdateProgress } from '@/services/updateService'
 import { FaDownload, FaCheckCircle, FaExclamationTriangle, FaSpinner } from 'react-icons/fa'
 
 interface UpdateNotificationProps {
@@ -59,7 +59,7 @@ export function UpdateNotification({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={isMandatory ? undefined : onClose}
+      onClose={isMandatory ? () => {} : (onClose ?? (() => {}))}
       title={t('update.available') || 'Update Available'}
       size="md"
       showCloseButton={!isMandatory}
@@ -201,7 +201,7 @@ export function UpdateNotification({
                 variant="primary"
                 onClick={handleInstall}
                 className="flex-1"
-                disabled={isInstalling || !updateService.isElectron()}
+                disabled={isInstalling || !UpdateService.isElectron()}
               >
                 {isInstalling ? (
                   <>

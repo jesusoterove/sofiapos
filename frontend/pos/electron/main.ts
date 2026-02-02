@@ -3,9 +3,10 @@
  * Handles window creation and application lifecycle.
  * This file is compiled to CommonJS by esbuild.
  */
-import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, globalShortcut } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import * as path from 'path'
+import { pathToFileURL } from 'url'
 import { existsSync } from 'fs'
 
 // Keep a global reference of the window object
@@ -156,9 +157,17 @@ function createWindow() {
     // Open DevTools in development
     mainWindow.webContents.openDevTools()
   } else {
-    // Production: load from built files
-    mainWindow.loadFile(indexPath)
+    // Production: load from built files with hash so TanStack Router (hash history) sees path /
+    const fileUrl = pathToFileURL(indexPath).href + '#/'
+    mainWindow.loadURL(fileUrl)
   }
+
+  // Ctrl+Shift+I toggles DevTools in dev and production (no menu in prod, so this is the only way)
+  mainWindow.webContents.on('before-input-event', (_, input) => {
+    if (input.type === 'keyDown' && input.control && input.shift && input.key.toLowerCase() === 'i') {
+      mainWindow?.webContents.toggleDevTools()
+    }
+  })
 
   // Handle window closed
   mainWindow.on('closed', () => {

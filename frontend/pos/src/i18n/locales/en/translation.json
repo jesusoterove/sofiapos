@@ -305,7 +305,12 @@
       "refreshPorts": "Refresh",
       "noPortsAvailable": "No serial ports available. Make sure your device is connected.",
       "baudRate": "Baud Rate",
-      "isActive": "Active"
+      "isActive": "Active",
+      "notConfigured": "Cash drawer not configured. Please configure it in settings.",
+      "requiresElectron": "Cash drawer functionality requires Electron environment.",
+      "openedSuccess": "Cash drawer opened successfully",
+      "openFailed": "Failed to open cash drawer. Please check the connection.",
+      "openError": "Error opening cash drawer"
     },
     "updates": {
       "title": "Application Updates",
