@@ -19,37 +19,57 @@ import { sofiaUiTranslations } from '@sofiapos/ui'
 
 const I18N_LNG_KEY = 'i18nextLng'
 
-i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    fallbackLng: import.meta.env.DEV ? 'es' : 'en',
-    ns: ['translation'],
-    defaultNS: 'translation',
-    debug: import.meta.env.DEV,
-    resources: {
-      en: {
-        translation: {
-          ...sofiaUiTranslations.en,
-          ...enTranslations,
-        },
-      },
-      es: {
-        translation: {
-          ...sofiaUiTranslations.es,
-          ...esTranslations,
-        },
+// Check localStorage FIRST before any initialization
+// This ensures user preference is always respected
+let initialLanguage: string | undefined
+if (typeof window !== 'undefined') {
+  const storedLang = localStorage.getItem(I18N_LNG_KEY)
+  if (storedLang === 'en' || storedLang === 'es') {
+    initialLanguage = storedLang
+  }
+}
+
+// Build i18n instance: only use LanguageDetector if no stored preference exists
+// This prevents detector from overriding user's stored choice
+let i18nBuilder = i18n
+if (!initialLanguage) {
+  // Only use LanguageDetector when we don't have a stored preference
+  i18nBuilder = i18nBuilder.use(LanguageDetector)
+}
+i18nBuilder = i18nBuilder.use(initReactI18next)
+
+i18nBuilder.init({
+  // If we have a stored language, use it directly - no detector will run
+  // Otherwise, let detector find language, then fallback to default
+  lng: initialLanguage,
+  fallbackLng: import.meta.env.DEV ? 'es' : 'en',
+  ns: ['translation'],
+  defaultNS: 'translation',
+  debug: import.meta.env.DEV,
+  resources: {
+    en: {
+      translation: {
+        ...sofiaUiTranslations.en,
+        ...enTranslations,
       },
     },
-    interpolation: { escapeValue: false },
-    detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
-      lookupLocalStorage: I18N_LNG_KEY,
-      // Do not cache: we only write when user selects language in LanguageSwitcher
-      caches: [],
+    es: {
+      translation: {
+        ...sofiaUiTranslations.es,
+        ...esTranslations,
+      },
     },
-    react: { useSuspense: false },
-  })
+  },
+  interpolation: { escapeValue: false },
+  detection: initialLanguage ? undefined : {
+    // Only configure detection if no stored language exists
+    order: ['localStorage', 'navigator', 'htmlTag'],
+    lookupLocalStorage: I18N_LNG_KEY,
+    // Do not cache: we only write when user selects language in LanguageSwitcher
+    caches: [],
+  },
+  react: { useSuspense: false },
+})
 
 /**
  * Call when the user explicitly selects a language (e.g. in Settings).

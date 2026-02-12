@@ -2,20 +2,19 @@
  * Stores management page.
  */
 import { useState, useMemo } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { storesApi, Store } from '@/api/stores'
-import { StoreForm } from '@/components/stores/StoreForm'
 import { StoreDeleteDialog } from '@/components/stores/StoreDeleteDialog'
 import { Button, AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
 import { FaEdit, FaTrash } from 'react-icons/fa'
 
 export function StoreList() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingStore, setEditingStore] = useState<Store | null>(null)
   const [deleteStore, setDeleteStore] = useState<Store | null>(null)
   const [activeOnly] = useState(false)
 
@@ -40,22 +39,15 @@ export function StoreList() {
   })
 
   const handleCreate = () => {
-    setEditingStore(null)
-    setIsFormOpen(true)
+    navigate({ to: '/stores/new' })
   }
 
   const handleEdit = (store: Store) => {
-    setEditingStore(store)
-    setIsFormOpen(true)
+    navigate({ to: `/stores/${store.id}` })
   }
 
   const handleDelete = (store: Store) => {
     setDeleteStore(store)
-  }
-
-  const handleFormClose = () => {
-    setIsFormOpen(false)
-    setEditingStore(null)
   }
 
   // Define columns for AdvancedDataGrid
@@ -93,6 +85,7 @@ export function StoreList() {
       headerName: t('stores.email') || 'Email',
       sortable: true,
       filter: true,
+      flex: 2,
     },
     {
       field: 'is_active',
@@ -158,21 +151,6 @@ export function StoreList() {
         </Button>
       </div>
 
-      {/* Filters */}
-      {/* <div className="flex items-center gap-4">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={activeOnly}
-            onChange={(e) => setActiveOnly(e.target.checked)}
-            className="rounded"
-          />
-          <span style={{ color: 'var(--color-text-secondary)' }}>
-            {t('stores.activeOnly') || 'Active only'}
-          </span>
-        </label>
-      </div> */}
-
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -199,14 +177,6 @@ export function StoreList() {
         />
       </div>
 
-      {/* Store Form Modal */}
-      {isFormOpen && (
-        <StoreForm
-          store={editingStore}
-          onClose={handleFormClose}
-        />
-      )}
-
       {/* Delete Confirmation Dialog */}
       {deleteStore && (
         <StoreDeleteDialog
@@ -220,5 +190,3 @@ export function StoreList() {
     </div>
   )
 }
-
-

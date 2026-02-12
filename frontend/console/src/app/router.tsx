@@ -2,7 +2,7 @@ import { createRouter, createRootRoute, createRoute } from '@tanstack/react-rout
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Dashboard } from '@/pages/dashboard'
 import { Login } from '@/pages/login'
-import { StoreList } from '@/pages/stores'
+import { StoreList, StoreForm } from '@/pages/stores'
 import { UserList } from '@/pages/users'
 import { IngredientList } from '@/pages/ingredients'
 import { IngredientForm } from '@/pages/ingredients/IngredientForm'
@@ -49,6 +49,20 @@ const storesRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/stores',
   component: StoreList,
+})
+
+// Store form route (create) - protected
+const storeNewRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/stores/new',
+  component: StoreForm,
+})
+
+// Store form route (edit) - protected
+const storeEditRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/stores/$storeId',
+  component: StoreForm,
 })
 
 // Users route - protected
@@ -104,13 +118,6 @@ const productEditRoute = createRoute({
   component: ProductForm,
 })
 
-// Orders route - protected
-const ordersRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: '/orders',
-  component: () => <div className="p-6"><h1 className="text-2xl font-bold">Orders</h1></div>,
-})
-
 // Sales route - protected
 const salesRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
@@ -139,6 +146,8 @@ const routeTree = rootRoute.addChildren([
     appLayoutRoute.addChildren([
       indexRoute,
       storesRoute,
+      storeNewRoute,
+      storeEditRoute,
       usersRoute,
       ingredientsRoute,
       ingredientNewRoute,
@@ -146,7 +155,6 @@ const routeTree = rootRoute.addChildren([
       productsRoute,
       productNewRoute,
       productEditRoute,
-      ordersRoute,
       salesRoute,
       settingsRoute,
       updatesRoute,

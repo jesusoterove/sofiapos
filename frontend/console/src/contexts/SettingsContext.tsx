@@ -5,7 +5,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useQuery } from '@tanstack/react-query'
 import { getGlobalSettings } from '@/api/settings'
 import { SettingsProvider as SofiaUISettingsProvider } from '@sofiapos/ui'
-import i18n from '@/i18n'
+import { setPersistedLanguage } from '@/i18n'
 
 interface SettingsContextType {
   moneyDecimalPlaces: number
@@ -43,12 +43,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [settingsData])
 
   // Apply default_language from server when user has not set a language preference
+  // Only runs once when settings are first loaded and no user preference exists
   useEffect(() => {
     if (!settingsData?.settings?.default_language) return
     const lang = String(settingsData.settings.default_language).trim().toLowerCase()
     if (lang !== 'en' && lang !== 'es') return
-    if (typeof window !== 'undefined' && !localStorage.getItem('i18nextLng')) {
-      i18n.changeLanguage(lang)
+    
+    // Only apply server default if user hasn't set a preference
+    // Check both localStorage and current i18n language to avoid race conditions
+    if (typeof window !== 'undefined') {
+      const storedLang = localStorage.getItem('i18nextLng')
+      if (!storedLang) {
+        // User hasn't set a preference, use server default and persist it
+        setPersistedLanguage(lang)
+      }
     }
   }, [settingsData])
 

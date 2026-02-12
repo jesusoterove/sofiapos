@@ -3,8 +3,8 @@
  * Main entry point for all components
  */
 
-// Initialize i18n
-import './i18n'
+// Initialize i18n - REMOVED to prevent side-effect initialization when imported as library
+// import './i18n'
 
 // Components
 export { Button } from './components/Button'

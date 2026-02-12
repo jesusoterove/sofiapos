@@ -3,7 +3,7 @@
  * changeLanguage persists to localStorage so the user's choice survives reload.
  */
 import { useTranslation as useI18nTranslation } from 'react-i18next'
-import { setPersistedLanguage } from '..'
+import { setPersistedLanguage } from './index'
 
 export function useTranslation() {
   const { t, i18n } = useI18nTranslation()
