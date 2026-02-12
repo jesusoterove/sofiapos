@@ -8,7 +8,7 @@ import { useTranslation } from '@/i18n/hooks'
 import {
   getCashDrawerConfig,
   saveCashDrawerConfig,
-  testOpenCashDrawer,
+  testPrint,
   listSerialPorts,
   listPrinters,
   type CashDrawerConfig,
@@ -44,6 +44,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     port_path: '',
     baud_rate: 9600,
     is_active: true,
+    print_receipt_enabled: false,
   })
   const [initialConfig, setInitialConfig] = useState<CashDrawerConfig | null>(null)
   const [activeTab, setActiveTab] = useState<'cashDrawer' | 'updates'>('cashDrawer')
@@ -86,6 +87,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
           port_path: '',
           baud_rate: 9600,
           is_active: true,
+          print_receipt_enabled: false,
         }
         setConfig(defaults)
         setInitialConfig(null)
@@ -139,6 +141,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
           device_name: config.device_name || config.printer_name || 'Cash Drawer',
           printer_name: config.printer_name.trim(),
           port_path: undefined,
+          print_receipt_enabled: config.print_receipt_enabled ?? false,
         })
       } else {
         const portPath = (config.port_path ?? '').trim()
@@ -157,6 +160,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
           device_name: config.device_name || config.port_path || 'Cash Drawer',
           port_path: portPath,
           printer_name: undefined,
+          print_receipt_enabled: false,
         })
       }
 
@@ -180,7 +184,8 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     config.printer_name !== (initialConfig.printer_name ?? '') ||
     config.port_path !== (initialConfig.port_path ?? '') ||
     config.baud_rate !== initialConfig.baud_rate ||
-    config.is_active !== initialConfig.is_active
+    config.is_active !== initialConfig.is_active ||
+    (config.print_receipt_enabled ?? false) !== (initialConfig.print_receipt_enabled ?? false)
 
   const handleClose = () => {
     if (!isLoading) {
@@ -192,7 +197,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     await checkForUpdates()
   }
 
-  const handleTestOpenCashDrawer = async () => {
+  const handlePrintTest = async () => {
     if (!isConfigValid) return
     setIsTesting(true)
     try {
@@ -202,7 +207,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
         port_path: config.connection_type === 'serial' ? (config.port_path ?? '').trim() : undefined,
         printer_name: config.connection_type === 'printer' ? config.printer_name?.trim() : undefined,
       }
-      await testOpenCashDrawer(testConfig)
+      await testPrint(testConfig)
     } finally {
       setIsTesting(false)
     }
@@ -338,6 +343,24 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                       : (t('settings.cashDrawer.noPrintersAvailable') || 'No printers found. Install a POS printer or ESC/POS Virtual Printer.')}
                   </p>
                 )}
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="print_receipt_enabled"
+                    checked={config.print_receipt_enabled ?? false}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setConfig({ ...config, print_receipt_enabled: e.target.checked })
+                    }
+                    disabled={isLoading}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="print_receipt_enabled" className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                    {t('settings.cashDrawer.printReceipt') || 'Print Receipt'}
+                  </label>
+                </div>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                  {t('settings.cashDrawer.printReceiptHelp') || 'Default state of "Print Receipt" in the payment confirmation dialog after payment.'}
+                </p>
               </div>
             )}
 
@@ -447,10 +470,10 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={handleTestOpenCashDrawer}
+                  onClick={handlePrintTest}
                   disabled={isLoading || isTesting || !isConfigValid}
                 >
-                  {isTesting ? (t('common.loading') || 'Loading...') : (t('settings.cashDrawer.testOpen') || 'Test Open Cash Drawer')}
+                  {isTesting ? (t('common.loading') || 'Loading...') : (t('settings.cashDrawer.printTest') || 'Print test')}
                 </Button>
               )}
               <Button

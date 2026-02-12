@@ -91,8 +91,6 @@ export function PaymentScreen({
         ? (typeof currentShift.id === 'number' ? currentShift.id : parseInt(String(currentShift.id), 10))
         : null
       onProcessPayment(paymentMethod, paid, shiftId)
-      // setAmountPaid('')
-      // setPaymentMethod('cash')
     }
   }
 

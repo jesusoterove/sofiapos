@@ -128,7 +128,11 @@
     "exact": "EXACT",
     "print": "PRINT",
     "ticket": "Ticket",
-    "printReceipt": "Printing receipt..."
+    "printReceipt": "Print Receipt",
+    "printReceiptSuccess": "Receipt printed",
+    "printReceiptError": "Failed to print receipt",
+    "confirmationTitle": "Payment Complete",
+    "accept": "Accept"
   },
   "sales": {
     "invoices": "Sales Invoices",
@@ -310,6 +314,8 @@
       "noPrintersAvailable": "No printers found. Install a POS printer or ESC/POS Virtual Printer.",
       "printerRequired": "Please select a printer.",
       "testOpen": "Test Open Cash Drawer",
+      "printTest": "Print test",
+      "printTestFailed": "Cash drawer opened but sample receipt failed to print.",
       "selectPort": "Select a port...",
       "refreshPorts": "Refresh",
       "enterPortManually": "Enter port manually...",
@@ -322,7 +328,9 @@
       "requiresElectron": "Cash drawer functionality requires Electron environment.",
       "openedSuccess": "Cash drawer opened successfully",
       "openFailed": "Failed to open cash drawer. Please check the connection.",
-      "openError": "Error opening cash drawer"
+      "openError": "Error opening cash drawer",
+      "printReceipt": "Print Receipt",
+      "printReceiptHelp": "Default state of \"Print Receipt\" in the payment confirmation dialog after payment."
     },
     "updates": {
       "title": "Application Updates",

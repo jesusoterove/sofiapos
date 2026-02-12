@@ -128,7 +128,11 @@
     "exact": "EXACTO",
     "print": "IMPRIMIR",
     "ticket": "Ticket",
-    "printReceipt": "Imprimiendo recibo..."
+    "printReceipt": "Imprimir Recibo",
+    "printReceiptSuccess": "Recibo impreso",
+    "printReceiptError": "Error al imprimir el recibo",
+    "confirmationTitle": "Pago Completado",
+    "accept": "Aceptar"
   },
   "sales": {
     "invoices": "Facturas de Venta",
@@ -310,6 +314,8 @@
       "noPrintersAvailable": "No se encontraron impresoras. Instale una impresora POS o la Impresora Virtual ESC/POS.",
       "printerRequired": "Por favor seleccione una impresora.",
       "testOpen": "Probar Abrir Cajón",
+      "printTest": "Imprimir prueba",
+      "printTestFailed": "Cajón abierto pero el recibo de prueba no se imprimió.",
       "selectPort": "Seleccione un puerto...",
       "refreshPorts": "Actualizar",
       "enterPortManually": "Introducir puerto manualmente...",
@@ -322,7 +328,9 @@
       "requiresElectron": "El cajón de efectivo requiere el entorno Electron.",
       "openedSuccess": "Cajón de efectivo abierto correctamente",
       "openFailed": "Error al abrir el cajón de efectivo. Compruebe la conexión.",
-      "openError": "Error al abrir el cajón de efectivo"
+      "openError": "Error al abrir el cajón de efectivo",
+      "printReceipt": "Imprimir Recibo",
+      "printReceiptHelp": "Estado predeterminado de \"Imprimir recibo\" en el cuadro de confirmación de pago después del pago."
     },
     "updates": {
       "title": "Actualizaciones de Aplicación",

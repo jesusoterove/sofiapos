@@ -2,6 +2,7 @@
  * Cash drawer service for opening cash drawer via serial port or POS printer.
  */
 import { openDatabase } from '../db'
+import { printSampleReceipt } from './receiptPrint'
 import { toast } from 'react-toastify'
 import i18n from '../i18n'
 
@@ -15,8 +16,18 @@ export interface CashDrawerConfig {
   printer_name?: string
   baud_rate: number
   is_active: boolean
+  /** When true, the "Print receipt" toggle in the payment confirmation dialog defaults to checked. Default: false. */
+  print_receipt_enabled?: boolean
   created_at?: string
   updated_at?: string
+}
+
+/** Config for receipt printing: whether printer is available, printer name, and default toggle state. */
+export interface PrintReceiptConfig {
+  enabled: boolean
+  printerName: string | null
+  /** Default checked state for Print Receipt toggle (from print_receipt_enabled setting). */
+  defaultChecked: boolean
 }
 
 function migrateConfig(config: Record<string, unknown>): CashDrawerConfig {
@@ -39,6 +50,23 @@ export async function getCashDrawerConfig(): Promise<CashDrawerConfig | null> {
   
   if (activeConfigs.length === 0) return null
   return migrateConfig(activeConfigs[0] as Record<string, unknown>)
+}
+
+/**
+ * Get print receipt configuration from active cash drawer config.
+ * Toggle is shown when connection_type is 'printer' and printer_name is set.
+ * print_receipt_enabled controls the default checked state.
+ */
+export async function getPrintReceiptConfig(): Promise<PrintReceiptConfig> {
+  const config = await getCashDrawerConfig()
+  if (!config || config.connection_type !== 'printer' || !config.printer_name?.trim()) {
+    return { enabled: false, printerName: null, defaultChecked: false }
+  }
+  return {
+    enabled: true,
+    printerName: config.printer_name.trim(),
+    defaultChecked: config.print_receipt_enabled ?? false,
+  }
 }
 
 /**
@@ -106,11 +134,27 @@ export async function listPrinters(): Promise<
 }
 
 /**
- * Test open cash drawer with a given config (e.g. from settings form).
- * Does not require the config to be saved.
+ * Print test: open cash drawer and, for printer connection, print a sample receipt.
+ * Used by the "Print test" button in settings.
  */
+export async function testPrint(config: CashDrawerConfig): Promise<boolean> {
+  const opened = await sendOpenCashDrawerCommand(config)
+  if (!opened) return false
+
+  if (config.connection_type === 'printer' && config.printer_name?.trim()) {
+    try {
+      await printSampleReceipt(config.printer_name.trim())
+    } catch (error) {
+      console.error('Sample receipt print failed:', error)
+      toast.error(i18n.t('settings.cashDrawer.printTestFailed') || 'Cash drawer opened but sample receipt failed to print.')
+    }
+  }
+  return true
+}
+
+/** @deprecated Use testPrint instead. */
 export async function testOpenCashDrawer(config: CashDrawerConfig): Promise<boolean> {
-  return sendOpenCashDrawerCommand(config)
+  return testPrint(config)
 }
 
 /**
@@ -156,10 +200,6 @@ async function sendOpenCashDrawerCommand(config: CashDrawerConfig): Promise<bool
   const command = new Uint8Array([0x1B, 0x70, 0x00, 0x0A, 0x0A])
   const altCommand = new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA])
 
-  // Sample text for verification (ESC/POS: init + "SofiaPOS - Cash drawer test" + line feeds)
-  const sampleText = new TextEncoder().encode('SofiaPOS - Cash drawer test\n\n')
-  const samplePrintCommand = new Uint8Array([0x1B, 0x40, ...sampleText]) // ESC @ = initialize
-
   const sendViaPrinter = async (cmd: Uint8Array) => {
     if (!(window as any).electronAPI?.printers || !config.printer_name) {
       throw new Error('Printer not configured')
@@ -178,9 +218,6 @@ async function sendOpenCashDrawerCommand(config: CashDrawerConfig): Promise<bool
 
   try {
     await sendCommand(command)
-    if (connectionType === 'printer') {
-      await sendViaPrinter(samplePrintCommand)
-    }
     return true
   } catch (error) {
     console.error('Failed to open cash drawer:', error)

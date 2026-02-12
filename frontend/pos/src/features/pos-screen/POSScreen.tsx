@@ -12,13 +12,15 @@ import { POSLayout } from '@/components/layout/POSLayout'
 import { ProductSelectionPanel } from '@/components/product-selection/ProductSelectionPanel'
 import { OrderDetailsPanel } from '@/components/order/OrderDetailsPanel'
 import { PaymentScreen } from '@/components/payment/PaymentScreen'
+import { PaymentConfirmationDialog } from '@/components/payment/PaymentConfirmationDialog'
 import { useOrderManagementContext } from '@/contexts/OrderManagementContext'
 import { useShiftContext } from '@/contexts/ShiftContext'
 import { useProductSelection } from '@/hooks/useProductSelection'
 import { toast } from 'react-toastify'
 import { useTranslation } from '@/i18n/hooks'
 import { getRegistration } from '@/utils/registration'
-import { openCashDrawer } from '@/services/cashDrawer'
+import { openCashDrawer, getPrintReceiptConfig } from '@/services/cashDrawer'
+import { printReceipt } from '@/services/receiptPrint'
 
 export function POSScreen() {
   // Get store ID from registration
@@ -27,6 +29,12 @@ export function POSScreen() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [showPaymentScreen, setShowPaymentScreen] = useState(false)
+  const [showPaymentConfirmationDialog, setShowPaymentConfirmationDialog] = useState(false)
+  const [paymentConfirmationData, setPaymentConfirmationData] = useState<{
+    total: number
+    tenderedAmount: number
+    change: number
+  } | null>(null)
   const { clearSearch } = useProductSelection()
   
   const { hasOpenShift, isLoading: shiftLoading } = useShiftContext()
@@ -75,29 +83,55 @@ export function POSScreen() {
     setShowPaymentScreen(true)
   }
 
-  const handleProcessPayment = async (paymentMethod: 'cash' | 'bank_transfer', amountPaid: number, shiftId: number | null) => {
+  const handleProcessPayment = async (
+    paymentMethod: 'cash' | 'bank_transfer',
+    amountPaid: number,
+    shiftId: number | null
+  ) => {
     try {
-      // ALWAYS save locally first (for performance, even when online)
       await markAsPaid(paymentMethod, amountPaid, shiftId)
-      
-      // Open cash drawer if payment is cash
+
       if (paymentMethod === 'cash') {
         await openCashDrawer()
       }
-      
-      // toast.success(t('payment.processPayment') || 'Payment processed successfully')
-      setShowPaymentScreen(false)
-      clearOrder()
-      clearSearch() // Clear product selection search
-      // Refresh orders list
-      refetchOrders()
-      // Switch to cash register if order was from a table
-      if (order?.tableId) {
-        switchToCashRegister()
-      }
+
+      const change = amountPaid - totals.total
+      setPaymentConfirmationData({
+        total: totals.total,
+        tenderedAmount: amountPaid,
+        change,
+      })
+      setShowPaymentConfirmationDialog(true)
     } catch (error) {
       toast.error(t('common.error') || 'Error processing payment')
       console.error('Payment error:', error)
+    }
+  }
+
+  const handlePaymentConfirmationAccept = async (shouldPrintReceipt: boolean) => {
+    try {
+      if (shouldPrintReceipt && order) {
+        try {
+          const config = await getPrintReceiptConfig()
+          if (config.enabled && config.printerName) {
+            await printReceipt(order, totals, config.printerName)
+            toast.success(t('payment.printReceiptSuccess') || 'Receipt printed')
+          }
+        } catch (printError) {
+          console.error('Receipt print failed:', printError)
+          toast.error(t('payment.printReceiptError') || 'Failed to print receipt.')
+        }
+      }
+    } finally {
+      setShowPaymentConfirmationDialog(false)
+      setPaymentConfirmationData(null)
+      setShowPaymentScreen(false)
+      clearOrder()
+      clearSearch()
+      refetchOrders()
+      if (order?.tableId) {
+        switchToCashRegister()
+      }
     }
   }
 
@@ -156,6 +190,15 @@ export function POSScreen() {
         onProcessPayment={handleProcessPayment}
         onPrintReceipt={handlePrintReceipt}
       />
+      {paymentConfirmationData && (
+        <PaymentConfirmationDialog
+          isOpen={showPaymentConfirmationDialog}
+          total={paymentConfirmationData.total}
+          tenderedAmount={paymentConfirmationData.tenderedAmount}
+          change={paymentConfirmationData.change}
+          onAccept={handlePaymentConfirmationAccept}
+        />
+      )}
     </POSLayout>
   )
 }
