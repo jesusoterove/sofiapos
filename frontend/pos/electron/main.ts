@@ -3,9 +3,13 @@
  * Handles window creation and application lifecycle.
  * This file is compiled to CommonJS by esbuild.
  */
-import { app, BrowserWindow, ipcMain, shell, globalShortcut } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import * as path from 'path'
+import { spawnSync } from 'child_process'
+import { writeFileSync, unlinkSync } from 'fs'
+import { tmpdir } from 'os'
+import { SerialPort } from 'serialport'
 import { pathToFileURL } from 'url'
 import { existsSync } from 'fs'
 
@@ -261,5 +265,149 @@ ipcMain.handle('install-update', async () => {
   } catch (error: any) {
     console.error('[IPC] Error installing update:', error)
     return { success: false, error: error.message || 'Failed to install update' }
+  }
+})
+
+// Serial port handlers for cash drawer
+ipcMain.handle('serial-list-ports', async () => {
+  try {
+    const ports = await SerialPort.list()
+    return ports.map((p) => ({
+      path: p.path,
+      manufacturer: p.manufacturer,
+      serialNumber: p.serialNumber,
+      vendorId: p.vendorId,
+      productId: p.productId,
+      pnpId: p.pnpId,
+    }))
+  } catch (error: any) {
+    console.error('[IPC] Error listing serial ports:', error)
+    throw error
+  }
+})
+
+ipcMain.handle('serial-write', async (_event, portPath: string, baudRate: number, data: Uint8Array) => {
+  return new Promise<void>((resolve, reject) => {
+    const port = new SerialPort({
+      path: portPath,
+      baudRate,
+      autoOpen: false,
+    })
+
+    port.open((err) => {
+      if (err) {
+        port.destroy()
+        reject(err)
+        return
+      }
+
+      const buffer = Buffer.from(data)
+      port.write(buffer, (writeErr) => {
+        port.close((closeErr) => {
+          port.destroy()
+          if (writeErr) {
+            reject(writeErr)
+          } else if (closeErr) {
+            reject(closeErr)
+          } else {
+            resolve()
+          }
+        })
+      })
+    })
+  })
+})
+
+// Printer handlers for cash drawer (POS printers)
+// Primary: @thesusheer/electron-printer (N-API, Electron-compatible)
+// Fallback: Electron's getPrintersAsync when native module fails to load
+ipcMain.handle('printer-list-printers', async () => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const electronPrinter = require('@thesusheer/electron-printer')
+    const printers = electronPrinter.getPrinters() || []
+    return printers.map((p: { name?: string; displayName?: string; description?: string; status?: number }) => ({
+      name: p.name || '',
+      displayName: p.displayName || p.name || '',
+      description: p.description || '',
+      status: p.status ?? 0,
+    }))
+  } catch {
+    // Native module failed (e.g. missing prebuild) - use Electron's built-in API
+    const win = mainWindow || BrowserWindow.getAllWindows()[0]
+    if (!win?.webContents) return []
+    const printers = await win.webContents.getPrintersAsync()
+    return printers.map((p) => ({
+      name: p.name,
+      displayName: p.displayName || p.name,
+      description: p.description || '',
+      status: p.status,
+    }))
+  }
+})
+
+ipcMain.handle('printer-send-raw', async (_event, printerName: string, data: Uint8Array) => {
+  const buffer = Buffer.from(data)
+
+  // Path A: @thesusheer/electron-printer (N-API, Electron-compatible, prebuilds)
+  let electronPrinter: { printDirect: (opts: any) => void } | null = null
+  try {
+    electronPrinter = require('@thesusheer/electron-printer')
+  } catch {
+    // Module failed to load - fallback to external script
+  }
+
+  if (electronPrinter) {
+    return new Promise<void>((resolve, reject) => {
+      electronPrinter!.printDirect({
+        data: buffer,
+        printer: printerName,
+        type: 'RAW',
+        docname: 'SofiaPOS',
+        success: () => resolve(),
+        error: (err: Error) => reject(err),
+      })
+    })
+  }
+
+  // Fallback: use external script (PowerShell on Windows, Node on macOS/Linux)
+  // Windows: PowerShell + Win32 API (no native addons)
+  // macOS/Linux: Node + printer module (requires scripts/node_modules)
+  const appPath = app.getAppPath()
+  const isDev = !app.isPackaged
+  const scriptsDir = isDev
+    ? path.join(appPath, 'scripts')
+    : path.join(process.resourcesPath, 'scripts')
+
+  const tmpFile = path.join(tmpdir(), `sofiapos-${Date.now()}-raw.bin`)
+  const spawnOpts: Record<string, unknown> = {
+    encoding: 'utf8',
+    timeout: 10000,
+  }
+
+  try {
+    writeFileSync(tmpFile, Buffer.from(data))
+    let result: ReturnType<typeof spawnSync>
+    if (process.platform === 'win32') {
+      const psScript = path.join(scriptsDir, 'print-raw.ps1')
+      result = spawnSync(
+        'powershell',
+        ['-ExecutionPolicy', 'Bypass', '-File', psScript, '-PrinterName', printerName, '-DataFilePath', tmpFile],
+        spawnOpts
+      )
+    } else {
+      const scriptPath = path.join(scriptsDir, 'print-raw.cjs')
+      result = spawnSync('node', [scriptPath, printerName, tmpFile], { ...spawnOpts, cwd: scriptsDir })
+    }
+    if (result.status !== 0) {
+      const errMsg = typeof result.stderr === 'string' ? result.stderr : result.stderr?.toString() || result.error?.message || 'Print failed'
+      throw new Error(errMsg)
+    }
+  } finally {
+    try {
+      unlinkSync(tmpFile)
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 })

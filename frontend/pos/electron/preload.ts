@@ -44,6 +44,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Platform info
   platform: process.platform,
   
+  // Serial port (cash drawer)
+  serial: {
+    listPorts: () => ipcRenderer.invoke('serial-list-ports'),
+    write: (portPath: string, baudRate: number, data: Uint8Array) =>
+      ipcRenderer.invoke('serial-write', portPath, baudRate, data),
+  },
+
+  // Printers (cash drawer via POS printer)
+  printers: {
+    list: () => ipcRenderer.invoke('printer-list-printers'),
+    sendRaw: (printerName: string, data: Uint8Array) =>
+      ipcRenderer.invoke('printer-send-raw', printerName, data),
+  },
+  
   // Window controls (if needed)
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),
@@ -67,6 +81,14 @@ declare global {
       onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => void
       removeAllListeners: (channel: string) => void
       platform: string
+      serial: {
+        listPorts: () => Promise<Array<{ path: string; manufacturer?: string; vendorId?: string; productId?: string; serialNumber?: string }>>
+        write: (portPath: string, baudRate: number, data: Uint8Array) => Promise<void>
+      }
+      printers: {
+        list: () => Promise<Array<{ name: string; displayName: string; description: string; status: number }>>
+        sendRaw: (printerName: string, data: Uint8Array) => Promise<void>
+      }
       minimize: () => void
       maximize: () => void
       close: () => void

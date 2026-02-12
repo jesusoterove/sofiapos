@@ -33,6 +33,14 @@ declare global {
       onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => void
       removeAllListeners: (channel: string) => void
       platform: string
+      serial?: {
+        listPorts: () => Promise<Array<{ path: string; manufacturer?: string; vendorId?: string; productId?: string; serialNumber?: string }>>
+        write: (portPath: string, baudRate: number, data: Uint8Array) => Promise<void>
+      }
+      printers?: {
+        list: () => Promise<Array<{ name: string; displayName: string; description: string; status: number }>>
+        sendRaw: (printerName: string, data: Uint8Array) => Promise<void>
+      }
       minimize: () => void
       maximize: () => void
       close: () => void

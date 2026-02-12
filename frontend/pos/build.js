@@ -24,7 +24,7 @@ async function buildElectron() {
       platform: 'node',
       target: 'node18',
       outfile: path.join(__dirname, 'dist-electron/main.cjs'),
-      external: ['electron'],
+      external: ['electron', 'serialport', '@thesusheer/electron-printer'],
       format: 'cjs',
       sourcemap: true,
       banner: {

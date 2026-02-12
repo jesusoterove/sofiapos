@@ -14,6 +14,8 @@
     "dev:console": "cd console && npm run dev",
     "build:pos": "cd pos && npm run build",
     "dev:pos": "cd pos && npm run dev"
+  },
+  "dependencies": {
+    "@thesusheer/electron-printer": "^2.0.4"
   }
 }
-

@@ -2355,7 +2355,7 @@ var require_jsonfile = __commonJS({
       await universalify.fromCallback(fs.writeFile)(file, str, options);
     }
     var writeFile = universalify.fromPromise(_writeFile);
-    function writeFileSync(file, obj, options = {}) {
+    function writeFileSync2(file, obj, options = {}) {
       const fs = options.fs || _fs;
       const str = stringify(obj, options);
       return fs.writeFileSync(file, str, options);
@@ -2364,7 +2364,7 @@ var require_jsonfile = __commonJS({
       readFile,
       readFileSync,
       writeFile,
-      writeFileSync
+      writeFileSync: writeFileSync2
     };
   }
 });
@@ -15101,8 +15101,12 @@ var require_main2 = __commonJS({
 var import_electron = require("electron");
 var import_electron_updater = __toESM(require_main2(), 1);
 var path = __toESM(require("path"), 1);
-var import_url = require("url");
+var import_child_process = require("child_process");
 var import_fs = require("fs");
+var import_os = require("os");
+var import_serialport = require("serialport");
+var import_url = require("url");
+var import_fs2 = require("fs");
 var mainWindow = null;
 var isDev = process.env.NODE_ENV === "development" || !import_electron.app.isPackaged;
 import_electron_updater.autoUpdater.autoDownload = false;
@@ -15179,7 +15183,7 @@ function createWindow() {
     preloadPath = path.join(__dirname, "preload.cjs");
     indexPath = "http://localhost:5173";
     const iconPathDev = path.join(__dirname, "..", "build", "icon.png");
-    iconPath = (0, import_fs.existsSync)(iconPathDev) ? iconPathDev : "";
+    iconPath = (0, import_fs2.existsSync)(iconPathDev) ? iconPathDev : "";
   } else {
     preloadPath = path.join(appPath, "dist-electron", "preload.cjs");
     indexPath = path.join(appPath, "dist", "index.html");
@@ -15201,7 +15205,7 @@ function createWindow() {
     show: false
     // Don't show until ready
   };
-  if (iconPath && (0, import_fs.existsSync)(iconPath)) {
+  if (iconPath && (0, import_fs2.existsSync)(iconPath)) {
     windowOptions.icon = iconPath;
   }
   mainWindow = new import_electron.BrowserWindow(windowOptions);
@@ -15287,6 +15291,126 @@ import_electron.ipcMain.handle("install-update", async () => {
   } catch (error) {
     console.error("[IPC] Error installing update:", error);
     return { success: false, error: error.message || "Failed to install update" };
+  }
+});
+import_electron.ipcMain.handle("serial-list-ports", async () => {
+  try {
+    const ports = await import_serialport.SerialPort.list();
+    return ports.map((p) => ({
+      path: p.path,
+      manufacturer: p.manufacturer,
+      serialNumber: p.serialNumber,
+      vendorId: p.vendorId,
+      productId: p.productId,
+      pnpId: p.pnpId
+    }));
+  } catch (error) {
+    console.error("[IPC] Error listing serial ports:", error);
+    throw error;
+  }
+});
+import_electron.ipcMain.handle("serial-write", async (_event, portPath, baudRate, data) => {
+  return new Promise((resolve, reject) => {
+    const port = new import_serialport.SerialPort({
+      path: portPath,
+      baudRate,
+      autoOpen: false
+    });
+    port.open((err) => {
+      if (err) {
+        port.destroy();
+        reject(err);
+        return;
+      }
+      const buffer = Buffer.from(data);
+      port.write(buffer, (writeErr) => {
+        port.close((closeErr) => {
+          port.destroy();
+          if (writeErr) {
+            reject(writeErr);
+          } else if (closeErr) {
+            reject(closeErr);
+          } else {
+            resolve();
+          }
+        });
+      });
+    });
+  });
+});
+import_electron.ipcMain.handle("printer-list-printers", async () => {
+  try {
+    const electronPrinter = require("@thesusheer/electron-printer");
+    const printers = electronPrinter.getPrinters() || [];
+    return printers.map((p) => ({
+      name: p.name || "",
+      displayName: p.displayName || p.name || "",
+      description: p.description || "",
+      status: p.status ?? 0
+    }));
+  } catch {
+    const win = mainWindow || import_electron.BrowserWindow.getAllWindows()[0];
+    if (!win?.webContents)
+      return [];
+    const printers = await win.webContents.getPrintersAsync();
+    return printers.map((p) => ({
+      name: p.name,
+      displayName: p.displayName || p.name,
+      description: p.description || "",
+      status: p.status
+    }));
+  }
+});
+import_electron.ipcMain.handle("printer-send-raw", async (_event, printerName, data) => {
+  const buffer = Buffer.from(data);
+  let electronPrinter = null;
+  try {
+    electronPrinter = require("@thesusheer/electron-printer");
+  } catch {
+  }
+  if (electronPrinter) {
+    return new Promise((resolve, reject) => {
+      electronPrinter.printDirect({
+        data: buffer,
+        printer: printerName,
+        type: "RAW",
+        docname: "SofiaPOS",
+        success: () => resolve(),
+        error: (err) => reject(err)
+      });
+    });
+  }
+  const appPath = import_electron.app.getAppPath();
+  const isDev2 = !import_electron.app.isPackaged;
+  const scriptsDir = isDev2 ? path.join(appPath, "scripts") : path.join(process.resourcesPath, "scripts");
+  const tmpFile = path.join((0, import_os.tmpdir)(), `sofiapos-${Date.now()}-raw.bin`);
+  const spawnOpts = {
+    encoding: "utf8",
+    timeout: 1e4
+  };
+  try {
+    (0, import_fs.writeFileSync)(tmpFile, Buffer.from(data));
+    let result;
+    if (process.platform === "win32") {
+      const psScript = path.join(scriptsDir, "print-raw.ps1");
+      result = (0, import_child_process.spawnSync)(
+        "powershell",
+        ["-ExecutionPolicy", "Bypass", "-File", psScript, "-PrinterName", printerName, "-DataFilePath", tmpFile],
+        spawnOpts
+      );
+    } else {
+      const scriptPath = path.join(scriptsDir, "print-raw.cjs");
+      result = (0, import_child_process.spawnSync)("node", [scriptPath, printerName, tmpFile], { ...spawnOpts, cwd: scriptsDir });
+    }
+    if (result.status !== 0) {
+      const errMsg = typeof result.stderr === "string" ? result.stderr : result.stderr?.toString() || result.error?.message || "Print failed";
+      throw new Error(errMsg);
+    }
+  } finally {
+    try {
+      (0, import_fs.unlinkSync)(tmpFile);
+    } catch {
+    }
   }
 });
 /*! Bundled license information:

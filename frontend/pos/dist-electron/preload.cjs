@@ -37,6 +37,16 @@ import_electron.contextBridge.exposeInMainWorld("electronAPI", {
   },
   // Platform info
   platform: process.platform,
+  // Serial port (cash drawer)
+  serial: {
+    listPorts: () => import_electron.ipcRenderer.invoke("serial-list-ports"),
+    write: (portPath, baudRate, data) => import_electron.ipcRenderer.invoke("serial-write", portPath, baudRate, data)
+  },
+  // Printers (cash drawer via POS printer)
+  printers: {
+    list: () => import_electron.ipcRenderer.invoke("printer-list-printers"),
+    sendRaw: (printerName, data) => import_electron.ipcRenderer.invoke("printer-send-raw", printerName, data)
+  },
   // Window controls (if needed)
   minimize: () => import_electron.ipcRenderer.send("window-minimize"),
   maximize: () => import_electron.ipcRenderer.send("window-maximize"),

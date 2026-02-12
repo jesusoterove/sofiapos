@@ -5,7 +5,15 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, Input, Button } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
-import { getCashDrawerConfig, saveCashDrawerConfig, listSerialPorts, type CashDrawerConfig } from '@/services/cashDrawer'
+import {
+  getCashDrawerConfig,
+  saveCashDrawerConfig,
+  testOpenCashDrawer,
+  listSerialPorts,
+  listPrinters,
+  type CashDrawerConfig,
+  type CashDrawerConnectionType,
+} from '@/services/cashDrawer'
 import { useUpdate } from '@/contexts/UpdateContext'
 import { toast } from 'react-toastify'
 import { FaSync, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa'
@@ -19,41 +27,86 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
   const { t } = useTranslation()
   const { status, updateInfo, downloadProgress, error, checkForUpdates, currentVersion, isElectron } = useUpdate()
   const [isLoading, setIsLoading] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
   const [isLoadingPorts, setIsLoadingPorts] = useState(false)
-  const [availablePorts, setAvailablePorts] = useState<Array<{ path: string; manufacturer?: string }>>([])
+  const [isLoadingPrinters, setIsLoadingPrinters] = useState(false)
+  const [availablePorts, setAvailablePorts] = useState<
+    Array<{ path: string; manufacturer?: string; vendorId?: string; productId?: string; serialNumber?: string }>
+  >([])
+  const [availablePrinters, setAvailablePrinters] = useState<
+    Array<{ name: string; displayName: string; description: string; status: number }>
+  >([])
+  const [useCustomPort, setUseCustomPort] = useState(false)
   const [config, setConfig] = useState<CashDrawerConfig>({
     device_name: '',
+    connection_type: 'printer',
+    printer_name: '',
     port_path: '',
     baud_rate: 9600,
     is_active: true,
   })
+  const [initialConfig, setInitialConfig] = useState<CashDrawerConfig | null>(null)
   const [activeTab, setActiveTab] = useState<'cashDrawer' | 'updates'>('cashDrawer')
 
-  // Load existing config and available ports when dialog opens
+  // Load existing config and available devices when dialog opens
   useEffect(() => {
     if (isOpen) {
       loadConfig()
+      loadAvailablePrinters()
       loadAvailablePorts()
     }
   }, [isOpen])
+
+  // When loaded config has a port not in the list (e.g. virtual printer), switch to custom mode
+  useEffect(() => {
+    if (isOpen && config.port_path && availablePorts.length > 0 && !availablePorts.some((p) => p.path === config.port_path)) {
+      setUseCustomPort(true)
+    }
+  }, [isOpen, config.port_path, availablePorts])
 
   const loadConfig = async () => {
     try {
       const existingConfig = await getCashDrawerConfig()
       if (existingConfig) {
-        setConfig(existingConfig)
+        // Migrate legacy configs: port_path without connection_type -> serial
+        const migrated: CashDrawerConfig = {
+          ...existingConfig,
+          connection_type:
+            existingConfig.connection_type ??
+            (existingConfig.port_path ? ('serial' as CashDrawerConnectionType) : ('printer' as CashDrawerConnectionType)),
+        }
+        setConfig(migrated)
+        setInitialConfig(migrated)
+        setUseCustomPort(false)
       } else {
-        // Reset to defaults if no config exists
-        setConfig({
+        const defaults = {
           device_name: '',
+          connection_type: 'printer' as CashDrawerConnectionType,
+          printer_name: '',
           port_path: '',
           baud_rate: 9600,
           is_active: true,
-        })
+        }
+        setConfig(defaults)
+        setInitialConfig(null)
       }
     } catch (error) {
       console.error('Failed to load cash drawer config:', error)
       toast.error(t('settings.loadConfigError') || 'Failed to load configuration')
+    }
+  }
+
+  const loadAvailablePrinters = async () => {
+    if (!isElectron) return
+    setIsLoadingPrinters(true)
+    try {
+      const printers = await listPrinters()
+      setAvailablePrinters(printers)
+    } catch (error) {
+      console.error('Failed to list printers:', error)
+      toast.error(t('settings.loadPrintersError') || 'Failed to load available printers')
+    } finally {
+      setIsLoadingPrinters(false)
     }
   }
 
@@ -75,26 +128,38 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     setIsLoading(true)
 
     try {
-      // Validate required fields
-      if (!config.device_name.trim()) {
-        toast.error(t('settings.deviceNameRequired') || 'Device name is required')
-        setIsLoading(false)
-        return
+      if (config.connection_type === 'printer') {
+        if (!config.printer_name?.trim()) {
+          toast.error(t('settings.cashDrawer.printerRequired') || 'Please select a printer.')
+          setIsLoading(false)
+          return
+        }
+        await saveCashDrawerConfig({
+          ...config,
+          device_name: config.device_name || config.printer_name || 'Cash Drawer',
+          printer_name: config.printer_name.trim(),
+          port_path: undefined,
+        })
+      } else {
+        const portPath = (config.port_path ?? '').trim()
+        if (!portPath) {
+          toast.error(t('settings.portPathRequired') || 'Port path is required')
+          setIsLoading(false)
+          return
+        }
+        if (!config.baud_rate || config.baud_rate <= 0) {
+          toast.error(t('settings.baudRateRequired') || 'Baud rate must be greater than 0')
+          setIsLoading(false)
+          return
+        }
+        await saveCashDrawerConfig({
+          ...config,
+          device_name: config.device_name || config.port_path || 'Cash Drawer',
+          port_path: portPath,
+          printer_name: undefined,
+        })
       }
 
-      if (!config.port_path.trim()) {
-        toast.error(t('settings.portPathRequired') || 'Port path is required')
-        setIsLoading(false)
-        return
-      }
-
-      if (!config.baud_rate || config.baud_rate <= 0) {
-        toast.error(t('settings.baudRateRequired') || 'Baud rate must be greater than 0')
-        setIsLoading(false)
-        return
-      }
-
-      await saveCashDrawerConfig(config)
       toast.success(t('settings.saveSuccess') || 'Settings saved successfully')
       onClose()
     } catch (error) {
@@ -104,6 +169,18 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       setIsLoading(false)
     }
   }
+
+  const isConfigValid = !!(
+    config.connection_type === 'printer' ? config.printer_name?.trim() : (config.port_path ?? '').trim()
+  )
+
+  const hasChanges =
+    !initialConfig ||
+    config.connection_type !== initialConfig.connection_type ||
+    config.printer_name !== (initialConfig.printer_name ?? '') ||
+    config.port_path !== (initialConfig.port_path ?? '') ||
+    config.baud_rate !== initialConfig.baud_rate ||
+    config.is_active !== initialConfig.is_active
 
   const handleClose = () => {
     if (!isLoading) {
@@ -115,12 +192,28 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     await checkForUpdates()
   }
 
+  const handleTestOpenCashDrawer = async () => {
+    if (!isConfigValid) return
+    setIsTesting(true)
+    try {
+      const testConfig: CashDrawerConfig = {
+        ...config,
+        device_name: config.device_name || 'Cash Drawer',
+        port_path: config.connection_type === 'serial' ? (config.port_path ?? '').trim() : undefined,
+        printer_name: config.connection_type === 'printer' ? config.printer_name?.trim() : undefined,
+      }
+      await testOpenCashDrawer(testConfig)
+    } finally {
+      setIsTesting(false)
+    }
+  }
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
       title={t('settings.title') || 'Settings'}
-      size="md"
+      size="lg"
     >
       <div className="space-y-4">
         {/* Tabs */}
@@ -165,66 +258,175 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             </h3>
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label={t('settings.cashDrawer.deviceName') || 'Device Name'}
-              type="text"
-              value={config.device_name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, device_name: e.target.value })}
-              required
-              disabled={isLoading}
-              placeholder={t('settings.cashDrawer.deviceNamePlaceholder') || 'e.g., Epson TM-T20'}
-            />
-
+            {/* Connection type */}
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
-                {t('settings.cashDrawer.portPath') || 'Port Path'}
+                {t('settings.cashDrawer.connectionType') || 'Connection Type'}
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={config.port_path}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setConfig({ ...config, port_path: e.target.value })}
-                  disabled={isLoading || isLoadingPorts}
-                  required
-                  className="flex-1 px-3 py-2 border rounded"
-                  style={{
-                    borderColor: 'var(--color-border-default)',
-                    backgroundColor: 'var(--color-bg-default)',
-                    color: 'var(--color-text-primary)',
-                  }}
-                >
-                  <option value="">{t('settings.cashDrawer.selectPort') || 'Select a port...'}</option>
-                  {availablePorts.map((port) => (
-                    <option key={port.path} value={port.path}>
-                      {port.path} {port.manufacturer ? `(${port.manufacturer})` : ''}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={loadAvailablePorts}
-                  disabled={isLoading || isLoadingPorts}
-                >
-                  {isLoadingPorts ? (t('common.loading') || 'Loading...') : (t('settings.cashDrawer.refreshPorts') || 'Refresh')}
-                </Button>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="connection_type"
+                    checked={config.connection_type === 'printer'}
+                    onChange={() => setConfig({ ...config, connection_type: 'printer' })}
+                    disabled={!isElectron}
+                    className="w-4 h-4"
+                  />
+                  <span style={{ color: 'var(--color-text-primary)' }}>
+                    {t('settings.cashDrawer.connectionTypePrinter') || 'POS Printer'}
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="connection_type"
+                    checked={config.connection_type === 'serial'}
+                    onChange={() => setConfig({ ...config, connection_type: 'serial' })}
+                    disabled={!isElectron}
+                    className="w-4 h-4"
+                  />
+                  <span style={{ color: 'var(--color-text-primary)' }}>
+                    {t('settings.cashDrawer.connectionTypeSerial') || 'Serial Port'}
+                  </span>
+                </label>
               </div>
-              {availablePorts.length === 0 && !isLoadingPorts && (
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
-                  {t('settings.cashDrawer.noPortsAvailable') || 'No serial ports available. Make sure your device is connected.'}
-                </p>
-              )}
             </div>
 
-            <Input
-              label={t('settings.cashDrawer.baudRate') || 'Baud Rate'}
-              type="number"
-              value={config.baud_rate}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, baud_rate: parseInt(e.target.value) || 9600 })}
-              required
-              disabled={isLoading}
-              min="1"
-              placeholder="9600"
-            />
+            {/* Printer selection */}
+            {config.connection_type === 'printer' && (
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                  {t('settings.cashDrawer.printer') || 'Printer'}
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={config.printer_name ?? ''}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setConfig({ ...config, printer_name: e.target.value })
+                    }
+                    disabled={isLoading || isLoadingPrinters}
+                    required
+                    className="flex-1 px-3 py-2 border rounded"
+                    style={{
+                      borderColor: 'var(--color-border-default)',
+                      backgroundColor: 'var(--color-bg-default)',
+                      color: 'var(--color-text-primary)',
+                    }}
+                  >
+                    <option value="">{t('settings.cashDrawer.selectPrinter') || 'Select a printer...'}</option>
+                    {availablePrinters.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.displayName || p.name}
+                        {p.description ? ` — ${p.description}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={loadAvailablePrinters}
+                    disabled={isLoading || isLoadingPrinters}
+                  >
+                    {isLoadingPrinters ? (t('common.loading') || 'Loading...') : (t('settings.cashDrawer.refreshPorts') || 'Refresh')}
+                  </Button>
+                </div>
+                {availablePrinters.length === 0 && !isLoadingPrinters && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    {!isElectron
+                      ? (t('settings.cashDrawer.requiresDesktopApp') || 'Cash drawer requires the desktop application.')
+                      : (t('settings.cashDrawer.noPrintersAvailable') || 'No printers found. Install a POS printer or ESC/POS Virtual Printer.')}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Serial port selection */}
+            {config.connection_type === 'serial' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                    {t('settings.cashDrawer.portPath') || 'Port Path'}
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={useCustomPort ? '__custom__' : (config.port_path ?? '')}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                        const val = e.target.value
+                        if (val === '__custom__') {
+                          setUseCustomPort(true)
+                          setConfig({ ...config, port_path: '' })
+                        } else {
+                          setUseCustomPort(false)
+                          setConfig({ ...config, port_path: val })
+                        }
+                      }}
+                      disabled={isLoading || isLoadingPorts}
+                      required={!useCustomPort}
+                      className="flex-1 px-3 py-2 border rounded"
+                      style={{
+                        borderColor: 'var(--color-border-default)',
+                        backgroundColor: 'var(--color-bg-default)',
+                        color: 'var(--color-text-primary)',
+                      }}
+                    >
+                      <option value="">{t('settings.cashDrawer.selectPort') || 'Select a port...'}</option>
+                      {availablePorts.map((port) => {
+                        const parts = [port.path]
+                        if (port.manufacturer) parts.push(port.manufacturer)
+                        if (port.vendorId && port.productId) parts.push(`VID:${port.vendorId} PID:${port.productId}`)
+                        return (
+                          <option key={port.path} value={port.path}>
+                            {parts.join(' — ')}
+                          </option>
+                        )
+                      })}
+                      <option value="__custom__">{t('settings.cashDrawer.enterPortManually') || 'Enter port manually...'}</option>
+                    </select>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={loadAvailablePorts}
+                      disabled={isLoading || isLoadingPorts}
+                    >
+                      {isLoadingPorts ? (t('common.loading') || 'Loading...') : (t('settings.cashDrawer.refreshPorts') || 'Refresh')}
+                    </Button>
+                  </div>
+                  {useCustomPort && (
+                    <Input
+                      type="text"
+                      value={config.port_path ?? ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, port_path: e.target.value })}
+                      placeholder="COM1, COM3, /dev/ttyUSB0..."
+                      disabled={isLoading}
+                      className="mt-2"
+                    />
+                  )}
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                    {t('settings.cashDrawer.portHelp') ||
+                      'Virtual printers often appear as COM ports. Check Device Manager → Ports (COM & LPT) to identify which port is your printer.'}
+                  </p>
+                  {availablePorts.length === 0 && !isLoadingPorts && !useCustomPort && (
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+                      {!isElectron
+                        ? (t('settings.cashDrawer.requiresDesktopApp') || 'Cash drawer requires the desktop application.')
+                        : (t('settings.cashDrawer.noPortsAvailable') || 'No serial ports available. Make sure your device is connected.')}
+                    </p>
+                  )}
+                </div>
+
+                <Input
+                  label={t('settings.cashDrawer.baudRate') || 'Baud Rate'}
+                  type="number"
+                  value={config.baud_rate}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfig({ ...config, baud_rate: parseInt(e.target.value) || 9600 })}
+                  required
+                  disabled={isLoading}
+                  min="1"
+                  placeholder="9600"
+                />
+              </>
+            )}
 
             <div className="flex items-center gap-2">
               <input
@@ -241,6 +443,16 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
+              {isElectron && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleTestOpenCashDrawer}
+                  disabled={isLoading || isTesting || !isConfigValid}
+                >
+                  {isTesting ? (t('common.loading') || 'Loading...') : (t('settings.cashDrawer.testOpen') || 'Test Open Cash Drawer')}
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="secondary"
@@ -252,7 +464,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
               <Button
                 type="submit"
                 variant="primary"
-                disabled={isLoading || !config.device_name.trim() || !config.port_path.trim()}
+                disabled={isLoading || !isConfigValid || !hasChanges}
               >
                 {isLoading ? (t('common.loading') || 'Loading...') : (t('common.save') || 'Save')}
               </Button>
