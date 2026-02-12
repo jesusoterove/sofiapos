@@ -134,6 +134,19 @@
     "confirmationTitle": "Payment Complete",
     "accept": "Accept"
   },
+  "receipt": {
+    "receipt": "Receipt",
+    "date": "Date",
+    "order": "Order",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "total": "Total",
+    "discount": "Discount",
+    "thankYou": "Thank you for your business!",
+    "paymentMethod": "Payment Method",
+    "cash": "Cash",
+    "bankTransfer": "Bank Transfer"
+  },
   "sales": {
     "invoices": "Sales Invoices",
     "invoiceDetails": "Invoice Details",

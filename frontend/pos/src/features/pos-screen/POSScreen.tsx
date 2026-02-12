@@ -34,6 +34,7 @@ export function POSScreen() {
     total: number
     tenderedAmount: number
     change: number
+    paymentMethod: 'cash' | 'bank_transfer'
   } | null>(null)
   const { clearSearch } = useProductSelection()
   
@@ -100,6 +101,7 @@ export function POSScreen() {
         total: totals.total,
         tenderedAmount: amountPaid,
         change,
+        paymentMethod,
       })
       setShowPaymentConfirmationDialog(true)
     } catch (error) {
@@ -110,11 +112,11 @@ export function POSScreen() {
 
   const handlePaymentConfirmationAccept = async (shouldPrintReceipt: boolean) => {
     try {
-      if (shouldPrintReceipt && order) {
+      if (shouldPrintReceipt && order && paymentConfirmationData) {
         try {
           const config = await getPrintReceiptConfig()
           if (config.enabled && config.printerName) {
-            await printReceipt(order, totals, config.printerName)
+            await printReceipt(order, totals, config.printerName, paymentConfirmationData.paymentMethod)
             toast.success(t('payment.printReceiptSuccess') || 'Receipt printed')
           }
         } catch (printError) {

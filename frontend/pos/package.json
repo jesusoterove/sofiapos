@@ -11,7 +11,7 @@
     "build:electron": "npm run build && npm run build:electron:main && electron-builder",
     "build:electron:main": "node build.js",
     "electron:dev": "npm run build:electron:main && concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "npm run build -- --mode prod && npm run build:electron:main && electron-builder",
+    "electron:build": "npm run build -- --mode prod && npm run build:electron:main && cd .. && electron-builder --project pos",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\""
@@ -43,7 +43,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "concurrently": "^8.2.2",
-    "electron": "^28.0.0",
+    "electron": "28.3.3",
     "electron-builder": "^24.9.1",
     "electron-rebuild": "^3.2.9",
     "esbuild": "^0.19.8",
@@ -61,6 +61,7 @@
     "appId": "com.sofiapos.pos",
     "productName": "SofiaPOS",
     "copyright": "Copyright © 2025 SofiaPOS",
+    "npmRebuild": false,
     "directories": {
       "output": "release",
       "buildResources": "build"

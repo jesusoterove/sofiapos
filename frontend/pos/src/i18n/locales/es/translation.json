@@ -134,6 +134,19 @@
     "confirmationTitle": "Pago Completado",
     "accept": "Aceptar"
   },
+  "receipt": {
+    "receipt": "Recibo",
+    "date": "Fecha",
+    "order": "Orden",
+    "subtotal": "Subtotal",
+    "tax": "Impuesto",
+    "total": "Total",
+    "discount": "Descuento",
+    "thankYou": "¡Gracias por su compra!",
+    "paymentMethod": "Método de Pago",
+    "cash": "Efectivo",
+    "bankTransfer": "Transferencia"
+  },
   "sales": {
     "invoices": "Facturas de Venta",
     "invoiceDetails": "Detalles de Factura",

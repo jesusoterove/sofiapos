@@ -2,19 +2,25 @@
  * Receipt printing service for POS printers (ESC/POS).
  */
 import type { Order } from '@/hooks/useOrderManagement'
+import i18n from '@/i18n'
+import { getRegistration } from '@/utils/registration'
 
 const ESC = 0x1b
 const GS = 0x1d
-const FS = 0x1c
 
 /** ESC @ - Initialize printer */
 const CMD_INIT = new Uint8Array([ESC, 0x40])
-/** FS ( C - Select UTF-8 encoding (m=2) for Latin characters like Ñ, á, é */
-const CMD_UTF8 = new Uint8Array([FS, 0x28, 0x43, 0x02, 0x00, 0x30, 0x02])
+// const CMD_UTF8 = new Uint8Array([ESC, 0x74, 0x02])
 /** ESC d n - Print buffer and feed n lines (flush + advance paper to cutter) */
 const CMD_FEED_LINES = (n: number) => new Uint8Array([ESC, 0x64, n])
 /** GS V 0 - Full cut */
 const CMD_CUT = new Uint8Array([GS, 0x56, 0x00])
+/** * Use Code Page 6 for ISO-8859-1 (Latin-1).
+ * If 0x06 doesn't work, try 0x10 (decimal 16) for WPC1252.
+ */
+const CMD_SELECT_CODE_PAGE = new Uint8Array([ESC, 0x74, 0x06]);
+
+const BUSINESS_NAME = 'BUÑUELOS LOCOS'
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -25,51 +31,76 @@ function formatPrice(price: number): string {
   }).format(price)
 }
 
+/** Fixed width for Qty column (right-aligned). */
+const QTY_WIDTH = 4
 /** Fixed width for amount column so all amounts align right (e.g. $1,234.56). */
-const AMOUNT_WIDTH = 12
+const AMOUNT_WIDTH = 10
+/** Receipt width in characters. */
+const WIDTH = 42
+/** Space for description: width - qty - amount. */
+const DESC_WIDTH = WIDTH - QTY_WIDTH - AMOUNT_WIDTH
 
 /**
  * Build ESC/POS receipt content from order and totals.
- * All amounts are right-aligned in the same column.
+ * Format: Description -> Qty -> Total (Qty and Total fixed length, right aligned).
  */
+function centerText(text: string): string {
+  return text.padStart((WIDTH + text.length) / 2)
+}
+
 function buildReceiptText(
   order: Order,
   totals: { subtotal: number; taxes: number; discount: number; total: number },
-  locale: string = 'en-US'
+  paymentMethod: 'cash' | 'bank_transfer'
 ): string {
+  const locale = i18n.language === 'es' ? 'es-ES' : 'en-US'
+  const tr = (key: string) => (i18n.t(`receipt.${key}`) as string) || key
   const lines: string[] = []
-  const width = 42
-  const labelWidth = width - AMOUNT_WIDTH
+  const labelWidth = WIDTH - AMOUNT_WIDTH
 
-  lines.push('='.repeat(width))
-  lines.push('SofiaPOS - Receipt'.padStart((width + 18) / 2))
-  lines.push('='.repeat(width))
-  //lines.push('')
-  lines.push(`Order: ${order.orderNumber}`)
-  lines.push(`Date: ${new Date().toLocaleString(locale)}`)
-  //lines.push('')
-  lines.push('-'.repeat(width))
+  const registration = getRegistration()
+  const address = registration?.storeName || ''
 
+  // Header
+  lines.push('='.repeat(WIDTH))
+  lines.push(centerText(BUSINESS_NAME))
+  lines.push('='.repeat(WIDTH))
+  if (address) {
+    lines.push(centerText(address))
+  }
+  lines.push('-'.repeat(WIDTH))
+
+  // Transaction metadata
+  const receiptLabel = tr('receipt')
+  lines.push(centerText(`${receiptLabel}: #${order.orderNumber}`))
+  lines.push(centerText(new Date().toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })))
+  lines.push('-'.repeat(WIDTH))
+
+  // Itemized details: Description -> Qty -> Total (Qty and Total fixed length, right aligned)
   for (const item of order.items) {
-    const name = item.productName.length > 24 ? item.productName.slice(0, 21) + '...' : item.productName
-    const leftPart = `${item.quantity} x ${name}`
-    const amount = formatPrice(item.total).padStart(AMOUNT_WIDTH)
-    lines.push(leftPart.padEnd(labelWidth) + amount)
+    const desc = item.productName.length > DESC_WIDTH ? item.productName.slice(0, DESC_WIDTH - 3) + '...' : item.productName
+    const qty = String(item.quantity).padStart(QTY_WIDTH)
+    const total = formatPrice(item.total).padStart(AMOUNT_WIDTH)
+    lines.push(desc.padEnd(DESC_WIDTH) + qty + total)
   }
 
-  lines.push('-'.repeat(width))
-  lines.push('Subtotal:'.padEnd(labelWidth) + formatPrice(totals.subtotal).padStart(AMOUNT_WIDTH))
+  // Summary
+  lines.push('-'.repeat(WIDTH))
+  lines.push(tr('subtotal').padEnd(labelWidth) + formatPrice(totals.subtotal).padStart(AMOUNT_WIDTH))
   if (totals.discount > 0) {
-    lines.push('Discount:'.padEnd(labelWidth) + formatPrice(totals.discount).padStart(AMOUNT_WIDTH))
+    lines.push(tr('discount').padEnd(labelWidth) + formatPrice(totals.discount).padStart(AMOUNT_WIDTH))
   }
-  lines.push('Tax:'.padEnd(labelWidth) + formatPrice(totals.taxes).padStart(AMOUNT_WIDTH))
-  //lines.push('')
-  lines.push('TOTAL:'.padEnd(labelWidth) + formatPrice(totals.total).padStart(AMOUNT_WIDTH))
-  //lines.push('')
-  lines.push('='.repeat(width))
-  lines.push('Thank you for your business!')
-  lines.push('='.repeat(width))
-  //Three empty lines so the cut works fine.
+  lines.push(tr('tax').padEnd(labelWidth) + formatPrice(totals.taxes).padStart(AMOUNT_WIDTH))
+  lines.push(tr('total').toUpperCase().padEnd(labelWidth) + formatPrice(totals.total).padStart(AMOUNT_WIDTH))
+  lines.push('-'.repeat(WIDTH))
+
+  // Payment method
+  const paymentLabel = tr('paymentMethod')
+  const paymentValue = paymentMethod === 'cash' ? tr('cash') : tr('bankTransfer')
+  lines.push(centerText(`${paymentLabel}: ${paymentValue}`))
+  lines.push('='.repeat(WIDTH))
+  lines.push(centerText(tr('thankYou')))
+  lines.push('='.repeat(WIDTH))
   lines.push('')
   lines.push('')
 
@@ -82,29 +113,37 @@ function buildReceiptText(
  * Feed lines before cut ensures paper advances to cutter position for reliable cutting.
  */
 function textToEscPos(text: string): Uint8Array {
-  const encoder = new TextEncoder()
-  const textBytes = encoder.encode(text)
-  const feed = CMD_FEED_LINES(4)
-  const totalLength =
-    CMD_INIT.length + CMD_UTF8.length + textBytes.length + feed.length + CMD_CUT.length
-  const result = new Uint8Array(totalLength)
-  let offset = 0
-  result.set(CMD_INIT, offset)
-  offset += CMD_INIT.length
-  result.set(CMD_UTF8, offset)
-  offset += CMD_UTF8.length
-  result.set(textBytes, offset)
-  offset += textBytes.length
-  result.set(feed, offset)
-  offset += feed.length
-  result.set(CMD_CUT, offset)
-  return result
+  // Manually encode to Latin-1 bytes (1 char = 1 byte)
+  const textBytes = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i++) {
+    textBytes[i] = text.charCodeAt(i) & 0xFF; 
+  }
+  
+  const feed = CMD_FEED_LINES(4);
+  const totalLength = 
+    CMD_INIT.length + 
+    CMD_SELECT_CODE_PAGE.length + 
+    textBytes.length + 
+    feed.length + 
+    CMD_CUT.length;
+
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  
+  result.set(CMD_INIT, offset); offset += CMD_INIT.length;
+  result.set(CMD_SELECT_CODE_PAGE, offset); offset += CMD_SELECT_CODE_PAGE.length;
+  result.set(textBytes, offset); offset += textBytes.length;
+  result.set(feed, offset); offset += feed.length;
+  result.set(CMD_CUT, offset);
+  
+  return result;
 }
 
 /**
  * Build and print a sample receipt with 1 item (for printer test).
  */
 export async function printSampleReceipt(printerName: string): Promise<boolean> {
+  const sampleTotals = { subtotal: 2000, taxes: 1, discount: 0, total: 2200 }
   const sampleOrder: Order = {
     id: 0,
     orderNumber: 'TEST-001',
@@ -118,7 +157,7 @@ export async function printSampleReceipt(printerName: string): Promise<boolean> 
         unitPrice: 2000,
         taxRate: 0.1,
         total: 2000,
-        taxAmount: 1,
+        taxAmount: 200,
       },
     ],
     status: 'paid',
@@ -127,8 +166,7 @@ export async function printSampleReceipt(printerName: string): Promise<boolean> 
     discount: 0,
     total: 2200,
   }
-  const totals = { subtotal: 2000, taxes: 1, discount: 0, total: 2200 }
-  return printReceipt(sampleOrder, totals, printerName)
+  return printReceipt(sampleOrder, sampleTotals, printerName, 'cash')
 }
 
 /**
@@ -137,7 +175,8 @@ export async function printSampleReceipt(printerName: string): Promise<boolean> 
 export async function printReceipt(
   order: Order,
   totals: { subtotal: number; taxes: number; discount: number; total: number },
-  printerName: string
+  printerName: string,
+  paymentMethod: 'cash' | 'bank_transfer' = 'cash'
 ): Promise<boolean> {
   if (typeof window === 'undefined' || !(window as any).electronAPI?.printers) {
     console.error('Receipt printing requires Electron environment')
@@ -145,7 +184,7 @@ export async function printReceipt(
   }
 
   try {
-    const receiptText = buildReceiptText(order, totals)
+    const receiptText = buildReceiptText(order, totals, paymentMethod)
     const data = textToEscPos(receiptText)
     await (window as any).electronAPI.printers.sendRaw(printerName, data)
     return true
