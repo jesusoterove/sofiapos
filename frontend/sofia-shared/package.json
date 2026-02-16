@@ -1,0 +1,42 @@
+{
+  "name": "@sofiapos/shared",
+  "version": "0.1.0",
+  "description": "Shared design tokens and utilities for SofiaPOS clients",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "sofiapos",
+    "shared",
+    "theme",
+    "tokens"
+  ],
+  "author": "SofiaPOS",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./theme": {
+      "import": "./dist/theme/index.js",
+      "types": "./dist/theme/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
