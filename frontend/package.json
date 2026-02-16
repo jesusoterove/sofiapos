@@ -5,7 +5,9 @@
   "workspaces": [
     "console",
     "pos",
-    "sofia-ui"
+    "sofia-ui",
+    "mobilepos",
+    "sofia-shared"
   ],
   "scripts": {
     "build:ui": "cd sofia-ui && npm run build",
