@@ -9,7 +9,7 @@ import { useShiftContext } from '@/contexts/ShiftContext'
 import { IconButton } from '@sofiapos/ui'
 import { FaSignOutAlt, FaBox, FaClock, FaFileInvoice, FaHome } from 'react-icons/fa'
 import { ChangeShiftModal } from '@/components/shift/ChangeShiftModal'
-import { formatDateTime } from '@/utils/dateFormat'
+import { formatDateTime, formatTime } from '@sofiapos/shared/utils'
 
 interface TopBarProps {
   onSalesInvoicesClick?: () => void
@@ -43,10 +43,6 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
   }, [])
 
   const isWideScreen = windowWidth >= 1200
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour12: false })
-  }
 
   const handleLogout = () => {
     logout()
@@ -106,7 +102,13 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
           </div>
         )}
         <div className="text-sm font-mono">
-          {formatTime(currentTime)}
+          {formatTime(currentTime, {
+            locale: 'en-US',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+          })}
         </div>
       </div>
 

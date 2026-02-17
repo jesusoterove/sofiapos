@@ -1,0 +1,83 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`theme tokens > matches snapshot 1`] = `
+{
+  "sofia": {
+    "colors": {
+      "background": {
+        "default": "#f8fafc",
+        "gradient": {
+          "from": "#e0f2fe",
+          "to": "#c7d2fe",
+          "via": "#bfdbfe",
+        },
+        "paper": "#ffffff",
+      },
+      "border": {
+        "default": "#e2e8f0",
+        "light": "#f1f5f9",
+      },
+      "primary": {
+        "100": "#dbeafe",
+        "200": "#bfdbfe",
+        "300": "#93c5fd",
+        "400": "#60a5fa",
+        "50": "#eff6ff",
+        "500": "#3b82f6",
+        "600": "#2563eb",
+        "700": "#1d4ed8",
+        "800": "#1e40af",
+        "900": "#1e3a8a",
+      },
+      "text": {
+        "muted": "#94a3b8",
+        "primary": "#0f172a",
+        "secondary": "#334155",
+      },
+    },
+    "displayName": "Sofia Core",
+    "elevation": {
+      "level0": "none",
+      "level1": "0 1px 2px rgba(15, 23, 42, 0.06)",
+      "level2": "0 3px 6px rgba(15, 23, 42, 0.08)",
+      "level3": "0 8px 12px rgba(15, 23, 42, 0.1)",
+      "level4": "0 18px 28px rgba(15, 23, 42, 0.12)",
+    },
+    "name": "sofia",
+    "radii": {
+      "lg": 12,
+      "md": 8,
+      "pill": 999,
+      "sm": 4,
+    },
+    "spacing": {
+      "scale": {
+        "0.5": 2,
+        "2xl": 24,
+        "3xl": 32,
+        "4xl": 40,
+        "5xl": 48,
+        "lg": 16,
+        "md": 12,
+        "none": 0,
+        "sm": 8,
+        "xl": 20,
+        "xs": 4,
+      },
+      "unit": 4,
+    },
+    "typography": {
+      "fontFamily": "Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif",
+      "scale": {
+        "2xl": 24,
+        "3xl": 30,
+        "base": 16,
+        "lg": 18,
+        "sm": 14,
+        "xl": 20,
+        "xs": 12,
+      },
+    },
+  },
+}
+`;

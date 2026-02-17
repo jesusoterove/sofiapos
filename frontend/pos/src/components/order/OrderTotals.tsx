@@ -2,6 +2,7 @@
  * Order totals component.
  */
 import { useTranslation } from '@/i18n/hooks'
+import { formatCurrency } from '@sofiapos/shared/utils'
 
 interface OrderTotalsProps {
   totals: {
@@ -15,12 +16,11 @@ interface OrderTotalsProps {
 export function OrderTotals({ totals }: OrderTotalsProps) {
   const { t } = useTranslation()
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+  const formatPrice = (price: number) =>
+    formatCurrency(price, {
+      locale: 'en-US',
       currency: 'USD',
-    }).format(price)
-  }
+    })
 
   return (
     <div className="space-y-2 pr-10">

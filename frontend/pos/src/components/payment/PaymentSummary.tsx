@@ -3,6 +3,7 @@
  */
 import { Card } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
+import { formatCurrency } from '@sofiapos/shared/utils'
 
 interface PaymentSummaryProps {
   subtotal: number
@@ -21,12 +22,11 @@ export function PaymentSummary({
 }: PaymentSummaryProps) {
   const { t } = useTranslation()
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+  const formatPrice = (price: number) =>
+    formatCurrency(price, {
+      locale: 'en-US',
       currency: 'USD',
-    }).format(price)
-  }
+    })
 
   return (
     <Card padding="md">

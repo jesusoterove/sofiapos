@@ -7,7 +7,7 @@ import { POSLayout } from '@/components/layout/POSLayout'
 import { Card, Button, formatPrice } from '@sofiapos/ui'
 import { useTranslation } from '@/i18n/hooks'
 import { getShiftSummaryForDisplay } from '@/services/shiftSummary'
-import { formatDateTime } from '@/utils/dateFormat'
+import { formatDateTime } from '@sofiapos/shared/utils'
 import { toast } from 'react-toastify'
 
 export function ShiftSummaryPage() {

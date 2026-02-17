@@ -5,6 +5,7 @@ import { Button } from '@sofiapos/ui'
 import { FaMinus, FaPlus, FaTimes } from 'react-icons/fa'
 import { Card } from '@sofiapos/ui'
 import { type OrderItemData } from './QuantityCell'
+import { formatCurrency } from '@sofiapos/shared/utils'
 
 interface OrderItemProps {
   item: OrderItemData
@@ -13,12 +14,11 @@ interface OrderItemProps {
 }
 
 export function OrderItem({ item, onUpdateQuantity, onRemove }: OrderItemProps) {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+  const formatPrice = (price: number) =>
+    formatCurrency(price, {
+      locale: 'en-US',
       currency: 'USD',
-    }).format(price)
-  }
+    })
 
   return (
     <Card padding="sm" className="relative">

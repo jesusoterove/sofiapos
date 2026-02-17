@@ -10,6 +10,8 @@
     "sofia-shared"
   ],
   "scripts": {
+    "build:shared": "cd sofia-shared && npm run build",
+    "dev:shared": "cd sofia-shared && npm run dev",
     "build:ui": "cd sofia-ui && npm run build",
     "dev:ui": "cd sofia-ui && npm run dev",
     "build:console": "cd console && npm run build",

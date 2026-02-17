@@ -16,6 +16,7 @@ import { saveInventoryEntry, saveInventoryEntryDetail } from '@/db/queries/inven
 import { updateShiftSummaryOnInventoryEntry } from '@/services/shiftSummary'
 import { toast } from 'react-toastify'
 import { getRegistration } from '@/utils/registration'
+import { formatDate } from '@sofiapos/shared/utils'
 
 interface InventoryEntryRow {
   id: string
@@ -502,7 +503,7 @@ export function InventoryEntryPage() {
                             {entryData.detail.quantity} {entryData.uofmAbbreviation}
                           </td>
                           <td className="py-0.5 px-3" style={{ color: 'var(--color-text-primary)' }}>
-                            {new Date(entryData.entry.entry_date).toLocaleDateString()}
+                            {formatDate(entryData.entry.entry_date)}
                           </td>
                         </tr>
                       ))}

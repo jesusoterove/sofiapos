@@ -6,6 +6,7 @@ import { openDatabase } from '@/db/indexeddb'
 import { getAllOrders, getOrderItemsByOrderNumber } from '@/db/queries/orders'
 import { useTranslation } from '@/i18n/hooks'
 import { AdvancedDataGrid, AdvancedDataGridColumn, formatPrice } from '@sofiapos/ui'
+import { formatDateTime } from '@sofiapos/shared/utils'
 
 interface Invoice {
   id: string
@@ -77,17 +78,6 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
     }
   }
 
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
   // Handle row click to show invoice details
   const handleRowClick = useCallback((event: any) => {
     const invoice = event.data as Invoice
@@ -109,7 +99,14 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
       field: 'created_at',
       width: 180,
       sortable: true,
-      cellRenderer: (params: any) => formatDateTime(params.value),
+      cellRenderer: (params: any) => formatDateTime(params.value, {
+        locale: 'en-US',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
     },
     {
       headerName: t('common.subtotal') || 'Subtotal',
@@ -194,7 +191,14 @@ export function SalesInvoicesView({ onBack }: { onBack: () => void }) {
               {t('sales.date') || 'Date'}
             </div>
             <div className="text-lg" style={{ color: 'var(--color-text-primary, #111827)' }}>
-              {formatDateTime(selectedInvoice.created_at)}
+              {formatDateTime(selectedInvoice.created_at, {
+                locale: 'en-US',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
             </div>
           </div>
 

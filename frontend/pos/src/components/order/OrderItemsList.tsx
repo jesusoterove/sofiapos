@@ -6,6 +6,7 @@ import { DataGrid, DataGridColumn } from '@sofiapos/ui'
 import { FaTimes } from 'react-icons/fa'
 import { useTranslation } from '@/i18n/hooks'
 import { QuantityCell, type OrderItemData } from './QuantityCell'
+import { formatCurrency } from '@sofiapos/shared/utils'
 
 interface OrderItemsListProps {
   items: OrderItemData[]
@@ -16,12 +17,11 @@ interface OrderItemsListProps {
 export function OrderItemsList({ items, onUpdateQuantity, onRemoveItem }: OrderItemsListProps) {
   const { t } = useTranslation()
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+  const formatPrice = (price: number) =>
+    formatCurrency(price, {
+      locale: 'en-US',
       currency: 'USD',
-    }).format(price)
-  }
+    })
 
   const columns = useMemo<DataGridColumn<OrderItemData>[]>(() => [
     {

@@ -3,6 +3,8 @@
  * Supports multiple color palettes and easy theme switching.
  */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { themeTokens } from '@sofiapos/shared/theme'
+import type { ThemeTokens as SharedThemeTokens } from '@sofiapos/shared/theme'
 
 export interface ThemeColors {
   primary: {
@@ -43,52 +45,18 @@ export interface Theme {
   colors: ThemeColors
 }
 
-// Sunshine theme (yellow palette from login page)
-export const sunshineTheme: Theme = {
-  name: 'sunshine',
-  displayName: 'Sunshine',
-  colors: {
-    primary: {
-      50: '#fffbeb',
-      100: '#fef3c7',
-      200: '#fde68a',
-      300: '#fcd34d',
-      400: '#fbbf24',
-      500: '#f59e0b',
-      600: '#d97706',
-      700: '#b45309',
-      800: '#92400e',
-      900: '#78350f',
-    },
-    background: {
-      default: '#ffffff',
-      paper: '#ffffff',
-      gradient: {
-        from: '#fbbf24', // yellow-400
-        via: '#fde68a', // yellow-300
-        to: '#f59e0b', // yellow-500
-      },
-    },
-    text: {
-      primary: '#111827', // gray-900
-      secondary: '#4b5563', // gray-600
-      muted: '#9ca3af', // gray-400
-    },
-    border: {
-      default: '#e5e7eb', // gray-200
-      light: '#f3f4f6', // gray-100
-    },
-  },
-}
+const buildThemeFromTokens = (tokens: SharedThemeTokens): Theme => ({
+  name: tokens.name,
+  displayName: tokens.displayName,
+  colors: tokens.colors,
+})
 
-// Future themes can be added here
-export const themes: Record<string, Theme> = {
-  sunshine: sunshineTheme,
-  // Add more themes here in the future:
-  // ocean: oceanTheme,
-  // forest: forestTheme,
-  // etc.
-}
+const sharedThemeList = [buildThemeFromTokens(themeTokens.sofia)]
+
+export const themes: Record<string, Theme> = sharedThemeList.reduce((acc, theme) => {
+  acc[theme.name] = theme
+  return acc
+}, {} as Record<string, Theme>)
 
 interface ThemeContextType {
   currentTheme: Theme
@@ -99,13 +67,15 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-const DEFAULT_THEME = 'sunshine'
+const DEFAULT_THEME = sharedThemeList[0]?.name ?? 'default'
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeName, setThemeNameState] = useState<string>(() => {
-    // Load theme from localStorage or use default
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') || DEFAULT_THEME
+      const storedTheme = window.localStorage.getItem('theme')
+      if (storedTheme && themes[storedTheme]) {
+        return storedTheme
+      }
     }
     return DEFAULT_THEME
   })
@@ -117,7 +87,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (themes[newThemeName]) {
       setThemeNameState(newThemeName)
       localStorage.setItem('theme', newThemeName)
-      
       // Apply theme CSS variables to document root
       applyThemeToDocument(themes[newThemeName])
     }
@@ -183,4 +152,3 @@ export function useTheme() {
   }
   return context
 }
-

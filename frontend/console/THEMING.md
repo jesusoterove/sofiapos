@@ -1,6 +1,6 @@
 # Theming System
 
-The Console application uses a flexible theming system that allows for easy customization and theme switching.
+The Console application uses a flexible theming system backed by the shared design tokens exposed by `@sofiapos/shared`.
 
 ## Architecture
 
@@ -9,58 +9,48 @@ The Console application uses a flexible theming system that allows for easy cust
 - **Purpose**: Manages current theme, theme switching, and applies CSS variables
 - **Features**:
   - Theme persistence (localStorage)
-  - Dynamic CSS variable injection
+  - Dynamic CSS variable injection sourced from shared tokens
   - Easy theme switching
 
 ### Theme Definition
-Themes are defined as TypeScript objects with:
+Themes are built from the shared `ThemeTokens` objects and shaped as:
 - `name`: Internal theme identifier
 - `displayName`: User-facing theme name
-- `colors`: Color palette object
+- `colors`: Color palette object (primary/background/text/border)
 
 ## Current Themes
 
-### Sunshine Theme
-The default theme with a vibrant yellow color palette:
-- Primary colors: Yellow shades (50-900)
-- Background: White with yellow gradient
-- Text: Gray shades for readability
-- Borders: Light gray
+### Sofia Core Theme (Shared)
+The default theme is created directly from `themeTokens.sofia` inside `@sofiapos/shared`:
+- Primary colors: Sofia blue palette (50-900)
+- Background: Light surfaces with a blue gradient accent
+- Text: Slate shades for readability
+- Borders: Soft gray for subtle separation
+
+Using the shared source keeps Tailwind, CSS variables, and runtime theme context aligned with the same values consumed by other Sofia clients.
 
 ## Adding a New Theme
 
-1. **Define the theme** in `src/contexts/ThemeContext.tsx`:
+1. **Define the theme** (either by creating new tokens in `@sofiapos/shared` or composing an inline object) in `src/contexts/ThemeContext.tsx`:
 
 ```typescript
-export const oceanTheme: Theme = {
-  name: 'ocean',
-  displayName: 'Ocean',
-  colors: {
-    primary: {
-      50: '#eff6ff',
-      100: '#dbeafe',
-      // ... etc
-    },
-    background: {
-      default: '#ffffff',
-      paper: '#ffffff',
-      gradient: {
-        from: '#3b82f6',
-        via: '#60a5fa',
-        to: '#2563eb',
-      },
-    },
-    // ... rest of colors
-  },
-}
+import { themeTokens, type ThemeTokens } from '@sofiapos/shared/theme'
+
+const buildThemeFromTokens = (tokens: ThemeTokens): Theme => ({
+  name: tokens.name,
+  displayName: tokens.displayName,
+  colors: tokens.colors,
+})
+
+const oceanTheme = buildThemeFromTokens(themeTokens.ocean)
 ```
 
-2. **Register the theme** in the `themes` object:
+2. **Register the theme** in the `themes` map:
 
 ```typescript
 export const themes: Record<string, Theme> = {
-  sunshine: sunshineTheme,
-  ocean: oceanTheme, // Add here
+  [sofiaTheme.name]: sofiaTheme,
+  [oceanTheme.name]: oceanTheme,
 }
 ```
 
@@ -152,7 +142,7 @@ The `ThemeSwitcher` component is available in the header and allows users to swi
 1. **Use CSS variables** when possible for better performance
 2. **Test all themes** when adding new components
 3. **Maintain contrast ratios** for accessibility
-4. **Keep color palettes consistent** across themes
+4. **Keep color palettes consistent** across themes (ideally upstreamed into `@sofiapos/shared`)
 5. **Document theme-specific overrides** in component comments
 
 ## Future Enhancements
@@ -162,4 +152,3 @@ The `ThemeSwitcher` component is available in the header and allows users to swi
 - Theme preview
 - Export/import themes
 - Per-user theme preferences
-

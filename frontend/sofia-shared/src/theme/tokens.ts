@@ -1,42 +1,44 @@
 import type { ThemeTokens } from './types'
 
-export const sunshineTokens: ThemeTokens = {
-  name: 'sunshine',
-  displayName: 'Sunshine',
+const fontStack = 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+
+export const sofiaTokens: ThemeTokens = {
+  name: 'sofia',
+  displayName: 'Sofia Core',
   colors: {
     primary: {
-      50: '#fffbeb',
-      100: '#fef3c7',
-      200: '#fde68a',
-      300: '#fcd34d',
-      400: '#fbbf24',
-      500: '#f59e0b',
-      600: '#d97706',
-      700: '#b45309',
-      800: '#92400e',
-      900: '#78350f',
+      50: '#eff6ff',
+      100: '#dbeafe',
+      200: '#bfdbfe',
+      300: '#93c5fd',
+      400: '#60a5fa',
+      500: '#3b82f6',
+      600: '#2563eb',
+      700: '#1d4ed8',
+      800: '#1e40af',
+      900: '#1e3a8a',
     },
     background: {
-      default: '#ffffff',
+      default: '#f8fafc',
       paper: '#ffffff',
       gradient: {
-        from: '#fbbf24',
-        via: '#fde68a',
-        to: '#f59e0b',
+        from: '#e0f2fe',
+        via: '#bfdbfe',
+        to: '#c7d2fe',
       },
     },
     text: {
-      primary: '#111827',
-      secondary: '#4b5563',
-      muted: '#9ca3af',
+      primary: '#0f172a',
+      secondary: '#334155',
+      muted: '#94a3b8',
     },
     border: {
-      default: '#e5e7eb',
-      light: '#f3f4f6',
+      default: '#e2e8f0',
+      light: '#f1f5f9',
     },
   },
   typography: {
-    fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif',
+    fontFamily: fontStack,
     scale: {
       xs: 12,
       sm: 14,
@@ -51,6 +53,7 @@ export const sunshineTokens: ThemeTokens = {
     unit: 4,
     scale: {
       none: 0,
+      '0.5': 2,
       xs: 4,
       sm: 8,
       md: 12,
@@ -59,14 +62,15 @@ export const sunshineTokens: ThemeTokens = {
       '2xl': 24,
       '3xl': 32,
       '4xl': 40,
+      '5xl': 48,
     },
   },
   elevation: {
     level0: 'none',
-    level1: '0px 1px 2px rgba(15, 23, 42, 0.08)',
-    level2: '0px 4px 6px rgba(15, 23, 42, 0.08)',
-    level3: '0px 10px 15px rgba(15, 23, 42, 0.1)',
-    level4: '0px 20px 25px rgba(15, 23, 42, 0.12)',
+    level1: '0 1px 2px rgba(15, 23, 42, 0.06)',
+    level2: '0 3px 6px rgba(15, 23, 42, 0.08)',
+    level3: '0 8px 12px rgba(15, 23, 42, 0.1)',
+    level4: '0 18px 28px rgba(15, 23, 42, 0.12)',
   },
   radii: {
     sm: 4,
@@ -77,7 +81,7 @@ export const sunshineTokens: ThemeTokens = {
 }
 
 export const themeTokens = {
-  sunshine: sunshineTokens,
+  sofia: sofiaTokens,
 }
 
 export type ThemeName = keyof typeof themeTokens

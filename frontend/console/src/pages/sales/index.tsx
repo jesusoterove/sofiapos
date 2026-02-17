@@ -9,22 +9,7 @@ import { storesApi } from '@/api/stores'
 import { cashRegistersApi } from '@/api/cashRegisters'
 import type { SalesFilterRequest, SalesDetailsRequest, SalesSummaryResponse, SalesDetailsResponse } from '@/types/sales'
 import { AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
-// Date formatting utility
-const formatDateTime = (dateStr: string | null | undefined) => {
-  if (!dateStr) return '-'
-  try {
-    const date = new Date(dateStr)
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return dateStr
-  }
-}
+import { formatCurrency, formatDateTime } from '@sofiapos/shared/utils'
 
 type FilterMode = 'today' | 'yesterday' | 'current_shift' | 'last_shift' | 'last_week' | 'last_month' | 'date_range'
 
@@ -121,14 +106,10 @@ export function Sales() {
     }
   }, [cashRegisterId, filterMode])
 
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
+  const formatCurrencyValue = (amount: number) => formatCurrency(amount, {
+    locale: 'en-US',
+    currency: 'USD',
+  })
 
   // Grid columns
   const columns: AdvancedDataGridColumn[] = [
@@ -156,13 +137,13 @@ export function Sales() {
       headerName: t('sales.cashPaid') || 'Cash Paid',
       field: 'cash_paid',
       width: 120,
-      cellRenderer: (params: any) => formatCurrency(params.value || 0),
+      cellRenderer: (params: any) => formatCurrencyValue(params.value || 0),
     },
     {
       headerName: t('sales.otherPaid') || 'Other Paid',
       field: 'other_paid',
       width: 120,
-      cellRenderer: (params: any) => formatCurrency(params.value || 0),
+      cellRenderer: (params: any) => formatCurrencyValue(params.value || 0),
     },
     {
       headerName: t('sales.date') || 'Date',
@@ -355,7 +336,7 @@ export function Sales() {
                   {t('sales.begBalance') || 'Beg Balance'}:{' '}
                 </span>
                 <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                  {formatCurrency(summaryData.summary.beginning_balance)}
+                  {formatCurrencyValue(summaryData.summary.beginning_balance)}
                 </span>
               </div>
             )}
@@ -364,7 +345,7 @@ export function Sales() {
                 {t('sales.totalSales') || 'Total Sales'}:{' '}
               </span>
               <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                {formatCurrency(summaryData.summary.total_sales)}
+                {formatCurrencyValue(summaryData.summary.total_sales)}
               </span>
             </div>
             {summaryData.summary.payment_methods.map((pm: { payment_method_name: string; payment_method_type: string; total_amount: number }) => (
@@ -373,7 +354,7 @@ export function Sales() {
                   {t('sales.total') || 'Total'} {t(`paymentMethods.${pm.payment_method_type}`) || pm.payment_method_name}:{' '}
                 </span>
                 <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                  {formatCurrency(pm.total_amount)}
+                  {formatCurrencyValue(pm.total_amount)}
                 </span>
               </div>
             ))}

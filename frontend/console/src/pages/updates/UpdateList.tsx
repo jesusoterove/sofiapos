@@ -18,6 +18,7 @@ import { UpdateForm } from '@/components/updates/UpdateForm'
 import { UpdateNotificationDialog } from '@/components/updates/UpdateNotificationDialog'
 import { Button, AdvancedDataGrid, AdvancedDataGridColumn } from '@sofiapos/ui'
 import { FaPlus, FaBell, FaEdit } from 'react-icons/fa'
+import { formatDateTime } from '@sofiapos/shared/utils'
 
 export function UpdateList() {
   const { t } = useTranslation()
@@ -127,20 +128,6 @@ export function UpdateList() {
     return `${mb.toFixed(1)} MB`
   }
 
-  const formatDate = (dateStr: string): string => {
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    } catch {
-      return dateStr
-    }
-  }
-
   const getPlatformLabel = (platform: string): string => {
     const labels: Record<string, string> = {
       win32: 'Windows',
@@ -190,7 +177,16 @@ export function UpdateList() {
       headerName: t('updates.releaseDate') || 'Release Date',
       sortable: true,
       cellRenderer: (params: any) => (
-        <span style={{ color: 'var(--color-text-secondary)' }}>{formatDate(params.value)}</span>
+        <span style={{ color: 'var(--color-text-secondary)' }}>
+          {formatDateTime(params.value, {
+            locale: 'en-US',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </span>
       ),
     },
     {

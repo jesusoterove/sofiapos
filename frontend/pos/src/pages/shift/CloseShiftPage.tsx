@@ -11,6 +11,7 @@ import { useShiftContext } from '@/contexts/ShiftContext'
 import { getRegistration } from '@/utils/registration'
 import { POSLayout } from '@/components/layout/POSLayout'
 import { updateShiftSummaryOnClose } from '@/services/shiftSummary'
+import { formatDate, formatTime } from '@sofiapos/shared/utils'
 
 interface InventoryBalanceRow {
   id: string
@@ -133,17 +134,19 @@ export function CloseShiftPage() {
 
   // Format date/time for display
   const formattedDateTime = useMemo(() => {
-    const date = currentDateTime.toLocaleDateString('es-ES', {
+    const datePart = formatDate(currentDateTime, {
+      locale: 'es-ES',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     })
-    const time = currentDateTime.toLocaleTimeString('es-ES', {
+    const timePart = formatTime(currentDateTime, {
+      locale: 'es-ES',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
     })
-    return `${date} ${time}`
+    return `${datePart} ${timePart}`
   }, [currentDateTime])
 
   const handleSubmit = async (e: React.FormEvent) => {

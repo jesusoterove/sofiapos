@@ -4,6 +4,7 @@
 import type { Order } from '@/hooks/useOrderManagement'
 import i18n from '@/i18n'
 import { getRegistration } from '@/utils/registration'
+import { formatCurrency, formatDateTime } from '@sofiapos/shared/utils'
 
 const ESC = 0x1b
 const GS = 0x1d
@@ -22,13 +23,13 @@ const CMD_SELECT_CODE_PAGE = new Uint8Array([ESC, 0x74, 0x06]);
 
 const BUSINESS_NAME = 'BUÑUELOS LOCOS'
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+function formatPrice(price: number, locale: string): string {
+  return formatCurrency(price, {
+    locale,
     currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(price)
+  })
 }
 
 /** Fixed width for Qty column (right-aligned). */
@@ -73,25 +74,32 @@ function buildReceiptText(
   // Transaction metadata
   const receiptLabel = tr('receipt')
   lines.push(centerText(`${receiptLabel}: #${order.orderNumber}`))
-  lines.push(centerText(new Date().toLocaleString(locale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })))
+  lines.push(centerText(formatDateTime(new Date(), {
+    locale,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })))
   lines.push('-'.repeat(WIDTH))
 
   // Itemized details: Description -> Qty -> Total (Qty and Total fixed length, right aligned)
   for (const item of order.items) {
     const desc = item.productName.length > DESC_WIDTH ? item.productName.slice(0, DESC_WIDTH - 3) + '...' : item.productName
     const qty = String(item.quantity).padStart(QTY_WIDTH)
-    const total = formatPrice(item.total).padStart(AMOUNT_WIDTH)
+    const total = formatPrice(item.total, locale).padStart(AMOUNT_WIDTH)
     lines.push(desc.padEnd(DESC_WIDTH) + qty + total)
   }
 
   // Summary
   lines.push('-'.repeat(WIDTH))
-  lines.push(tr('subtotal').padEnd(labelWidth) + formatPrice(totals.subtotal).padStart(AMOUNT_WIDTH))
+  lines.push(tr('subtotal').padEnd(labelWidth) + formatPrice(totals.subtotal, locale).padStart(AMOUNT_WIDTH))
   if (totals.discount > 0) {
-    lines.push(tr('discount').padEnd(labelWidth) + formatPrice(totals.discount).padStart(AMOUNT_WIDTH))
+    lines.push(tr('discount').padEnd(labelWidth) + formatPrice(totals.discount, locale).padStart(AMOUNT_WIDTH))
   }
-  lines.push(tr('tax').padEnd(labelWidth) + formatPrice(totals.taxes).padStart(AMOUNT_WIDTH))
-  lines.push(tr('total').toUpperCase().padEnd(labelWidth) + formatPrice(totals.total).padStart(AMOUNT_WIDTH))
+  lines.push(tr('tax').padEnd(labelWidth) + formatPrice(totals.taxes, locale).padStart(AMOUNT_WIDTH))
+  lines.push(tr('total').toUpperCase().padEnd(labelWidth) + formatPrice(totals.total, locale).padStart(AMOUNT_WIDTH))
   lines.push('-'.repeat(WIDTH))
 
   // Payment method

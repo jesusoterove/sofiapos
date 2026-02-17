@@ -3,6 +3,7 @@
  */
 import { useTranslation } from '@/i18n/hooks'
 import type { Order } from '@/hooks/useOrderManagement'
+import { formatCurrency } from '@sofiapos/shared/utils'
 
 interface OrderTicketPanelProps {
   order: Order | null
@@ -17,14 +18,13 @@ interface OrderTicketPanelProps {
 export function OrderTicketPanel({ order, totals }: OrderTicketPanelProps) {
   const { t } = useTranslation()
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+  const formatPrice = (price: number) =>
+    formatCurrency(price, {
+      locale: 'en-US',
       currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(price)
-  }
+    })
 
   const orderNumber = order?.orderNumber || '1'
 
