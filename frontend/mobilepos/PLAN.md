@@ -1,5 +1,7 @@
 # Mobile POS App Plan (Updated Feb 16, 2026)
 
+> **Status – Feb 18:** Expo Router scaffold is live with nativewind/tailwind, TanStack Query, Zustand, and i18n providers wired to `@sofiapos/shared`. Next up: finalize Metro/Tailwind configs, theme providers, and shared UI primitives before handing work to Cursor for deeper feature tasks.
+
 ## 1. Mission & Constraints
 - **Goal**: Deliver a touch-optimized mobile POS app (phones + tablets) that connects to the existing FastAPI backend and mirrors the visual system defined for `frontend/pos`, achieving **feature parity** with the current POS experience (including offline behavior) on iOS and Android.
 - **Scope**: Work lives entirely under `frontend/mobilepos`. Backend, `frontend/console`, and `frontend/pos` remain untouched except for consuming shared resources.
@@ -84,9 +86,8 @@
 - **Performance**: RN lists can stutter with large catalogs. Use FlashList/RecyclerListView and prefetching strategies.
 
 ## 10. Next Actions
-1. Create `frontend/sofia-shared` package; populate with tokens/utilities extracted from POS.
-2. Update monorepo workspace config so console/POS/mobilepos consume the shared package.
-3. Generate OpenAPI client + DTO types for mobilepos.
-4. Initialize Expo project + commit baseline to `feature/mobilepos-app`.
-5. Build detailed task board (see `TASKS.md`) and begin executing via short-lived branches + Cursor CLI agents.
-6. Define QA/test strategy per task (unit, integration, e2e) and enforce via CI.
+1. Finish B1 bootstrap polish: Metro + tailwind config, global theme/i18n/query providers, sample dashboards/screens that exercise `@sofiapos/shared` tokens.
+2. Capture navigation + provider decisions in `TASKS.md` so Cursor can run targeted subtasks (Tabs, modals, deep links).
+3. Kick off C1 once the scaffold is stable: OpenAPI generator script + shared DTO types for RN clients.
+4. Prep native build plumbing (prebuild config, EAS profiles) ahead of device testing.
+5. Define QA/test expectations (unit + smoke flows) and bake them into the future B-tasks before opening Cursor work items.

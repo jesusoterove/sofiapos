@@ -1,0 +1,90 @@
+name: MobilePOS CI
+
+on:
+  push:
+    branches: [main, 'feature/mobilepos-*']
+    paths:
+      - 'frontend/mobilepos/**'
+      - 'frontend/sofia-shared/**'
+      - '.github/workflows/mobilepos-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/mobilepos/**'
+      - 'frontend/sofia-shared/**'
+
+concurrency:
+  group: mobilepos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-typecheck-test:
+    name: Lint, Typecheck & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/mobilepos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/mobilepos/package-lock.json
+
+      - name: Install shared deps
+        run: npm ci
+        working-directory: frontend/sofia-shared
+
+      - name: Install mobilepos deps
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: i18n parity check
+        run: npm run check:i18n
+
+      - name: Unit tests
+        run: npm test -- --ci --coverage
+
+  eas-build:
+    name: EAS Preview Build
+    needs: lint-typecheck-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/mobilepos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/mobilepos/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install shared deps
+        run: npm ci
+        working-directory: frontend/sofia-shared
+
+      - name: Install mobilepos deps
+        run: npm ci
+
+      - name: Build Android preview
+        run: eas build --platform android --profile preview --non-interactive
+
+      - name: Build iOS preview
+        run: eas build --platform ios --profile preview --non-interactive
