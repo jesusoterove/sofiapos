@@ -33,9 +33,24 @@ config.resolver.nodeModulesPaths = Array.from(
     ...config.resolver.nodeModulesPaths,
   ])
 );
+const sharedRoot = path.resolve(workspaceRoot, 'sofia-shared');
+
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
-  '@sofiapos/shared': path.resolve(workspaceRoot, 'sofia-shared'),
+  '@sofiapos/shared': sharedRoot,
+};
+
+// Resolve @sofiapos/shared subpath imports (e.g. /theme, /utils) directly
+// from TypeScript source so we don't need a pre-built dist/.
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === '@sofiapos/shared' || moduleName.startsWith('@sofiapos/shared/')) {
+    const subpath = moduleName.replace('@sofiapos/shared', '');
+    const filePath = subpath
+      ? path.join(sharedRoot, 'src', subpath, 'index.ts')
+      : path.join(sharedRoot, 'src', 'index.ts');
+    return { type: 'sourceFile', filePath };
+  }
+  return context.resolveRequest(context, moduleName, platform);
 };
 
 module.exports = withNativeWind(config, { input: './global.css' });
