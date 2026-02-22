@@ -1,47 +1,37 @@
-const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '..');
 
-// Ensure hoisted packages (nativewind, react-native-css-interop) can resolve
-// react-native from the project's own node_modules, not just the workspace root.
-const Module = require('module');
-const origResolveFilename = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, isMain, options) {
-  if (
-    request === 'react-native/package.json' ||
-    request === 'react-native'
-  ) {
-    const fromProject = path.join(projectRoot, 'node_modules', request);
-    try {
-      return origResolveFilename.call(this, fromProject, parent, isMain, options);
-    } catch {}
-  }
-  return origResolveFilename.call(this, request, parent, isMain, options);
-};
+// Register the project's node_modules as a global search path so that
+// hoisted packages (nativewind at workspace root) can resolve react-native
+// which stays local to this project due to npm workspace hoisting rules.
+const projectModules = path.join(projectRoot, 'node_modules');
+process.env.NODE_PATH = [projectModules, process.env.NODE_PATH]
+  .filter(Boolean)
+  .join(path.delimiter);
+require('module')._initPaths();
 
+const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
 
 const config = getDefaultConfig(projectRoot);
+const sharedRoot = path.resolve(workspaceRoot, 'sofia-shared');
 
 config.watchFolders = Array.from(new Set([workspaceRoot, ...config.watchFolders]));
 config.resolver.nodeModulesPaths = Array.from(
   new Set([
-    path.join(projectRoot, 'node_modules'),
+    projectModules,
     path.join(workspaceRoot, 'node_modules'),
     ...config.resolver.nodeModulesPaths,
   ])
 );
-const sharedRoot = path.resolve(workspaceRoot, 'sofia-shared');
-
 config.resolver.extraNodeModules = {
   ...config.resolver.extraNodeModules,
   '@sofiapos/shared': sharedRoot,
 };
 
-// Apply nativewind first, then layer our custom resolver on top so it
-// doesn't get overwritten by withNativeWind.
+// Apply nativewind first, then layer our shared resolver on top.
 const nwConfig = withNativeWind(config, { input: './global.css' });
 
 // Resolve @sofiapos/shared subpath imports (e.g. /theme, /utils) directly
