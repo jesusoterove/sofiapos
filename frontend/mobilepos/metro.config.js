@@ -40,9 +40,14 @@ config.resolver.extraNodeModules = {
   '@sofiapos/shared': sharedRoot,
 };
 
+// Apply nativewind first, then layer our custom resolver on top so it
+// doesn't get overwritten by withNativeWind.
+const nwConfig = withNativeWind(config, { input: './global.css' });
+
 // Resolve @sofiapos/shared subpath imports (e.g. /theme, /utils) directly
 // from TypeScript source so we don't need a pre-built dist/.
-config.resolver.resolveRequest = (context, moduleName, platform) => {
+const nwResolveRequest = nwConfig.resolver.resolveRequest;
+nwConfig.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === '@sofiapos/shared' || moduleName.startsWith('@sofiapos/shared/')) {
     const subpath = moduleName.replace('@sofiapos/shared', '');
     const filePath = subpath
@@ -50,7 +55,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       : path.join(sharedRoot, 'src', 'index.ts');
     return { type: 'sourceFile', filePath };
   }
+  if (nwResolveRequest) {
+    return nwResolveRequest(context, moduleName, platform);
+  }
   return context.resolveRequest(context, moduleName, platform);
 };
 
-module.exports = withNativeWind(config, { input: './global.css' });
+module.exports = nwConfig;
