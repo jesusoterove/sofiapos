@@ -15,10 +15,21 @@ export function useTranslation() {
   
   // If LanguageContext is provided, sync i18next language with context
   useEffect(() => {
-    if (languageContext && i18nTranslation.i18n.language !== languageContext.language) {
-      i18nTranslation.i18n.changeLanguage(languageContext.language)
+    if (!languageContext) return
+
+    const currentLanguage = i18nTranslation?.i18n?.language
+    const targetLanguage = languageContext.language
+    if (!targetLanguage || currentLanguage === targetLanguage) return
+
+    // Prefer parent-provided changeLanguage (allows persistence + app-specific behavior).
+    const changeLanguageFn =
+      languageContext.changeLanguage ??
+      i18nTranslation?.i18n?.changeLanguage
+
+    if (typeof changeLanguageFn === 'function') {
+      changeLanguageFn(targetLanguage)
     }
-  }, [languageContext?.language, i18nTranslation.i18n])
+  }, [languageContext?.language, languageContext?.changeLanguage, i18nTranslation?.i18n])
   
   return {
     t: i18nTranslation.t,
@@ -28,7 +39,10 @@ export function useTranslation() {
       if (languageContext?.changeLanguage) {
         languageContext.changeLanguage(lang)
       } else {
-        i18nTranslation.i18n.changeLanguage(lang)
+        const changeLanguageFn = i18nTranslation?.i18n?.changeLanguage
+        if (typeof changeLanguageFn === 'function') {
+          changeLanguageFn(lang)
+        }
       }
     },
     isEnglish: (languageContext?.language || i18nTranslation.i18n.language) === 'en',
