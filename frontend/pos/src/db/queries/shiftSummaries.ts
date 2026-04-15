@@ -5,6 +5,7 @@ import { IDBPDatabase } from 'idb'
 import { POSDatabase } from '../indexeddb'
 
 export async function getShiftSummary(db: IDBPDatabase<POSDatabase>, shiftNumber: string): Promise<POSDatabase['shift_summaries']['value'] | undefined> {
+  console.log('[getShiftSummary] Getting summary for shift:', shiftNumber);
   return db.get('shift_summaries', shiftNumber)
 }
 

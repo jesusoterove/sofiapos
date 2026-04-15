@@ -16,6 +16,9 @@ interface NumericKeypadProps {
   onBackspace: () => void
   onClear: () => void
   onQuickAmount: (amount: number) => void
+  onExact: () => void
+  onPrint: () => void
+  isCompact?: boolean
 }
 
 export function NumericKeypad({
@@ -24,18 +27,24 @@ export function NumericKeypad({
   onBackspace,
   onClear,
   onQuickAmount,
+  onExact,
+  onPrint,
+  isCompact = false,
 }: NumericKeypadProps) {
   const { t } = useTranslation()
+  const heightClass = isCompact ? 'h-11' : 'h-14'
+  const numberTextClass = isCompact ? 'text-base' : 'text-lg'
+  const actionTextClass = isCompact ? 'text-sm' : 'text-base'
 
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className={`grid grid-cols-5 ${isCompact ? 'gap-1.5' : 'gap-2'}`}>
       {/* Column 1: First 5 Quick Amount Buttons */}
       <div className="flex flex-col gap-2">
         {QUICK_AMOUNTS_FIRST_FIVE.map((amount) => (
           <button
             key={amount}
             onClick={() => onQuickAmount(amount)}
-            className="h-14 text-base font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+            className={`${heightClass} ${actionTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
             style={{
               borderColor: 'var(--color-border-default, #E5E7EB)',
               backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -51,7 +60,7 @@ export function NumericKeypad({
       <div className="flex flex-col gap-2">
         <button
           onClick={() => onNumberClick('1')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -62,7 +71,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onNumberClick('4')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -73,7 +82,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onNumberClick('7')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -84,7 +93,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={onDecimalClick}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -95,7 +104,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onQuickAmount(QUICK_AMOUNT_06)}
-          className="h-14 text-base font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${actionTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -110,7 +119,7 @@ export function NumericKeypad({
       <div className="flex flex-col gap-2">
         <button
           onClick={() => onNumberClick('2')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -121,7 +130,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onNumberClick('5')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -132,7 +141,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onNumberClick('8')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -143,7 +152,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onNumberClick('0')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -154,7 +163,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onQuickAmount(QUICK_AMOUNT_07)}
-          className="h-14 text-base font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${actionTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -169,7 +178,7 @@ export function NumericKeypad({
       <div className="flex flex-col gap-2">
         <button
           onClick={() => onNumberClick('3')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -180,7 +189,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onNumberClick('6')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -191,7 +200,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onNumberClick('9')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -202,7 +211,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={() => onNumberClick('00')}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -213,7 +222,7 @@ export function NumericKeypad({
         </button>
         <button
           onClick={onBackspace}
-          className="h-14 text-lg font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation flex items-center justify-center"
+          className={`${heightClass} ${numberTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation flex items-center justify-center`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -224,11 +233,11 @@ export function NumericKeypad({
         </button>
       </div>
 
-      {/* Column 5: Clear */}
+      {/* Column 5: Clear, Print, Exact */}
       <div className="flex flex-col gap-2">
         <button
           onClick={onClear}
-          className="h-full text-base font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation"
+          className={`${heightClass} ${actionTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
           style={{
             borderColor: 'var(--color-border-default, #E5E7EB)',
             backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
@@ -237,6 +246,29 @@ export function NumericKeypad({
         >
           {t('common.clear') || 'CLEAR'}
         </button>
+        <button
+          onClick={onPrint}
+          className={`${heightClass} ${actionTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
+          style={{
+            borderColor: 'var(--color-border-default, #E5E7EB)',
+            backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
+            color: 'var(--color-text-primary, #111827)',
+          }}
+        >
+          {t('payment.print') || 'PRINT'}
+        </button>
+        <button
+          onClick={onExact}
+          className={`${heightClass} ${actionTextClass} font-medium rounded-lg border transition-colors hover:bg-gray-100 active:bg-gray-200 touch-manipulation`}
+          style={{
+            borderColor: 'var(--color-border-default, #E5E7EB)',
+            backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
+            color: 'var(--color-text-primary, #111827)',
+          }}
+        >
+          {t('payment.exact') || 'EXACT'}
+        </button>
+        <div className="flex-1" />
       </div>
     </div>
   )

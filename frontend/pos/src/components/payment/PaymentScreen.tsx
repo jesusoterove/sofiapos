@@ -39,6 +39,7 @@ export function PaymentScreen({
   const { currentShift } = useShiftContext()
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank_transfer'>('cash')
   const [amountPaid, setAmountPaid] = useState('')
+  const [isCompactHeight, setIsCompactHeight] = useState(false)
 
   const change = parseFloat(amountPaid || '0') - orderTotal
 
@@ -46,6 +47,16 @@ export function PaymentScreen({
     setAmountPaid('')
     setPaymentMethod('cash')
   }, [orderTotal])
+
+  useEffect(() => {
+    const updateCompactHeight = () => {
+      setIsCompactHeight(window.innerHeight < 800)
+    }
+
+    updateCompactHeight()
+    window.addEventListener('resize', updateCompactHeight)
+    return () => window.removeEventListener('resize', updateCompactHeight)
+  }, [])
 
   const handleNumberClick = (num: string) => {
     const newValue = amountPaid + num
@@ -114,10 +125,12 @@ export function PaymentScreen({
       showCloseButton={false}
       title={t('payment.title') || 'Payment'}
       size="xl"
+      className={isCompactHeight ? 'max-h-[96vh]' : ''}
+      bodyClassName={isCompactHeight ? 'overflow-hidden p-3' : ''}
     >
-      <div className="flex h-[80vh]">
+      <div className={`flex min-h-0 ${isCompactHeight ? 'h-[calc(96vh-1.5rem)]' : 'h-[80vh]'}`}>
         {/* Left Panel: Order Details */}
-        <div className="w-1/2 border-r" style={{ borderColor: 'var(--color-border-default, #E5E7EB)' }}>
+        <div className="w-1/2 min-h-0 border-r" style={{ borderColor: 'var(--color-border-default, #E5E7EB)' }}>
           <OrderTicketPanel
             order={order}
             totals={{
@@ -130,17 +143,17 @@ export function PaymentScreen({
         </div>
 
         {/* Right Panel: Payment Controls */}
-        <div className="w-1/2 flex flex-col p-3 pt-0 space-y-3 overflow-y-auto">
+        <div className={`w-1/2 min-h-0 flex flex-col overflow-y-auto ${isCompactHeight ? 'p-2 pt-0 space-y-2' : 'p-3 pt-0 space-y-3'}`}>
           {/* Payment Method Toggle */}
-          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
+          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} isCompact={isCompactHeight} />
 
           {/* Total Display */}
           <div className="flex items-center gap-2 border-b" style={{ borderBottomColor: 'var(--color-border-default, #E5E7EB)' }}>
-            <label className="text-lg font-medium" style={{ color: 'var(--color-text-primary, #111827)' }}>
+            <label className={isCompactHeight ? 'text-base font-medium' : 'text-lg font-medium'} style={{ color: 'var(--color-text-primary, #111827)' }}>
               {t('common.total') || 'Total'}: 
             </label>
             <div
-              className="flex-1 h-10 text-2xl font-bold text-right px-4 py-0"
+              className={`flex-1 font-bold text-right ${isCompactHeight ? 'h-9 text-xl px-2 py-0' : 'h-10 text-2xl px-4 py-0'}`}
               style={{
                 backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
                 color: 'var(--color-text-primary, #111827)',
@@ -152,17 +165,18 @@ export function PaymentScreen({
 
           {/* Tendered Amount Input */}
           <div className="flex items-center gap-2 border-b" style={{ borderBottomColor: 'var(--color-border-default, #E5E7EB)' }}>
-            <label className="text-lg font-medium" style={{ color: 'var(--color-text-primary, #111827)' }}>
+            <label className={isCompactHeight ? 'text-base font-medium' : 'text-lg font-medium'} style={{ color: 'var(--color-text-primary, #111827)' }}>
               {t('payment.tenderedAmount') || 'Tendered amount: $'}
             </label>
             <AmountPaidInput
               value={amountPaid}
               label="" // Empty label since we're showing it separately
+              isCompact={isCompactHeight}
             />
           </div>
 
           {/* Change Display (always visible, disabled when not cash) */}
-          <ChangeDisplay change={change} disabled={paymentMethod !== 'cash'} />
+          <ChangeDisplay change={change} disabled={paymentMethod !== 'cash'} isCompact={isCompactHeight} />
 
           {/* Numeric Keypad */}
           <NumericKeypad
@@ -171,40 +185,25 @@ export function PaymentScreen({
             onBackspace={handleBackspace}
             onClear={handleClear}
             onQuickAmount={handleQuickAmount}
+            onExact={handleExact}
+            onPrint={handlePrint}
+            isCompact={isCompactHeight}
           />
 
-          {/* Bottom Buttons: EXACT and PRINT */}
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={handleExact}
-              className="flex-1"
-            >
-              {t('payment.exact') || 'EXACT'}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={handlePrint}
-              className="flex-1"
-            >
-              {t('payment.print') || 'PRINT'}
-            </Button>
-          </div>
-
           {/* Right Side Buttons: PAY and CANCEL */}
-          <div className="flex gap-2 mt-auto">
+          <div className={`flex gap-2 mt-auto ${isCompactHeight ? 'pt-1' : ''}`}>
             <Button
               variant="primary"
               onClick={handleProcessPayment}
               disabled={!amountPaid || parseFloat(amountPaid || '0') < orderTotal}
-              className="flex-1 h-14 text-lg font-bold"
+              className={`flex-1 font-bold ${isCompactHeight ? 'h-11 text-base' : 'h-14 text-lg'}`}
             >
               {t('payment.pay') || 'PAY'}
             </Button>
             <Button
               variant="secondary"
               onClick={handleClose}
-              className="flex-1 h-14 text-lg font-bold"
+              className={`flex-1 font-bold ${isCompactHeight ? 'h-11 text-base' : 'h-14 text-lg'}`}
             >
               {t('payment.cancel') || 'CANCEL'}
             </Button>

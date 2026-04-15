@@ -14,9 +14,10 @@ import { formatDateTime } from '@/utils/dateFormat'
 interface TopBarProps {
   onSalesInvoicesClick?: () => void
   onHomeClick?: () => void
+  isCompactHeight?: boolean
 }
 
-export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
+export function TopBar({ onSalesInvoicesClick, onHomeClick, isCompactHeight = false }: TopBarProps) {
   const { t } = useTranslation()
   const { logout, user } = useAuth()
   const navigate = useNavigate()
@@ -80,11 +81,11 @@ export function TopBar({ onSalesInvoicesClick, onHomeClick }: TopBarProps) {
 
   return (
     <div
-      className="h-15 flex items-center justify-between px-4 py-3"
+      className={`flex items-center justify-between px-4 ${isCompactHeight ? 'h-12 py-1' : 'h-15 py-3'}`}
       style={{
         backgroundColor: 'var(--color-primary-800)',
         color: 'var(--color-primary-50)',
-        height: '60px',
+        height: isCompactHeight ? '48px' : '60px',
       }}
     >
       {/* Left: App Details */}

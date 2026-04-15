@@ -40,6 +40,7 @@ export function CloseShiftPage() {
   const [endBalanceRows, setEndBalanceRows] = useState<InventoryBalanceRow[]>([])
   const [loading, setLoading] = useState(true)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  const [isCompactHeight, setIsCompactHeight] = useState(false)
 
   // Update clock every second
   useEffect(() => {
@@ -47,6 +48,16 @@ export function CloseShiftPage() {
       setCurrentDateTime(new Date())
     }, 1000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const updateCompactHeight = () => {
+      setIsCompactHeight(window.innerHeight < 800)
+    }
+
+    updateCompactHeight()
+    window.addEventListener('resize', updateCompactHeight)
+    return () => window.removeEventListener('resize', updateCompactHeight)
   }, [])
 
   // Guard: Prevent navigation if shift becomes null during loading
@@ -218,16 +229,16 @@ export function CloseShiftPage() {
       <div className="p-2 flex flex-col overflow-hidden h-full">
         <div className="max-w-7xl mx-auto flex flex-col flex-1 min-h-0 w-full">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-2 flex-shrink-0">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+              <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                 {t('shift.closeShift') || 'Cerrar Turno'} - {t('shift.shiftDetails') || 'Detalle del Turno'} #{currentShift?.shift_number || ''}
               </h1>
             </div>
             <div></div>
             <div>
               <div 
-                className="text-lg font-mono" 
+                className="text-sm font-mono" 
                 style={{ color: 'var(--color-text-secondary)' }}
               >
                 {formattedDateTime}
@@ -237,9 +248,9 @@ export function CloseShiftPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {/* Two Column Layout */}
-          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0 h-full">
+          <div className={`grid grid-cols-2 ${isCompactHeight ? 'gap-2' : 'gap-4'} flex-1 min-h-0 h-full`}>
             {/* Left Column: Final Balances Grid */}
-            <Card padding="md" className="flex flex-col h-full overflow-hidden">
+            <Card padding="md" className="flex flex-col h-full overflow-hidden px-4 py-1">
               <h2 className="text-xl font-semibold mb-1 flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>
                 {t('shift.finalBalances') || 'Balances Finales'}
               </h2>
@@ -325,8 +336,8 @@ export function CloseShiftPage() {
             </Card>
 
             {/* Right Column: Closing Information */}
-            <Card padding="md" className="flex flex-col h-full overflow-hidden">
-              <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+            <Card padding="md" className="flex flex-col h-full overflow-hidden px-4 py-1">
+              <h2 className={`text-xl font-semibold ${isCompactHeight ? 'mb-2' : 'mb-4'}`} style={{ color: 'var(--color-text-primary)' }}>
                 {t('shift.closingInformation') || 'Información de Cierre'}
               </h2>
               <div className="space-y-4 flex-1 flex flex-col">
@@ -335,6 +346,7 @@ export function CloseShiftPage() {
                   value={receivedBy}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReceivedBy(e.target.value)}
                   fullWidth
+                  className="py-1"
                 />
                 <Input
                   type="number"
@@ -344,6 +356,7 @@ export function CloseShiftPage() {
                   step="0.01"
                   min="0"
                   fullWidth
+                  className="py-1"
                 />
                 <div className="w-full">
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
@@ -352,8 +365,8 @@ export function CloseShiftPage() {
                   <textarea
                     value={closingNotes}
                     onChange={(e) => setClosingNotes(e.target.value)}
-                    rows={6}
-                    className="w-full p-2 border rounded-lg"
+                    rows={4}
+                    className="w-full px-4 py-1 border rounded-lg"
                     style={{
                       borderColor: 'var(--color-border-default)',
                       color: 'var(--color-text-primary)',
@@ -362,7 +375,7 @@ export function CloseShiftPage() {
                 </div>
                 
                 {/* Action Buttons */}
-                <div className="flex justify-end gap-2 pt-4 flex-shrink-0">
+                <div className={`flex justify-end gap-2 ${isCompactHeight ? 'pt-2' : 'pt-4'} flex-shrink-0`}>
                   <Button
                     type="button"
                     variant="secondary"

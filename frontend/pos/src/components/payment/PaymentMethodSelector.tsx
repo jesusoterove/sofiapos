@@ -6,9 +6,10 @@ import { useTranslation } from '@/i18n/hooks'
 interface PaymentMethodSelectorProps {
   value: 'cash' | 'bank_transfer'
   onChange: (value: 'cash' | 'bank_transfer') => void
+  isCompact?: boolean
 }
 
-export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelectorProps) {
+export function PaymentMethodSelector({ value, onChange, isCompact = false }: PaymentMethodSelectorProps) {
   const { t } = useTranslation()
 
   return (
@@ -16,7 +17,7 @@ export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelector
       <button
         type="button"
         onClick={() => onChange('cash')}
-        className={`flex-1 h-12 rounded-lg border-2 font-medium transition-all ${
+        className={`flex-1 ${isCompact ? 'h-10 text-sm' : 'h-12'} rounded-lg border-2 font-medium transition-all ${
           value === 'cash'
             ? 'border-blue-500 bg-blue-50 text-blue-700'
             : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -40,7 +41,7 @@ export function PaymentMethodSelector({ value, onChange }: PaymentMethodSelector
       <button
         type="button"
         onClick={() => onChange('bank_transfer')}
-        className={`flex-1 h-12 rounded-lg border-2 font-medium transition-all ${
+        className={`flex-1 ${isCompact ? 'h-10 text-sm' : 'h-12'} rounded-lg border-2 font-medium transition-all ${
           value === 'bank_transfer'
             ? 'border-blue-500 bg-blue-50 text-blue-700'
             : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'

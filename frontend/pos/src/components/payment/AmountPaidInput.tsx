@@ -7,9 +7,10 @@ import { formatPrice } from '@sofiapos/ui'
 interface AmountPaidInputProps {
   value: string
   label?: string
+  isCompact?: boolean
 }
 
-export function AmountPaidInput({ value, label }: AmountPaidInputProps) {
+export function AmountPaidInput({ value, label, isCompact = false }: AmountPaidInputProps) {
   const { t } = useTranslation()
 
   const formatValue = (val: string) => {
@@ -25,7 +26,7 @@ export function AmountPaidInput({ value, label }: AmountPaidInputProps) {
   if (label === '') {
     return (
       <div
-        className="flex-1 h-10 text-2xl font-bold text-right px-4 py-0"
+        className={`flex-1 font-bold text-right ${isCompact ? 'h-9 text-xl px-2 py-0' : 'h-10 text-2xl px-4 py-0'}`}
         style={{
           backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
           color: 'var(--color-text-primary, #111827)',
@@ -47,7 +48,7 @@ export function AmountPaidInput({ value, label }: AmountPaidInputProps) {
         {displayLabel}
       </label>
       <div
-        className="h-14 text-2xl font-bold text-right px-4 py-2"
+        className={`${isCompact ? 'h-11 text-xl px-3 py-1' : 'h-14 text-2xl px-4 py-2'} font-bold text-right`}
         style={{
           backgroundColor: 'var(--color-bg-paper, #FFFFFF)',
           color: 'var(--color-text-primary, #111827)',
