@@ -10,6 +10,9 @@ WORKDIR /app/sofia-ui
 RUN npm ci || npm install
 COPY sofia-ui/ .
 RUN npm run build
+# Avoid a second i18next copy under sofia-ui (breaks @sofiapos/ui translations in prod);
+# console's install hoists peers/deps to a single node_modules the bundler can dedupe.
+RUN rm -rf /app/sofia-ui/node_modules
 
 # Now build console app
 WORKDIR /app/console
@@ -41,6 +44,7 @@ WORKDIR /app/sofia-ui
 RUN npm ci || npm install
 COPY sofia-ui/ .
 RUN npm run build
+RUN rm -rf /app/sofia-ui/node_modules
 
 # Setup console
 WORKDIR /app/console

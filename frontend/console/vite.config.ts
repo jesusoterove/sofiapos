@@ -14,7 +14,8 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
         '@sofiapos/ui': path.resolve(__dirname, '../sofia-ui/src'),
       },
-      dedupe: ['react', 'react-dom'],
+      // One i18next instance: @sofiapos/ui shares the app-initialized i18n singleton
+      dedupe: ['react', 'react-dom', 'i18next', 'react-i18next'],
     },
     server: {
       host: '0.0.0.0', // Allow external connections
