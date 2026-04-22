@@ -38,58 +38,38 @@ export function useShiftManagement() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
-  // Check for open shift - offline-first: check local first, then API
-  // Get cash register ID from registration
+  // Open shift is local-only (IndexedDB); store comes from registration or auth user.
   const registration = getRegistration()
   const cashRegisterId = registration?.cashRegisterId
-  
+  const shiftQueryStoreId = registration?.storeId ?? user?.store_id ?? null
+
   const { data: currentOpenShift, isLoading: isLoadingShift } = useQuery({
-    queryKey: ['shift', 'open', cashRegisterId],
+    queryKey: ['shift', 'open', cashRegisterId, shiftQueryStoreId],
     queryFn: async () => {
       if (!cashRegisterId) {
         console.warn('[useShiftManagement] No cash register ID found in registration')
         return null
       }
 
-      // INDEXEDDB IS THE SOURCE OF TRUTH - Always check IndexedDB first
-      // Note: getOpenShift uses store_id since IndexedDB schema stores store_id
-      // Shifts are associated with stores, cash registers belong to stores
+      if (shiftQueryStoreId == null) {
+        console.warn('[useShiftManagement] No store id (registration or user) — cannot resolve open shift')
+        return null
+      }
+
       const db = await openDatabase()
-      const dbShift = user?.store_id ? await getOpenShift(db, user.store_id) : null
-      
-      // Verify shift is actually open (status check is critical)
+      const dbShift = await getOpenShift(db, shiftQueryStoreId)
+
       if (dbShift && dbShift.status === 'open') {
         return dbShift
       }
-      
-      // If shift exists but is closed, return null (no open shift)
+
       if (dbShift && dbShift.status !== 'open') {
         return null
       }
 
-      // If no local shift found, try API (only if online) to sync from remote
-      if (navigator.onLine) {
-        try {
-          const response = await apiClient.get(`/api/v1/shifts/open`, {
-            params: { cash_register_id: cashRegisterId },
-          })
-          if (response.data && response.data.status === 'open') {
-            // Save to IndexedDB (source of truth)
-            await saveShift(db, {
-              ...response.data,
-              sync_status: 'synced',
-            } as any)
-            return response.data
-          }
-        } catch (error: any) {
-          // If API fails, return null (no shift found)
-          console.warn('Failed to fetch shift from API:', error)
-        }
-      }
-
       return null
     },
-    enabled: !!cashRegisterId,
+    enabled: !!cashRegisterId && shiftQueryStoreId != null,
     staleTime: 30 * 1000, // 30 seconds
     // Preserve previous data during refetch to prevent hasOpenShift from becoming false temporarily
     // BUT: If previousData is null (shift was closed), keep it as null
@@ -246,7 +226,10 @@ export function useShiftManagement() {
     onSuccess: async (shiftData) => {
       // CRITICAL: Immediately update currentOpenShift query data with the newly created shift
       // This ensures currentOpenShift is available immediately without waiting for query refetch
-      queryClient.setQueryData(['shift', 'open', cashRegisterId], shiftData as any)
+      queryClient.setQueryData(
+        ['shift', 'open', cashRegisterId, shiftData.store_id],
+        shiftData as any
+      )
       
       // Also invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['shift'] })
@@ -301,7 +284,10 @@ export function useShiftManagement() {
       // CRITICAL: Clear the current shift from React Query cache immediately
       // This ensures currentShift becomes null and hasOpenShift becomes false
       // IndexedDB is already updated above, so the source of truth is correct
-      queryClient.setQueryData(['shift', 'open', cashRegisterId], null)
+      queryClient.setQueryData(
+        ['shift', 'open', cashRegisterId, closedShift.store_id],
+        null
+      )
       queryClient.invalidateQueries({ queryKey: ['shift'] })
       queryClient.removeQueries({ queryKey: ['shift', 'open'] })
 
@@ -365,12 +351,13 @@ export function useShiftManagement() {
       
       // CRITICAL: Immediately clear currentOpenShift query data to null
       // This ensures the app immediately reflects no open shift
-      queryClient.setQueryData(['shift', 'open', cashRegisterId], null)
-      
+      queryClient.setQueryData(
+        ['shift', 'open', cashRegisterId, closedShift.store_id],
+        null
+      )
+
       // Additional cache invalidation to ensure all components see the updated state
       queryClient.invalidateQueries({ queryKey: ['shift'] })
-
-      console.log('CLOSED SHIFT', hasOpenShift);
     },
   })
 
@@ -429,8 +416,10 @@ export function useShiftManagement() {
 
   // Refresh shift data manually
   const refreshShift = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['shift', 'open', cashRegisterId] })
-  }, [queryClient, cashRegisterId])
+    await queryClient.invalidateQueries({
+      queryKey: ['shift', 'open', cashRegisterId, shiftQueryStoreId],
+    })
+  }, [queryClient, cashRegisterId, shiftQueryStoreId])
 
   const hasOpenShift = !!currentOpenShift
   const isLoading = isLoadingShift || openShiftMutation.isPending || closeShiftMutation.isPending

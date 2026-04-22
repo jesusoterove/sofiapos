@@ -345,6 +345,26 @@
       "printReceipt": "Print Receipt",
       "printReceiptHelp": "Default state of \"Print Receipt\" in the payment confirmation dialog after payment."
     },
+    "targetStore": {
+      "title": "Target Store",
+      "loadError": "Failed to load available stores",
+      "openShiftError": "Cannot change target store while a shift is open",
+      "required": "Please select a target store",
+      "registrationRequired": "Registration data not found",
+      "invalidSelection": "Selected store is not available",
+      "noChanges": "Target store is already selected",
+      "saveSuccess": "Target store updated successfully",
+      "adminCredentialsRequired": "Admin username and password are required",
+      "adminRequired": "Only an admin can change the store",
+      "invalidAdminCredentials": "Invalid admin username or password",
+      "verifyingAdmin": "Verifying admin...",
+      "current": "Current target store",
+      "notConfigured": "Not configured",
+      "select": "Select target store",
+      "selectPlaceholder": "Select a store...",
+      "refresh": "Refresh",
+      "openShiftHint": "Close the current shift before changing the target store."
+    },
     "updates": {
       "title": "Application Updates",
       "currentVersion": "Current Version",

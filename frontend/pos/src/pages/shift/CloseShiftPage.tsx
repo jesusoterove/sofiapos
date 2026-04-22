@@ -340,38 +340,40 @@ export function CloseShiftPage() {
               <h2 className={`text-xl font-semibold ${isCompactHeight ? 'mb-2' : 'mb-4'}`} style={{ color: 'var(--color-text-primary)' }}>
                 {t('shift.closingInformation') || 'Información de Cierre'}
               </h2>
-              <div className="space-y-4 flex-1 flex flex-col">
-                <Input
-                  label={t('shift.receivedBy') || 'Recibido Por'}
-                  value={receivedBy}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReceivedBy(e.target.value)}
-                  fullWidth
-                  className="py-1"
-                />
-                <Input
-                  type="number"
-                  label={t('shift.finalCash') || 'Efectivo Final'}
-                  value={finalCash}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFinalCash(e.target.value)}
-                  step="0.01"
-                  min="0"
-                  fullWidth
-                  className="py-1"
-                />
-                <div className="w-full">
-                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
-                    {t('shift.closingNotes') || 'Notas de Cierre'}
-                  </label>
-                  <textarea
-                    value={closingNotes}
-                    onChange={(e) => setClosingNotes(e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-1 border rounded-lg"
-                    style={{
-                      borderColor: 'var(--color-border-default)',
-                      color: 'var(--color-text-primary)',
-                    }}
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1">
+                  <Input
+                    label={t('shift.receivedBy') || 'Recibido Por'}
+                    value={receivedBy}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReceivedBy(e.target.value)}
+                    fullWidth
+                    className="py-1"
                   />
+                  <Input
+                    type="number"
+                    label={t('shift.finalCash') || 'Efectivo Final'}
+                    value={finalCash}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFinalCash(e.target.value)}
+                    step="0.01"
+                    min="0"
+                    fullWidth
+                    className="py-1"
+                  />
+                  <div className="w-full">
+                    <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                      {t('shift.closingNotes') || 'Notas de Cierre'}
+                    </label>
+                    <textarea
+                      value={closingNotes}
+                      onChange={(e) => setClosingNotes(e.target.value)}
+                      rows={4}
+                      className="w-full px-4 py-1 border rounded-lg"
+                      style={{
+                        borderColor: 'var(--color-border-default)',
+                        color: 'var(--color-text-primary)',
+                      }}
+                    />
+                  </div>
                 </div>
                 
                 {/* Action Buttons */}

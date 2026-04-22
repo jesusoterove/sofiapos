@@ -13,7 +13,7 @@ import { loadCustomHooks } from './hooks-system/loader'
 import { getRegistration } from './utils/registration'
 import { isElectron, getAppVersion } from './utils/electron'
 import { applyDefaultLanguageFromStore } from './utils/defaultLanguage'
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { ThemeProvider, MessageBoxProvider } from '@sofiapos/ui'
 import '@sofiapos/ui/styles/theme.css'
 
@@ -24,6 +24,31 @@ loadCustomHooks()
 function SecuredApp() {
   const auth = useAuth()
   return <RouterProvider router={router} context={{ auth }} />
+}
+
+/**
+ * Wraps providers that depend on a resolved authenticated user. Remounts when auth
+ * finishes loading and when the logged-in user (or target store) changes so hooks
+ * inside Sync / Shift / Order see up-to-date `useAuth()` state.
+ */
+function PostAuthProviders({ children }: { children: ReactNode }) {
+  const { isLoading, user } = useAuth()
+  const registration = getRegistration()
+  const storeId = registration?.storeId ?? user?.store_id ?? 1
+
+  const providerMountKey = isLoading
+    ? 'auth-loading'
+    : `auth-${user?.id ?? 'none'}-store-${storeId}`
+
+  return (
+    <UpdateProvider key={providerMountKey}>
+      <SyncProvider>
+        <ShiftProvider>
+          <OrderManagementProvider storeId={storeId}>{children}</OrderManagementProvider>
+        </ShiftProvider>
+      </SyncProvider>
+    </UpdateProvider>
+  )
 }
 
 function App() {
@@ -43,35 +68,25 @@ function App() {
     applyDefaultLanguageFromStore()
   }, [])
 
-  // Get store ID from registration
-  const registration = getRegistration()
-  const storeId = registration?.storeId || 1 // Fallback to 1 if not registered yet
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <MessageBoxProvider>
           <AuthProvider>
-            <UpdateProvider>
-              <SyncProvider>
-                <ShiftProvider>
-                  <OrderManagementProvider storeId={storeId}>
-                    <SecuredApp />
-                    <ToastContainer
-                      position="top-right"
-                      autoClose={3000}
-                      hideProgressBar={false}
-                      newestOnTop={false}
-                      closeOnClick
-                      rtl={false}
-                      pauseOnFocusLoss
-                      draggable
-                      pauseOnHover
-                    />
-                  </OrderManagementProvider>
-                </ShiftProvider>
-              </SyncProvider>
-            </UpdateProvider>
+            <PostAuthProviders>
+              <SecuredApp />
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+              />
+            </PostAuthProviders>
           </AuthProvider>
         </MessageBoxProvider>
       </ThemeProvider>
