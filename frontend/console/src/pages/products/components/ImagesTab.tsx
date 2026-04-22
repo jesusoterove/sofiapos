@@ -144,7 +144,10 @@ export function ImagesTab({ productId, isEditMode }: ImagesTabProps) {
     // No size parameter means original image
     const baseURL = apiClient.defaults.baseURL || ''
     const cleanBaseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL
-    return `${cleanBaseURL}/api/v1/products/${image.product_id}/images`
+    const imageVersion = image.created_at
+      ? new Date(image.created_at).getTime()
+      : image.id
+    return `${cleanBaseURL}/api/v1/products/${image.product_id}/images?v=${imageVersion}`
   }
 
   if (!isEditMode) {

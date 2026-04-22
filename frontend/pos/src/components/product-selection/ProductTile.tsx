@@ -15,6 +15,7 @@ interface Product {
   category_id?: number
   is_active: boolean
   tax_rate?: number
+  updated_at?: string
 }
 
 type ProductTileSize = 'small' | 'medium' | 'large'
@@ -52,7 +53,7 @@ export function ProductTile({ product, onClick, size = 'small' }: ProductTilePro
           setImageError(true)
         })
     }
-  }, [product.code])
+  }, [product.code, product.updated_at])
 
   // Cleanup blob URL on unmount
   useEffect(() => {
