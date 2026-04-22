@@ -3,9 +3,9 @@ Product images API endpoints.
 """
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from typing import List, Optional
 import os
-import uuid
 from pathlib import Path
 from PIL import Image
 import io
@@ -24,6 +24,14 @@ UPLOAD_DIR = Path("uploads/product_images")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 TILES_DIR = UPLOAD_DIR / "tiles_110_110"
 TILES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def touch_product_updated_at(db: Session, product_id: int) -> None:
+    """Bump product timestamp so incremental sync includes image-only changes."""
+    db.query(Product).filter(Product.id == product_id).update(
+        {"updated_at": func.now()},
+        synchronize_session=False
+    )
 
 
 def is_web_friendly_image(file: UploadFile) -> tuple:
@@ -207,6 +215,7 @@ async def create_product_image(
     )
     
     db.add(product_image)
+    touch_product_updated_at(db, product_id)
     db.commit()
     db.refresh(product_image)
     
@@ -299,6 +308,7 @@ async def update_product_image(
     if display_order is not None:
         image.display_order = display_order
     
+    touch_product_updated_at(db, image.product_id)
     db.commit()
     db.refresh(image)
     
@@ -356,6 +366,7 @@ async def delete_product_image(
     product_id = image.product_id  # Save before deletion
     
     db.delete(image)
+    touch_product_updated_at(db, product_id)
     db.commit()
     
     # Notify WebSocket clients about product image deletion (triggers product sync)

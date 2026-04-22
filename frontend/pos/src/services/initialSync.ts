@@ -87,7 +87,7 @@ async function syncProducts(db: IDBPDatabase<POSDatabase>): Promise<number> {
   // Download product images in parallel (but limit concurrency to avoid overwhelming the server)
   const downloadPromises = products.map((p: Product) => {
     if (p.code) {
-      return downloadProductImage(p.id, p.code).catch((error) => {
+      return downloadProductImage(p.id, p.code, p.updated_at).catch((error) => {
         // Log but don't fail sync if image download fails
         console.error(`[syncProducts] Failed to download image for product ${p.id} (${p.code}):`, error)
       })

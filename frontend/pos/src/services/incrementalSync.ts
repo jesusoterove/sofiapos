@@ -450,7 +450,7 @@ async function downloadProductImagesForUpdates(products: Product[]): Promise<voi
       batch.map(async (p) => {
         if (p.id && p.code) {
           try {
-            await downloadProductImage(p.id, p.code)
+            await downloadProductImage(p.id, p.code, p.updated_at)
           } catch (error) {
             // Log but don't fail sync if image download fails
             console.error(`[downloadProductImagesForUpdates] Failed to download image for product ${p.id}:`, error)

@@ -25,14 +25,20 @@ interface ImageData {
  */
 export async function downloadProductImage(
   productId: number,
-  productCode: string
+  productCode: string,
+  version?: string
 ): Promise<void> {
   try {
+    const requestParams: Record<string, string> = { size: IMAGE_SIZE }
+    if (version) {
+      requestParams.v = version
+    }
+
     // Download image from API
     const response = await apiClient.get(
       `/api/v1/products/${productId}/images`,
       {
-        params: { size: IMAGE_SIZE },
+        params: requestParams,
         responseType: 'blob',
         metadata: {
           isSyncRequest: true,

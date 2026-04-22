@@ -734,9 +734,9 @@ async def assign_product_to_group(
 async def get_product_image(
     product_id: int,
     size: Optional[str] = Query(None, description="Image size (e.g., '110' for 110x110 thumbnail)"),
+    v: Optional[str] = Query(None, description="Cache-busting version token"),
     db: Session = Depends(get_db)
 ):
-    print("GET PRODUCT IMAGE")
     """
     Get product image.
     If size is provided (e.g., '110'), returns the thumbnail from tiles_110_110 folder.
@@ -782,5 +782,10 @@ async def get_product_image(
     return FileResponse(
         path=str(image_path),
         media_type="image/jpeg",
-        filename=image_path.name
+        filename=image_path.name,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
     )

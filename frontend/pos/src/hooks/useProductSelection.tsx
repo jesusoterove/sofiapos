@@ -16,6 +16,7 @@ export interface Product {
   category_id?: number
   is_active: boolean
   tax_rate: number
+  updated_at?: string
 }
 
 export function useProductSelection() {
