@@ -12,7 +12,6 @@ import { openDatabase, saveOrder, saveOrderItem, addToSyncQueue } from '../db'
 import { getAllOrders, getOrderItemsByOrderNumber, deleteOrderByOrderNumber, getOrderByOrderNumber } from '../db/queries/orders'
 import { generateOrderNumber } from '../utils/documentNumbers'
 import { getRegistration } from '../utils/registration'
-import { useAuth } from '../contexts/AuthContext'
 import { updateShiftSummaryOnPayment } from '../services/shiftSummary'
 
 export type OrderLocation = 'cash_register' | { type: 'table'; tableId: number }
@@ -53,7 +52,6 @@ export interface OpenOrder {
 }
 
 export function useOrderManagement(storeId: number) {
-  const { user } = useAuth()
   const [order, setOrder] = useState<Order | null>(null)
   const [currentLocation, setCurrentLocation] = useState<OrderLocation>('cash_register')
   const orderRef = useRef<Order | null>(null)
@@ -684,7 +682,7 @@ export function useOrderManagement(storeId: number) {
       updated_at: new Date().toISOString(),
     }
 
-    console.log('[useOrderManagement] markAsPaid - saving order as paid:', orderData.id, orderData.status)
+    console.log('[useOrderManagement] markAsPaid - saving order as paid:', orderData.order_number, orderData.status)
     await saveOrder(db, orderData)
     console.log('[useOrderManagement] markAsPaid - order saved successfully')
 
@@ -727,7 +725,10 @@ export function useOrderManagement(storeId: number) {
       const db = await openDatabase()
       // Get open shift for this store (shifts are associated with stores)
       const { getOpenShift } = await import('@/db/queries/shifts')
-      const shiftData = user?.store_id ? await getOpenShift(db, user.store_id) : null
+      // Use the order's store (and hook storeId fallback), not AuthContext user — markAsPaid's
+      // useCallback did not list `user` in deps, so `user` was a stale null from first render.
+      const shiftLookupStoreId = currentOrder.storeId || storeId
+      const shiftData = shiftLookupStoreId ? await getOpenShift(db, shiftLookupStoreId) : null
       if (shiftData && shiftData.shift_number && shiftData.status === 'open') {
         console.log('[useOrderManagement] Updating shift summary for shift:', shiftData.shift_number, 'payment method:', paymentMethod, 'total:', totals.total)
         await updateShiftSummaryOnPayment(

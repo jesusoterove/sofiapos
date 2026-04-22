@@ -52,6 +52,17 @@ export function InventoryEntryPage() {
   const [unitCost, setUnitCost] = useState('')
   const [totalCost, setTotalCost] = useState('')
   const [notes, setNotes] = useState('')
+  const [isCompactHeight, setIsCompactHeight] = useState(false)
+
+  useEffect(() => {
+    const updateCompactHeight = () => {
+      setIsCompactHeight(window.innerHeight < 800)
+    }
+
+    updateCompactHeight()
+    window.addEventListener('resize', updateCompactHeight)
+    return () => window.removeEventListener('resize', updateCompactHeight)
+  }, [])
 
   useEffect(() => {
     const loadData = async () => {
@@ -449,17 +460,23 @@ export function InventoryEntryPage() {
       <div className="p-2 flex flex-col overflow-hidden h-full w-full">
         <div className="mx-auto flex flex-col flex-1 min-h-0 w-full">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4 flex-shrink-0">
-            <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+          <div className="flex items-center justify-between mb-2 flex-shrink-0">
+            <h1
+              className="text-xl font-bold"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
               {t('inventory.inventoryEntry') || 'Entrada de Inventario'} - {t('shift.shift') || 'Turno'} #{currentShift.shift_number}
             </h1>
           </div>
 
           {/* Two Sections: Existing Entries and Form */}
-          <div className="grid grid-cols-3 gap-4 flex-1 min-h-0 h-full">
+          <div className={`grid grid-cols-3 ${isCompactHeight ? 'gap-2' : 'gap-4'} flex-1 min-h-0 h-full`}>
             {/* Left: Existing Entries */}
             <Card padding="md" className="flex flex-col h-full overflow-hidden col-span-2">
-              <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+              <h2
+                className={`text-xl font-semibold ${isCompactHeight ? 'mb-2' : 'mb-4'}`}
+                style={{ color: 'var(--color-text-primary)' }}
+              >
                 {t('inventory.existingEntries') || 'Entradas Existentes'}
               </h2>
               <div className="overflow-y-auto flex-1 min-h-0">
@@ -514,10 +531,16 @@ export function InventoryEntryPage() {
 
             {/* Right: New Entry Form */}
             <Card padding="md" className="flex flex-col h-full overflow-hidden">
-              <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+              <h2
+                className={`text-xl font-semibold ${isCompactHeight ? 'mb-2' : 'mb-4'}`}
+                style={{ color: 'var(--color-text-primary)' }}
+              >
                 {t('inventory.newEntry') || 'Nueva Entrada'}
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
+              <form
+                onSubmit={handleSubmit}
+                className={`${isCompactHeight ? 'space-y-2' : 'space-y-4'} flex-1 flex flex-col`}
+              >
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
                     {t('inventory.item') || 'Item'}
@@ -582,7 +605,7 @@ export function InventoryEntryPage() {
                     }}
                   />
                 </div>
-                <div className="flex justify-end gap-2 pt-4 flex-shrink-0">
+                <div className={`flex justify-end gap-2 ${isCompactHeight ? 'pt-2' : 'pt-4'} flex-shrink-0`}>
                   <Button type="submit" variant="primary">
                     {t('inventory.saveEntry') || 'GUARDAR ENTRADA'}
                   </Button>

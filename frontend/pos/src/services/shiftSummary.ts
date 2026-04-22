@@ -110,11 +110,7 @@ export async function initializeShiftSummary(
     updated_at: new Date().toISOString(),
   }
   
-  console.log('[initializeShiftSummary] Saving shift summary:', {
-    shift_number: summary.shift_number,
-    inventory_items_count: summary.inventory_summary.length,
-    initial_cash: summary.initial_cash,
-  })
+  console.log('[initializeShiftSummary] Saving shift summary:', summary)
   
   await saveShiftSummary(db, summary)
   
@@ -138,6 +134,7 @@ export async function updateShiftSummaryOnPayment(
   const db = await openDatabase()
   
   let summary = await getShiftSummary(db, shiftNumber)
+  console.log('SUMMARY UPDATE AFTER PAYMENT', summary);
   if (!summary) {
     // Safeguard: If summary doesn't exist, try to create it from shift data
     console.warn(`Shift summary not found for shift ${shiftNumber}, attempting to create it`)
@@ -166,7 +163,7 @@ export async function updateShiftSummaryOnPayment(
       return
     }
   }
-  
+  console.log('SUMMARY UPDATE AFTER PAYMENT', summary);
   // Update financial totals
   if (paymentMethod === 'cash') {
     summary.expected_cash += order.total
@@ -317,7 +314,10 @@ async function calculateShiftSummaryFromLocalDatabase(
   // Filter orders by shift_id
   // Handle both synced shifts (id is a number > 0) and unsynced shifts (id is 0 or undefined)
   // For unsynced shifts, also check that order was created after shift opened
+  console.log('calculateShiftSummaryFromLocalDatabase');
+  console.log('shift', shift);
   const shiftOrders = allPaidOrders.filter(order => {
+    console.log('order', order);
     // Match by shift_id if available
     if (shift.id !== undefined && shift.id !== null) {
       // Handle both number and string comparisons
@@ -348,16 +348,20 @@ async function calculateShiftSummaryFromLocalDatabase(
       item.data?.payment_method &&
       item.data?.amount_paid
     )
+
+    console.log('syncItem', syncItem);
     
     const paymentMethod = syncItem?.data?.payment_method as 'cash' | 'bank_transfer' | undefined
     const amountPaid = syncItem?.data?.amount_paid as number | undefined || order.total
-    
+    console.log('amountPaid & paymentMethod', amountPaid, paymentMethod);
+
     if (paymentMethod === 'cash') {
       expectedCash += amountPaid
     } else if (paymentMethod === 'bank_transfer') {
       bankTransferBalance += amountPaid
     }
-    
+    console.log('expectedCash & bankTransferBalance', expectedCash, bankTransferBalance);
+
     // Get order items and calculate material usage
     const orderItems = await getOrderItemsByOrderNumber(db, order.order_number)
     
@@ -471,7 +475,8 @@ export async function updateShiftSummaryOnClose(
   summary.closed_at = new Date().toISOString()
   
   // Calculate difference
-  summary.difference = summary.expected_cash - finalCash
+  console.log('Calculating difference', summary, summary.expected_cash, finalCash);
+  summary.difference = finalCash - summary.expected_cash;
   
   // Get all inventory entries for this shift to check if there were any entries during the shift
   const { getInventoryEntriesByShift } = await import('../db/queries/inventory')
@@ -543,6 +548,7 @@ export async function updateShiftSummaryOnClose(
 export async function getShiftSummaryForDisplay(shiftNumber: string): Promise<ShiftSummaryData | null> {
   const db = await openDatabase()
   const summary = await getShiftSummary(db, shiftNumber)
+  console.log('getShiftSummaryForDisplay', summary);
   return summary || null
 }
 

@@ -345,6 +345,26 @@
       "printReceipt": "Imprimir Recibo",
       "printReceiptHelp": "Estado predeterminado de \"Imprimir recibo\" en el cuadro de confirmación de pago después del pago."
     },
+    "targetStore": {
+      "title": "Tienda",
+      "loadError": "Error al cargar las tiendas disponibles",
+      "openShiftError": "No se puede cambiar la tienda mientras hay un turno abierto",
+      "required": "Por favor seleccione una tienda",
+      "registrationRequired": "No se encontraron datos de registro",
+      "invalidSelection": "La tienda seleccionada no está disponible",
+      "noChanges": "La tienda ya está seleccionada",
+      "saveSuccess": "Tienda actualizada exitosamente",
+      "adminCredentialsRequired": "Se requieren usuario y contraseña de administrador",
+      "adminRequired": "Solo un administrador puede cambiar la tienda",
+      "invalidAdminCredentials": "Usuario o contraseña de administrador inválidos",
+      "verifyingAdmin": "Verificando administrador...",
+      "current": "Tienda actual",
+      "notConfigured": "No configurada",
+      "select": "Seleccionar tienda",
+      "selectPlaceholder": "Seleccione una tienda...",
+      "refresh": "Actualizar",
+      "openShiftHint": "Cierre el turno actual antes de cambiar la tienda."
+    },
     "updates": {
       "title": "Actualizaciones de Aplicación",
       "currentVersion": "Versión Actual",

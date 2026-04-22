@@ -38,6 +38,7 @@ export function OpenShiftPage() {
   const [beginningBalanceRows, setBeginningBalanceRows] = useState<InventoryBalanceRow[]>([])
   const [loading, setLoading] = useState(true)
   const [currentDateTime, setCurrentDateTime] = useState(new Date())
+  const [isCompactHeight, setIsCompactHeight] = useState(false)
 
   // Sync initialCash from search params when they change
   useEffect(() => {
@@ -54,6 +55,16 @@ export function OpenShiftPage() {
       setCurrentDateTime(new Date())
     }, 1000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const updateCompactHeight = () => {
+      setIsCompactHeight(window.innerHeight < 800)
+    }
+
+    updateCompactHeight()
+    window.addEventListener('resize', updateCompactHeight)
+    return () => window.removeEventListener('resize', updateCompactHeight)
   }, [])
 
   // Fetch data on mount
@@ -194,16 +205,16 @@ export function OpenShiftPage() {
       <div className="p-2 flex flex-col overflow-hidden h-full">
         <div className="max-w-7xl mx-auto flex flex-col flex-1 min-h-0 w-full">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-2 flex-shrink-0">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+              <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                 {t('shift.openShift') || 'Abrir Turno'}
               </h1>
             </div>
             <div></div>
             <div>
               <div 
-                className="text-lg font-mono" 
+                className="text-sm font-mono" 
                 style={{ color: 'var(--color-text-secondary)' }}
               >
                 {formattedDateTime}
@@ -213,9 +224,9 @@ export function OpenShiftPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
             {/* Two Column Layout */}
-            <div className="grid grid-cols-2 gap-4 flex-1 min-h-0 h-full">
+            <div className={`grid grid-cols-2 ${isCompactHeight ? 'gap-2' : 'gap-4'} flex-1 min-h-0 h-full`}>
               {/* Left Column: Beginning Balances Grid */}
-              <Card padding="md" className="flex flex-col h-full overflow-hidden">
+              <Card padding="md" className="flex flex-col h-full overflow-hidden px-4 py-1">
                 <h2 className="text-xl font-semibold mb-1 flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>
                   {t('shift.beginningBalances') || 'Balances Iniciales'}
                 </h2>
@@ -301,8 +312,11 @@ export function OpenShiftPage() {
               </Card>
 
               {/* Right Column: Opening Information */}
-              <Card padding="md" className="flex flex-col h-full overflow-hidden">
-                <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+              <Card padding="md" className="flex flex-col h-full overflow-hidden px-4 py-1">
+                <h2
+                  className={`text-xl font-semibold ${isCompactHeight ? 'mb-2' : 'mb-4'}`}
+                  style={{ color: 'var(--color-text-primary)' }}
+                >
                   {t('shift.openingInformation') || 'Información de Apertura'}
                 </h2>
                 <div className="space-y-4 flex-1 flex flex-col">
@@ -314,6 +328,7 @@ export function OpenShiftPage() {
                     step="0.01"
                     min="0"
                     fullWidth
+                    className="py-1"
                   />
                   <div className="w-full">
                     <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>
@@ -322,8 +337,8 @@ export function OpenShiftPage() {
                     <textarea
                       value={openingNotes}
                       onChange={(e) => setOpeningNotes(e.target.value)}
-                      rows={6}
-                      className="w-full p-2 border rounded-lg"
+                      rows={4}
+                      className="w-full px-4 py-1 border rounded-lg"
                       style={{
                         borderColor: 'var(--color-border-default)',
                         color: 'var(--color-text-primary)',
@@ -332,7 +347,7 @@ export function OpenShiftPage() {
                   </div>
                   
                   {/* Action Buttons */}
-                  <div className="flex justify-end gap-2 pt-4 flex-shrink-0">
+                  <div className={`flex justify-end gap-2 ${isCompactHeight ? 'pt-2' : 'pt-4'} flex-shrink-0`}>
                     <Button
                       type="button"
                       variant="secondary"

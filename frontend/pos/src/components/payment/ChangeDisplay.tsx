@@ -8,9 +8,10 @@ import { formatPrice } from '@sofiapos/ui'
 interface ChangeDisplayProps {
   change: number
   disabled?: boolean
+  isCompact?: boolean
 }
 
-export function ChangeDisplay({ change, disabled = false }: ChangeDisplayProps) {
+export function ChangeDisplay({ change, disabled = false, isCompact = false }: ChangeDisplayProps) {
   const { t } = useTranslation()
 
   const isNegative = change < 0
@@ -51,7 +52,7 @@ export function ChangeDisplay({ change, disabled = false }: ChangeDisplayProps) 
       }}
     >
       <label 
-        className="text-lg font-medium" 
+        className={isCompact ? 'text-base font-medium' : 'text-lg font-medium'}
         style={{ 
           color: disabled 
             ? 'var(--color-text-disabled, #9CA3AF)' 
@@ -61,7 +62,7 @@ export function ChangeDisplay({ change, disabled = false }: ChangeDisplayProps) 
         {t('payment.change') || 'Change: $'}
       </label>
       <div
-        className={`flex-1 h-10 text-2xl font-bold text-right px-4 py-0 ${
+        className={`flex-1 font-bold text-right ${isCompact ? 'h-9 text-xl px-2 py-0' : 'h-10 text-2xl px-4 py-0'} ${
           disabled ? 'opacity-50 cursor-not-allowed' : ''
         }`}
         style={{

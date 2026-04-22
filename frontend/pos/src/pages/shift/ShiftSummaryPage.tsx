@@ -70,6 +70,7 @@ export function ShiftSummaryPage() {
   // Format dates using centralized utility
   const openedDate = formatDateTime(summary.opened_at)
   const closedDate = summary.closed_at ? formatDateTime(summary.closed_at) : ''
+  const difference = (value: number) => (value <= 0) ? value : 0; 
 
   return (
     <POSLayout>
@@ -92,7 +93,7 @@ export function ShiftSummaryPage() {
               <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
                 {t('shift.financialSummary') || 'Resumen Financiero'}
               </h2>
-              <div className="space-y-4 flex-1">
+              <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1">
                 <div>
                   <label className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                     {t('shift.shiftStartDate') || 'Fecha de Inicio:'}
@@ -127,14 +128,14 @@ export function ShiftSummaryPage() {
                     {formatPrice(summary.final_cash || 0, 'en-US', 'USD', 2)}
                   </div>
                 </div>
-                <div>
+                {/* <div>
                   <label className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                     {t('shift.expectedCash') || 'Efectivo Esperado:'}
                   </label>
                   <div className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                     {formatPrice(summary.expected_cash, 'en-US', 'USD', 2)}
                   </div>
-                </div>
+                </div> */}
                 <div>
                   <label className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                     {t('shift.difference') || 'Diferencia:'}
@@ -144,7 +145,7 @@ export function ShiftSummaryPage() {
                       (summary.difference || 0) >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
-                    {formatPrice(summary.difference || 0, 'en-US', 'USD', 2)}
+                    {formatPrice(difference(summary.difference || 0), 'en-US', 'USD', 2)}
                   </div>
                 </div>
                 <div>

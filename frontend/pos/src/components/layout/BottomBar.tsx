@@ -17,7 +17,11 @@ import { useUpdate } from '@/contexts/UpdateContext'
 import { getRegistration } from '@/utils/registration'
 import { TableOrdersList } from './TableOrdersList'
 
-export function BottomBar() {
+interface BottomBarProps {
+  isCompactHeight?: boolean
+}
+
+export function BottomBar({ isCompactHeight = false }: BottomBarProps) {
   const { isOnline, pendingCount, syncNow } = useOffline()
   // Use context instead of hook directly - this ensures state persists across remounts
   const { openOrders, currentLocation, switchToLocation, switchToCashRegister } = useOrderManagementContext()
@@ -94,7 +98,7 @@ export function BottomBar() {
 
   return (
     <div
-      className="h-16 flex items-center justify-between px-4"
+      className={`${isCompactHeight ? 'h-12' : 'h-16'} flex items-center justify-between px-4`}
       style={{
         backgroundColor: 'var(--color-bg-default)',
         color: 'var(--color-text-primary)',

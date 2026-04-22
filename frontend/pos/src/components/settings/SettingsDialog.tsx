@@ -15,6 +15,9 @@ import {
   type CashDrawerConnectionType,
 } from '@/services/cashDrawer'
 import { useUpdate } from '@/contexts/UpdateContext'
+import { useShiftContext } from '@/contexts/ShiftContext'
+import apiClient from '@/api/client'
+import { getRegistration, saveRegistration } from '@/utils/registration'
 import { toast } from 'react-toastify'
 import { FaSync, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa'
 
@@ -23,19 +26,34 @@ interface SettingsDialogProps {
   onClose: () => void
 }
 
+interface StoreOption {
+  id: number
+  name: string
+  code: string
+  is_active: boolean
+}
+
 export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
   const { t } = useTranslation()
   const { status, updateInfo, downloadProgress, error, checkForUpdates, currentVersion, isElectron } = useUpdate()
+  const { hasOpenShift, isLoading: isShiftLoading } = useShiftContext()
   const [isLoading, setIsLoading] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [isLoadingPorts, setIsLoadingPorts] = useState(false)
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false)
+  const [isLoadingStores, setIsLoadingStores] = useState(false)
   const [availablePorts, setAvailablePorts] = useState<
     Array<{ path: string; manufacturer?: string; vendorId?: string; productId?: string; serialNumber?: string }>
   >([])
   const [availablePrinters, setAvailablePrinters] = useState<
     Array<{ name: string; displayName: string; description: string; status: number }>
   >([])
+  const [availableStores, setAvailableStores] = useState<StoreOption[]>([])
+  const [selectedStoreId, setSelectedStoreId] = useState<number | ''>('')
+  const [currentStoreName, setCurrentStoreName] = useState('')
+  const [adminUsername, setAdminUsername] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false)
   const [useCustomPort, setUseCustomPort] = useState(false)
   const [config, setConfig] = useState<CashDrawerConfig>({
     device_name: '',
@@ -47,7 +65,7 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     print_receipt_enabled: false,
   })
   const [initialConfig, setInitialConfig] = useState<CashDrawerConfig | null>(null)
-  const [activeTab, setActiveTab] = useState<'cashDrawer' | 'updates'>('cashDrawer')
+  const [activeTab, setActiveTab] = useState<'cashDrawer' | 'targetStore' | 'updates'>('cashDrawer')
 
   // Load existing config and available devices when dialog opens
   useEffect(() => {
@@ -55,6 +73,8 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       loadConfig()
       loadAvailablePrinters()
       loadAvailablePorts()
+      loadTargetStoreConfig()
+      loadAvailableStores()
     }
   }, [isOpen])
 
@@ -122,6 +142,33 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
       toast.error(t('settings.loadPortsError') || 'Failed to load available ports')
     } finally {
       setIsLoadingPorts(false)
+    }
+  }
+
+  const loadTargetStoreConfig = () => {
+    const registration = getRegistration()
+    if (!registration) {
+      setSelectedStoreId('')
+      setCurrentStoreName('')
+      return
+    }
+
+    setSelectedStoreId(registration.storeId)
+    setCurrentStoreName(registration.storeName || `Store #${registration.storeId}`)
+    setAdminUsername('')
+    setAdminPassword('')
+  }
+
+  const loadAvailableStores = async () => {
+    setIsLoadingStores(true)
+    try {
+      const response = await apiClient.get('/api/v1/stores?active_only=true')
+      setAvailableStores(response.data || [])
+    } catch (error) {
+      console.error('Failed to load stores:', error)
+      toast.error(t('settings.targetStore.loadError') || 'Failed to load available stores')
+    } finally {
+      setIsLoadingStores(false)
     }
   }
 
@@ -213,6 +260,79 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
     }
   }
 
+  const handleSaveTargetStore = async () => {
+    if (isShiftLoading || isVerifyingAdmin) return
+
+    if (hasOpenShift) {
+      toast.error(t('settings.targetStore.openShiftError') || 'Cannot change target store while a shift is open')
+      return
+    }
+
+    if (selectedStoreId === '') {
+      toast.error(t('settings.targetStore.required') || 'Please select a target store')
+      return
+    }
+
+    const registration = getRegistration()
+    if (!registration) {
+      toast.error(t('settings.targetStore.registrationRequired') || 'Registration data not found')
+      return
+    }
+
+    const selectedStore = availableStores.find((store) => store.id === selectedStoreId)
+    if (!selectedStore) {
+      toast.error(t('settings.targetStore.invalidSelection') || 'Selected store is not available')
+      return
+    }
+
+    if (registration.storeId === selectedStore.id) {
+      toast.info(t('settings.targetStore.noChanges') || 'Target store is already selected')
+      return
+    }
+
+    if (!adminUsername.trim() || !adminPassword.trim()) {
+      toast.error(t('settings.targetStore.adminCredentialsRequired') || 'Admin username and password are required')
+      return
+    }
+
+    setIsVerifyingAdmin(true)
+    try {
+      const formData = new FormData()
+      formData.append('username', adminUsername.trim())
+      formData.append('password', adminPassword)
+
+      const response = await apiClient.post('/api/v1/auth/login', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        metadata: {
+          skipAuthToken: true,
+          skipTokenRefresh: true,
+        },
+      } as any)
+
+      const adminUser = response?.data?.user
+      if (!adminUser?.is_superuser) {
+        toast.error(t('settings.targetStore.adminRequired') || 'Only an admin can change the store')
+        return
+      }
+
+      saveRegistration({
+        ...registration,
+        storeId: selectedStore.id,
+        storeName: selectedStore.name,
+      })
+      setCurrentStoreName(selectedStore.name)
+      setAdminPassword('')
+      toast.success(t('settings.targetStore.saveSuccess') || 'Target store updated successfully')
+    } catch (error: any) {
+      console.error('Failed to verify admin credentials:', error)
+      toast.error(t('settings.targetStore.invalidAdminCredentials') || 'Invalid admin username or password')
+    } finally {
+      setIsVerifyingAdmin(false)
+    }
+  }
+
   return (
     <Modal
       isOpen={isOpen}
@@ -236,6 +356,20 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             }}
           >
             {t('settings.cashDrawer.title') || 'Cash Drawer'}
+          </button>
+          <button
+            onClick={() => setActiveTab('targetStore')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'targetStore'
+                ? 'border-b-2'
+                : 'opacity-60 hover:opacity-100'
+            }`}
+            style={{
+              color: activeTab === 'targetStore' ? 'var(--color-primary-600)' : 'var(--color-text-secondary)',
+              borderBottomColor: activeTab === 'targetStore' ? 'var(--color-primary-600)' : 'transparent',
+            }}
+          >
+            {t('settings.targetStore.title') || 'Target Store'}
           </button>
           {isElectron && (
             <button
@@ -494,6 +628,104 @@ export function SettingsDialog({ isOpen, onClose }: SettingsDialogProps) {
             </div>
           </form>
         </div>
+        )}
+
+        {/* Target Store Tab */}
+        {activeTab === 'targetStore' && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>
+              {t('settings.targetStore.title') || 'Target Store'}
+            </h3>
+
+            <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-bg-secondary, #F9FAFB)' }}>
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                {t('settings.targetStore.current') || 'Current target store'}:
+              </p>
+              <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                {currentStoreName || (t('settings.targetStore.notConfigured') || 'Not configured')}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                {t('settings.targetStore.select') || 'Select target store'}
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={selectedStoreId}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const value = e.target.value
+                    setSelectedStoreId(value ? Number(value) : '')
+                  }}
+                  disabled={isLoadingStores || hasOpenShift || isShiftLoading}
+                  className="flex-1 px-3 py-2 border rounded"
+                  style={{
+                    borderColor: 'var(--color-border-default)',
+                    backgroundColor: 'var(--color-bg-default)',
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
+                  <option value="">{t('settings.targetStore.selectPlaceholder') || 'Select a store...'}</option>
+                  {availableStores.map((store) => (
+                    <option key={store.id} value={store.id}>
+                      {store.name} ({store.code})
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={loadAvailableStores}
+                  disabled={isLoadingStores}
+                >
+                  {isLoadingStores ? (t('common.loading') || 'Loading...') : (t('settings.targetStore.refresh') || 'Refresh')}
+                </Button>
+              </div>
+            </div>
+            <Input
+              type="text"
+              label={t('registration.adminUsername') || 'Admin Username'}
+              value={adminUsername}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdminUsername(e.target.value)}
+              fullWidth
+              disabled={isLoadingStores || hasOpenShift || isShiftLoading || isVerifyingAdmin}
+            />
+            <Input
+              type="password"
+              label={t('registration.adminPassword') || 'Admin Password'}
+              value={adminPassword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAdminPassword(e.target.value)}
+              fullWidth
+              disabled={isLoadingStores || hasOpenShift || isShiftLoading || isVerifyingAdmin}
+            />
+
+            {hasOpenShift && !isShiftLoading && (
+              <p className="text-sm" style={{ color: 'var(--color-warning-600, #D97706)' }}>
+                {t('settings.targetStore.openShiftHint') || 'Close the current shift before changing the target store.'}
+              </p>
+            )}
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleClose}
+                disabled={isLoadingStores || isVerifyingAdmin}
+              >
+                {t('common.cancel') || 'Cancel'}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleSaveTargetStore}
+                disabled={isLoadingStores || isShiftLoading || hasOpenShift || selectedStoreId === '' || isVerifyingAdmin}
+              >
+                {isVerifyingAdmin
+                  ? (t('settings.targetStore.verifyingAdmin') || 'Verifying admin...')
+                  : (t('common.save') || 'Save')}
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Updates Tab */}

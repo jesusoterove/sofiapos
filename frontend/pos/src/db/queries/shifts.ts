@@ -56,6 +56,7 @@ export async function getOpenShift(
     const index = db.transaction('shifts', 'readonly').store.index('by-status')
     const shifts = await index.getAll('open')
     
+    console.log('GET OPEN SHIFT for store with id:', storeId, 'shifts:', shifts);
     // Find shift for this store
     const storeShift = shifts.find(s => s.store_id === storeId)
     return storeShift || null
